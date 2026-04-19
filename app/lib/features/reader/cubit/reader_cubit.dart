@@ -31,28 +31,37 @@ class ReaderCubit extends Cubit<ReaderState> {
       // Load reader preferences
       final prefs = await SharedPreferences.getInstance();
       final fontSize = prefs.getDouble('reader_font_size') ?? 18.0;
+      final lineHeight = prefs.getDouble('reader_line_height') ?? 1.8;
+      final margin = prefs.getDouble('reader_margin') ?? 24.0;
       final themeIndex = prefs.getInt('reader_theme') ?? 0;
+      final fontFamilyIndex = prefs.getInt('reader_font_family') ?? 0;
 
-      // Get chapters
+      // Get spine items (reading order)
       final chapters = await _epubService.getChapters(state.book.filePath);
 
       // Load saved progress
       final progress = await _database.getProgressForBook(state.book.id);
       final startChapter = progress?.currentChapter ?? 0;
+      final safeStartChapter = startChapter.clamp(0, chapters.isEmpty ? 0 : chapters.length - 1);
 
-      // Load first chapter content
+      // Load content
       final content = await _epubService.getChapterContent(
         state.book.filePath,
-        startChapter,
+        safeStartChapter,
       );
 
       emit(state.copyWith(
         status: ReaderStatus.loaded,
         chapters: chapters,
-        currentChapter: startChapter,
+        currentChapter: safeStartChapter,
         currentContent: content,
         fontSize: fontSize,
-        readerTheme: ReaderTheme.values[themeIndex.clamp(0, ReaderTheme.values.length - 1)],
+        lineHeight: lineHeight,
+        horizontalMargin: margin,
+        fontFamily: ReaderFontFamily.values[
+            fontFamilyIndex.clamp(0, ReaderFontFamily.values.length - 1)],
+        readerTheme: ReaderTheme.values[
+            themeIndex.clamp(0, ReaderTheme.values.length - 1)],
         scrollProgress: progress?.chapterProgress ?? 0.0,
       ));
 
@@ -131,6 +140,27 @@ class ReaderCubit extends Cubit<ReaderState> {
     emit(state.copyWith(fontSize: clamped));
   }
 
+  Future<void> setLineHeight(double height) async {
+    final clamped = height.clamp(1.2, 3.0);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('reader_line_height', clamped);
+    emit(state.copyWith(lineHeight: clamped));
+  }
+
+  Future<void> setHorizontalMargin(double margin) async {
+    final clamped = margin.clamp(8.0, 48.0);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('reader_margin', clamped);
+    emit(state.copyWith(horizontalMargin: clamped));
+  }
+
+  Future<void> setFontFamily(ReaderFontFamily family) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+        'reader_font_family', ReaderFontFamily.values.indexOf(family));
+    emit(state.copyWith(fontFamily: family));
+  }
+
   Future<void> setReaderTheme(ReaderTheme theme) async {
     final prefs = await SharedPreferences.getInstance();
     final index = ReaderTheme.values.indexOf(theme);
@@ -181,7 +211,8 @@ class ReaderCubit extends Cubit<ReaderState> {
     emit(state.copyWith(highlights: highlights));
   }
 
-  Future<void> addHighlight(String selectedText, int startOffset, int endOffset) async {
+  Future<void> addHighlight(
+      String selectedText, int startOffset, int endOffset) async {
     final now = DateTime.now();
     await _database.insertHighlight(
       db.HighlightsCompanion.insert(
@@ -222,5 +253,12 @@ class ReaderCubit extends Cubit<ReaderState> {
       ),
     );
     await loadHighlightsForChapter();
+  }
+
+  @override
+  Future<void> close() {
+    // Evict the cached epub when leaving the reader
+    _epubService.closeBook(state.book.filePath);
+    return super.close();
   }
 }

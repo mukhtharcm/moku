@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,7 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-import '../../../core/database/database.dart' hide Book, Bookmark, Highlight, BookCollection;
+import '../../../core/database/database.dart'
+    hide Book, Bookmark, Highlight, BookCollection;
 import '../../../core/models/book.dart';
 import '../../../core/services/epub_service.dart';
 import '../../../core/theme/app_theme.dart';
@@ -13,6 +15,10 @@ import '../../../core/theme/theme_cubit.dart';
 import '../cubit/reader_cubit.dart';
 import '../cubit/reader_state.dart';
 import 'annotations_screen.dart';
+
+// ---------------------------------------------------------------------------
+// 1. ReaderScreen — entry point, creates BlocProvider
+// ---------------------------------------------------------------------------
 
 class ReaderScreen extends StatelessWidget {
   final Book book;
@@ -32,6 +38,10 @@ class ReaderScreen extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// 2. _ReaderView — stateful, owns WebViewController & zen‑mode hint animation
+// ---------------------------------------------------------------------------
+
 class _ReaderView extends StatefulWidget {
   const _ReaderView();
 
@@ -39,9 +49,9 @@ class _ReaderView extends StatefulWidget {
   State<_ReaderView> createState() => _ReaderViewState();
 }
 
-class _ReaderViewState extends State<_ReaderView> {
+class _ReaderViewState extends State<_ReaderView>
+    with SingleTickerProviderStateMixin {
   late WebViewController _webController;
-  // ignore: unused_field
   bool _webViewReady = false;
 
   // Selection state for highlight toolbar
@@ -49,14 +59,33 @@ class _ReaderViewState extends State<_ReaderView> {
   int? _selectionStartOffset;
   int? _selectionEndOffset;
 
-  // Track the last loaded content to avoid redundant reloads
+  // Track last loaded state to avoid redundant reloads
   String _lastLoadedContent = '';
   double _lastLoadedFontSize = 0;
+  double _lastLoadedLineHeight = 0;
+  double _lastLoadedMargin = 0;
+  ReaderFontFamily? _lastLoadedFontFamily;
   ReaderTheme? _lastLoadedTheme;
+
+  // Zen‑mode hint animation
+  late AnimationController _zenHintController;
+  late Animation<double> _zenHintOpacity;
+  Timer? _zenHintTimer;
+  bool _zenHintVisible = false;
 
   @override
   void initState() {
     super.initState();
+
+    // Zen hint fade controller (1 s fade‑out)
+    _zenHintController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    );
+    _zenHintOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _zenHintController, curve: Curves.easeOut),
+    );
+
     _webController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.transparent)
@@ -70,7 +99,6 @@ class _ReaderViewState extends State<_ReaderView> {
             setState(() => _webViewReady = true);
             _injectScrollListener();
             _injectSelectionListener();
-            // Re-apply highlights after page loads
             final state = context.read<ReaderCubit>().state;
             _applyHighlightsToWebView(state.highlights);
           },
@@ -80,10 +108,26 @@ class _ReaderViewState extends State<_ReaderView> {
 
   @override
   void dispose() {
-    // Restore system UI when leaving reader
+    _zenHintTimer?.cancel();
+    _zenHintController.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
+
+  // -- Zen hint helpers ----------------------------------------------------
+
+  void _showZenHint() {
+    _zenHintTimer?.cancel();
+    _zenHintController.reset();
+    setState(() => _zenHintVisible = true);
+    _zenHintTimer = Timer(const Duration(seconds: 2), () {
+      _zenHintController.forward().then((_) {
+        if (mounted) setState(() => _zenHintVisible = false);
+      });
+    });
+  }
+
+  // -- JS bridge -----------------------------------------------------------
 
   void _onJsMessage(JavaScriptMessage message) {
     final data = message.message;
@@ -113,7 +157,6 @@ class _ReaderViewState extends State<_ReaderView> {
   }
 
   void _injectScrollListener() {
-    // Use throttled scroll in power saver mode
     final powerSaver = context.read<ThemeCubit>().state.powerSaver;
     final throttleMs = powerSaver ? 1000 : 200;
 
@@ -162,17 +205,21 @@ class _ReaderViewState extends State<_ReaderView> {
 
   void _applyHighlightsToWebView(List highlights) {
     if (highlights.isEmpty) {
-      _webController.runJavaScript('if(typeof clearHighlights==="function") clearHighlights();');
+      _webController
+          .runJavaScript('if(typeof clearHighlights==="function") clearHighlights();');
       return;
     }
-    final highlightData = highlights.map((h) => {
-      'text': h.selectedText,
-      'id': h.id,
-      'color': h.color,
-    }).toList();
+    final highlightData = highlights
+        .map((h) => {
+              'text': h.selectedText,
+              'id': h.id,
+              'color': h.color,
+            })
+        .toList();
     final jsonStr = json.encode(highlightData);
     final escaped = jsonStr.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
-    _webController.runJavaScript("if(typeof applyHighlights==='function') applyHighlights('$escaped');");
+    _webController.runJavaScript(
+        "if(typeof applyHighlights==='function') applyHighlights('$escaped');");
   }
 
   void _clearSelection() {
@@ -183,6 +230,8 @@ class _ReaderViewState extends State<_ReaderView> {
       _selectionEndOffset = null;
     });
   }
+
+  // -- Highlight actions ---------------------------------------------------
 
   void _showHighlightActions(BuildContext context) {
     final text = _selectedText;
@@ -222,7 +271,9 @@ class _ReaderViewState extends State<_ReaderView> {
                 title: const Text('Highlight'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  context.read<ReaderCubit>().addHighlight(text, startOffset, endOffset);
+                  context
+                      .read<ReaderCubit>()
+                      .addHighlight(text, startOffset, endOffset);
                   _clearSelection();
                 },
               ),
@@ -242,7 +293,10 @@ class _ReaderViewState extends State<_ReaderView> {
                   Clipboard.setData(ClipboardData(text: text));
                   _clearSelection();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Copied to clipboard'), duration: Duration(seconds: 1)),
+                    const SnackBar(
+                      content: Text('Copied to clipboard'),
+                      duration: Duration(seconds: 1),
+                    ),
                   );
                 },
               ),
@@ -253,7 +307,8 @@ class _ReaderViewState extends State<_ReaderView> {
     );
   }
 
-  void _showAddNoteDialog(BuildContext context, String text, int startOffset, int endOffset) {
+  void _showAddNoteDialog(
+      BuildContext context, String text, int startOffset, int endOffset) {
     final noteController = TextEditingController();
     showDialog(
       context: context,
@@ -295,7 +350,8 @@ class _ReaderViewState extends State<_ReaderView> {
                 final highlights = cubit.state.highlights;
                 if (highlights.isNotEmpty) {
                   final lastHighlight = highlights.last;
-                  await cubit.updateHighlightNote(lastHighlight.id, noteController.text);
+                  await cubit.updateHighlightNote(
+                      lastHighlight.id, noteController.text);
                 }
               }
               _clearSelection();
@@ -307,14 +363,20 @@ class _ReaderViewState extends State<_ReaderView> {
     );
   }
 
-  void _loadContent(String htmlContent, ReaderTheme theme, double fontSize) {
-    final html = _wrapHtml(htmlContent, theme, fontSize);
+  // -- HTML content --------------------------------------------------------
+
+  void _loadContent(ReaderState state) {
+    final html = _wrapHtml(state.currentContent, state);
     _webController.loadHtmlString(html);
   }
 
-  String _wrapHtml(String content, ReaderTheme theme, double fontSize) {
-    final bgColor = _colorToHex(theme.backgroundColor);
-    final textColor = _colorToHex(theme.textColor);
+  String _wrapHtml(String content, ReaderState state) {
+    final bgColor = _colorToHex(state.readerTheme.backgroundColor);
+    final textColor = _colorToHex(state.readerTheme.textColor);
+    final fontFamily = state.fontFamily.cssFontFamily;
+    final fontSize = state.fontSize;
+    final lineHeight = state.lineHeight;
+    final hMargin = state.horizontalMargin;
 
     return '''
 <!DOCTYPE html>
@@ -323,14 +385,14 @@ class _ReaderViewState extends State<_ReaderView> {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; }
   body {
-    background-color: $bgColor;
-    color: $textColor;
-    font-family: -apple-system, system-ui, sans-serif;
-    font-size: ${fontSize}px;
-    line-height: 1.8;
-    padding: 20px 24px 60px 24px;
+    background-color: $bgColor !important;
+    color: $textColor !important;
+    font-family: $fontFamily !important;
+    font-size: ${fontSize}px !important;
+    line-height: $lineHeight !important;
+    padding: 20px ${hMargin}px 60px ${hMargin}px !important;
     word-wrap: break-word;
     overflow-wrap: break-word;
     -webkit-text-size-adjust: none;
@@ -452,6 +514,8 @@ function highlightTextInBody(text, id, color) {
         '${b.toRadixString(16).padLeft(2, '0')}';
   }
 
+  // -- Build ---------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<ReaderCubit, ReaderState>(
@@ -459,18 +523,32 @@ function highlightTextInBody(text, id, color) {
           prev.currentContent != curr.currentContent ||
           prev.readerTheme != curr.readerTheme ||
           prev.fontSize != curr.fontSize ||
-          prev.highlights != curr.highlights,
+          prev.lineHeight != curr.lineHeight ||
+          prev.horizontalMargin != curr.horizontalMargin ||
+          prev.fontFamily != curr.fontFamily ||
+          prev.highlights != curr.highlights ||
+          prev.zenMode != curr.zenMode,
       listener: (context, state) {
+        // Show zen hint when entering zen mode
+        if (state.zenMode && !_zenHintVisible) {
+          _showZenHint();
+        }
+
         final contentChanged = state.currentContent != _lastLoadedContent ||
             state.fontSize != _lastLoadedFontSize ||
+            state.lineHeight != _lastLoadedLineHeight ||
+            state.horizontalMargin != _lastLoadedMargin ||
+            state.fontFamily != _lastLoadedFontFamily ||
             state.readerTheme != _lastLoadedTheme;
 
         if (state.currentContent.isNotEmpty && contentChanged) {
           _lastLoadedContent = state.currentContent;
           _lastLoadedFontSize = state.fontSize;
+          _lastLoadedLineHeight = state.lineHeight;
+          _lastLoadedMargin = state.horizontalMargin;
+          _lastLoadedFontFamily = state.fontFamily;
           _lastLoadedTheme = state.readerTheme;
-          _loadContent(state.currentContent, state.readerTheme, state.fontSize);
-          // highlights will be applied in onPageFinished
+          _loadContent(state);
         } else if (_webViewReady) {
           _applyHighlightsToWebView(state.highlights);
         }
@@ -490,7 +568,6 @@ function highlightTextInBody(text, id, color) {
           );
         }
 
-        // Zen mode: immersive, hide system UI
         if (state.zenMode) {
           SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
         } else {
@@ -505,8 +582,8 @@ function highlightTextInBody(text, id, color) {
               GestureDetector(
                 onTap: () {
                   if (state.zenMode) {
-                    // In zen mode, single tap does nothing (just reads)
-                    // Double-tap exits zen mode
+                    // Single tap in zen mode: briefly show the hint again
+                    _showZenHint();
                   } else {
                     context.read<ReaderCubit>().toggleControls();
                   }
@@ -523,7 +600,7 @@ function highlightTextInBody(text, id, color) {
                 ),
               ),
 
-              // Top controls — animated
+              // Top controls
               if (state.showControls && !state.zenMode)
                 _TopControls(
                   title: state.book.title,
@@ -532,7 +609,7 @@ function highlightTextInBody(text, id, color) {
                       context.read<ReaderCubit>().toggleZenMode(),
                 ),
 
-              // Bottom controls — animated
+              // Bottom controls
               if (state.showControls && !state.zenMode)
                 _BottomControls(
                   state: state,
@@ -542,18 +619,10 @@ function highlightTextInBody(text, id, color) {
                   onNext: state.hasNextChapter
                       ? () => context.read<ReaderCubit>().nextChapter()
                       : null,
-                  onTocTap: () => context.read<ReaderCubit>().toggleToc(),
+                  onSettings: () => _showSettingsSheet(context),
                   onBookmark: () => context
                       .read<ReaderCubit>()
                       .addBookmark(state.chapterTitle),
-                  onFontDecrease: () => context
-                      .read<ReaderCubit>()
-                      .setFontSize(state.fontSize - 1),
-                  onFontIncrease: () => context
-                      .read<ReaderCubit>()
-                      .setFontSize(state.fontSize + 1),
-                  onThemeChange: (theme) =>
-                      context.read<ReaderCubit>().setReaderTheme(theme),
                   onAnnotations: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -590,7 +659,7 @@ function highlightTextInBody(text, id, color) {
                   onClose: () => context.read<ReaderCubit>().toggleToc(),
                 ),
 
-              // Progress bar at very bottom — always visible, even in zen
+              // Progress bar — always visible, even in zen
               Positioned(
                 bottom: 0,
                 left: 0,
@@ -615,16 +684,15 @@ function highlightTextInBody(text, id, color) {
                 ),
               ),
 
-              // Zen mode exit hint — shows briefly when entering
-              if (state.zenMode)
+              // Zen mode exit hint — fades in then out
+              if (state.zenMode && _zenHintVisible)
                 Positioned(
                   bottom: 20,
                   left: 0,
                   right: 0,
                   child: Center(
-                    child: AnimatedOpacity(
-                      opacity: 0.0,
-                      duration: const Duration(seconds: 3),
+                    child: FadeTransition(
+                      opacity: _zenHintOpacity,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
@@ -634,7 +702,8 @@ function highlightTextInBody(text, id, color) {
                         ),
                         child: const Text(
                           'Double-tap to exit zen mode',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                          style:
+                              TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                       ),
                     ),
@@ -646,7 +715,22 @@ function highlightTextInBody(text, id, color) {
       },
     );
   }
+
+  void _showSettingsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => BlocProvider.value(
+        value: context.read<ReaderCubit>(),
+        child: const _ReaderSettingsSheet(),
+      ),
+    );
+  }
 }
+
+// ---------------------------------------------------------------------------
+// 3. _TopControls
+// ---------------------------------------------------------------------------
 
 class _TopControls extends StatelessWidget {
   final String title;
@@ -729,26 +813,24 @@ class _TopControls extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// 4. _BottomControls — redesigned single row
+// ---------------------------------------------------------------------------
+
 class _BottomControls extends StatelessWidget {
   final ReaderState state;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
-  final VoidCallback onTocTap;
+  final VoidCallback onSettings;
   final VoidCallback onBookmark;
-  final VoidCallback onFontDecrease;
-  final VoidCallback onFontIncrease;
-  final void Function(ReaderTheme) onThemeChange;
   final VoidCallback onAnnotations;
 
   const _BottomControls({
     required this.state,
     this.onPrevious,
     this.onNext,
-    required this.onTocTap,
+    required this.onSettings,
     required this.onBookmark,
-    required this.onFontDecrease,
-    required this.onFontIncrease,
-    required this.onThemeChange,
     required this.onAnnotations,
   });
 
@@ -771,78 +853,49 @@ class _BottomControls extends StatelessWidget {
         ),
         child: SafeArea(
           top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Chapter navigation
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${state.currentChapter + 1} / ${state.chapters.length}',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 12,
-                      ),
-                    ),
-                    Text(
-                      '${(state.scrollProgress * 100).toInt()}%',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8, top: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.navigate_before, color: Colors.white),
+                  onPressed: onPrevious,
+                  tooltip: 'Previous chapter',
                 ),
-              ),
-              const SizedBox(height: 8),
-              // Controls row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.navigate_before, color: Colors.white),
-                    onPressed: onPrevious,
+                Text(
+                  '${state.currentChapter + 1} / ${state.chapters.length}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.list, color: Colors.white),
-                    onPressed: onTocTap,
-                    tooltip: 'Table of Contents',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.text_decrease, color: Colors.white),
-                    onPressed: onFontDecrease,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.text_increase, color: Colors.white),
-                    onPressed: onFontIncrease,
-                  ),
-                  _ThemeButton(
-                    currentTheme: state.readerTheme,
-                    onChanged: onThemeChange,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.bookmark_add_outlined,
-                        color: Colors.white),
-                    onPressed: onBookmark,
-                    tooltip: 'Bookmark',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.format_list_bulleted,
-                        color: Colors.white),
-                    onPressed: onAnnotations,
-                    tooltip: 'Annotations',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.navigate_next, color: Colors.white),
-                    onPressed: onNext,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined,
+                      color: Colors.white),
+                  onPressed: onSettings,
+                  tooltip: 'Settings',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.bookmark_add_outlined,
+                      color: Colors.white),
+                  onPressed: onBookmark,
+                  tooltip: 'Bookmark',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.format_list_bulleted,
+                      color: Colors.white),
+                  onPressed: onAnnotations,
+                  tooltip: 'Annotations',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.navigate_next, color: Colors.white),
+                  onPressed: onNext,
+                  tooltip: 'Next chapter',
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -850,46 +903,204 @@ class _BottomControls extends StatelessWidget {
   }
 }
 
-class _ThemeButton extends StatelessWidget {
-  final ReaderTheme currentTheme;
-  final void Function(ReaderTheme) onChanged;
+// ---------------------------------------------------------------------------
+// 5. _ReaderSettingsSheet — typography + theme
+// ---------------------------------------------------------------------------
 
-  const _ThemeButton({required this.currentTheme, required this.onChanged});
+class _ReaderSettingsSheet extends StatelessWidget {
+  const _ReaderSettingsSheet();
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<ReaderTheme>(
-      icon: const Icon(Icons.palette_outlined, color: Colors.white),
-      tooltip: 'Reader Theme',
-      onSelected: onChanged,
-      itemBuilder: (_) => ReaderTheme.values.map((theme) {
-        return PopupMenuItem(
-          value: theme,
-          child: Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: theme.backgroundColor,
-                  border: Border.all(color: Colors.grey),
-                  shape: BoxShape.circle,
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return BlocBuilder<ReaderCubit, ReaderState>(
+      builder: (context, state) {
+        final cubit = context.read<ReaderCubit>();
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Text(theme.name),
-              if (theme == currentTheme)
-                const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: Icon(Icons.check, size: 16),
+
+                // -- Typography section --
+                Text(
+                  'Typography',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                 ),
-            ],
+                const SizedBox(height: 12),
+
+                // Font family pills
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: ReaderFontFamily.values.map((family) {
+                      final isActive = family == state.fontFamily;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(family.displayName),
+                          selected: isActive,
+                          onSelected: (_) => cubit.setFontFamily(family),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Font size row + slider
+                Row(
+                  children: [
+                    IconButton.outlined(
+                      icon: const Text('A-',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      onPressed: () =>
+                          cubit.setFontSize(state.fontSize - 1),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${state.fontSize.round()}',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.outlined(
+                      icon: const Text('A+',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      onPressed: () =>
+                          cubit.setFontSize(state.fontSize + 1),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Slider(
+                        value: state.fontSize,
+                        min: 12,
+                        max: 32,
+                        divisions: 20,
+                        label: '${state.fontSize.round()}',
+                        onChanged: (v) => cubit.setFontSize(v),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Line height
+                Row(
+                  children: [
+                    Icon(Icons.format_line_spacing,
+                        size: 20, color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Slider(
+                        value: state.lineHeight,
+                        min: 1.2,
+                        max: 3.0,
+                        divisions: 18,
+                        label: state.lineHeight.toStringAsFixed(1),
+                        onChanged: (v) => cubit.setLineHeight(v),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Margins
+                Row(
+                  children: [
+                    Icon(Icons.padding,
+                        size: 20, color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Slider(
+                        value: state.horizontalMargin,
+                        min: 8,
+                        max: 48,
+                        divisions: 8,
+                        label: '${state.horizontalMargin.round()}',
+                        onChanged: (v) => cubit.setHorizontalMargin(v),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // -- Theme section --
+                Text(
+                  'Theme',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: ReaderTheme.values.map((theme) {
+                    final isActive = theme == state.readerTheme;
+                    return GestureDetector(
+                      onTap: () => cubit.setReaderTheme(theme),
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        margin: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: theme.backgroundColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isActive
+                                ? colorScheme.primary
+                                : Colors.grey.withValues(alpha: 0.4),
+                            width: isActive ? 3 : 1,
+                          ),
+                        ),
+                        child: Center(
+                          child: isActive
+                              ? Icon(Icons.check,
+                                  color: theme.textColor, size: 20)
+                              : Text(
+                                  'Aa',
+                                  style: TextStyle(
+                                    color: theme.textColor,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
         );
-      }).toList(),
+      },
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// 6. _TocDrawer
+// ---------------------------------------------------------------------------
 
 class _TocDrawer extends StatelessWidget {
   final List<EpubChapterInfo> chapters;
@@ -961,8 +1172,8 @@ class _TocDrawer extends StatelessWidget {
                                 ),
                               ),
                               selected: isActive,
-                              selectedTileColor:
-                                  colorScheme.primaryContainer.withValues(alpha: 0.3),
+                              selectedTileColor: colorScheme.primaryContainer
+                                  .withValues(alpha: 0.3),
                               onTap: () => onChapterTap(index),
                             );
                           },

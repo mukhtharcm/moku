@@ -57,7 +57,7 @@ class LibraryCubit extends Cubit<LibraryState> {
     if (_isImporting) return;
     _isImporting = true;
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['epub'],
         allowMultiple: true,
