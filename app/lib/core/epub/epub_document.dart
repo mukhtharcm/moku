@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 /// Fully parsed representation of an EPUB document.
@@ -164,7 +165,8 @@ class EpubResource {
   String? _textContent;
 
   /// Lazily decoded text content (for HTML, CSS, XML resources).
-  String get textContent => _textContent ??= String.fromCharCodes(data);
+  String get textContent =>
+      _textContent ??= utf8.decode(data, allowMalformed: true);
 }
 
 // ---------------------------------------------------------------------------

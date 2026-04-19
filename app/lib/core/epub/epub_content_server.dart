@@ -151,31 +151,44 @@ class EpubContentServer {
   // Content rendering
   // -----------------------------------------------------------------------
 
-  /// Get the rendered HTML for a chapter, with images and CSS embedded.
+  /// Get the rendered HTML body content for a chapter.
+  ///
+  /// Returns a content fragment (not a full document) suitable for wrapping
+  /// by the reader UI. Includes inline styles from the EPUB, embedded images,
+  /// and fragment scroll scripts.
   String getChapterContent(int chapterIndex) {
     if (chapterIndex < 0 || chapterIndex >= chapters.length) {
-      return '<html><body><p>Chapter not found</p></body></html>';
+      return '<p>Chapter not found</p>';
     }
 
     final chapter = chapters[chapterIndex];
     var html = _getHtmlContent(chapter.contentHref);
     if (html == null) {
-      return '<html><body><p>Content not available for: '
-          '${chapter.contentHref}</p></body></html>';
+      return '<p>Content not available for: '
+          '${chapter.contentHref}</p>';
     }
 
-    // Embed images as data URIs
+    // Embed images as data URIs (works on full HTML before extraction)
     html = _embedImages(html, chapter.contentHref);
 
-    // Embed CSS
-    html = _embedCss(html);
+    // Extract body content + inline styles (strips the outer document shell)
+    final bodyContent = _extractBodyContent(html);
+
+    final buffer = StringBuffer();
+    buffer.write(bodyContent);
 
     // If there's a fragment, inject JS to scroll to it
     if (chapter.fragment != null) {
-      html = _injectFragmentScroll(html, chapter.fragment!);
+      buffer.writeln('''
+<script type="text/javascript">
+window.addEventListener('DOMContentLoaded', function() {
+  var target = document.getElementById('${chapter.fragment}');
+  if (target) target.scrollIntoView({behavior: 'instant', block: 'start'});
+});
+</script>''');
     }
 
-    return html;
+    return buffer.toString();
   }
 
   /// Get the cover image bytes and media type, if available.
@@ -290,9 +303,66 @@ class EpubContentServer {
   }
 
   // -----------------------------------------------------------------------
-  // CSS embedding
+  // Body content extraction
   // -----------------------------------------------------------------------
 
+  /// Extract body inner HTML + inline style blocks from the XHTML head.
+  /// Strips the outer document shell so the reader can wrap it properly.
+  String _extractBodyContent(String html) {
+    final buffer = StringBuffer();
+
+    // Collect <style> blocks from the <head> section
+    final headEndIndex = html.toLowerCase().indexOf('</head>');
+    if (headEndIndex > 0) {
+      final headSection = html.substring(0, headEndIndex);
+      final styleRegex = RegExp(
+        r'<style[^>]*>.*?</style>',
+        caseSensitive: false,
+        dotAll: true,
+      );
+      for (final match in styleRegex.allMatches(headSection)) {
+        buffer.writeln(match.group(0));
+      }
+    }
+
+    // Add EPUB CSS from external stylesheets
+    if (_cssContent.isNotEmpty) {
+      buffer.writeln('<style type="text/css">$_cssContent</style>');
+    }
+
+    // Extract body inner content
+    final bodyStartMatch =
+        RegExp(r'<body[^>]*>', caseSensitive: false).firstMatch(html);
+    final bodyEndMatch =
+        RegExp(r'</body>', caseSensitive: false).firstMatch(html);
+
+    if (bodyStartMatch != null &&
+        bodyEndMatch != null &&
+        bodyEndMatch.start > bodyStartMatch.end) {
+      buffer.write(html.substring(bodyStartMatch.end, bodyEndMatch.start));
+    } else {
+      // No body tags — strip XML/DOCTYPE/html wrapper, use content as-is
+      var content = html;
+      content = content.replaceFirst(RegExp(r'<\?xml[^?]*\?>'), '');
+      content = content.replaceFirst(
+          RegExp(r'<!DOCTYPE[^>]*>', caseSensitive: false), '');
+      content = content.replaceFirst(
+          RegExp(r'<html[^>]*>', caseSensitive: false), '');
+      content = content.replaceFirst(
+          RegExp(r'</html>', caseSensitive: false), '');
+      content = content.replaceFirst(
+          RegExp(r'<head>.*?</head>', caseSensitive: false, dotAll: true), '');
+      buffer.write(content);
+    }
+
+    return buffer.toString();
+  }
+
+  // -----------------------------------------------------------------------
+  // Helpers
+  // -----------------------------------------------------------------------
+
+  /// Build concatenated CSS content from all CSS resources.
   String _buildCssContent() {
     final buffer = StringBuffer();
     for (final entry in document.resources.entries) {
@@ -302,42 +372,6 @@ class EpubContentServer {
     }
     return buffer.toString();
   }
-
-  String _embedCss(String html) {
-    if (_cssContent.isEmpty) return html;
-
-    final cssTag = '<style type="text/css">$_cssContent</style>';
-    if (html.contains('</head>')) {
-      return html.replaceFirst('</head>', '$cssTag</head>');
-    }
-    // No <head> — prepend
-    return '$cssTag$html';
-  }
-
-  // -----------------------------------------------------------------------
-  // Fragment scrolling
-  // -----------------------------------------------------------------------
-
-  String _injectFragmentScroll(String html, String fragment) {
-    final script = '''
-<script type="text/javascript">
-  window.addEventListener('load', function() {
-    var target = document.getElementById('$fragment');
-    if (target) {
-      target.scrollIntoView({behavior: 'instant', block: 'start'});
-    }
-  });
-</script>
-''';
-    if (html.contains('</body>')) {
-      return html.replaceFirst('</body>', '$script</body>');
-    }
-    return '$html$script';
-  }
-
-  // -----------------------------------------------------------------------
-  // Helpers
-  // -----------------------------------------------------------------------
 
   /// Normalize an href for comparison (lowercase basename, strip fragment).
   String _normalizeHref(String href) {

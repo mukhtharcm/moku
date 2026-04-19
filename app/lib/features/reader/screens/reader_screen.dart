@@ -99,6 +99,7 @@ class _ReaderViewState extends State<_ReaderView>
             setState(() => _webViewReady = true);
             _injectScrollListener();
             _injectSelectionListener();
+            _injectTapListener();
             final state = context.read<ReaderCubit>().state;
             _applyHighlightsToWebView(state.highlights);
           },
@@ -134,6 +135,18 @@ class _ReaderViewState extends State<_ReaderView>
     if (data.startsWith('scroll:')) {
       final progress = double.tryParse(data.substring(7)) ?? 0.0;
       context.read<ReaderCubit>().updateScrollProgress(progress);
+    } else if (data == 'tap') {
+      final cubit = context.read<ReaderCubit>();
+      if (cubit.state.zenMode) {
+        _showZenHint();
+      } else {
+        cubit.toggleControls();
+      }
+    } else if (data == 'doubletap') {
+      final cubit = context.read<ReaderCubit>();
+      if (cubit.state.zenMode) {
+        cubit.toggleZenMode();
+      }
     } else if (data.startsWith('selection:')) {
       final jsonStr = data.substring(10);
       try {
@@ -199,6 +212,33 @@ class _ReaderViewState extends State<_ReaderView>
             MokuBridge.postMessage('selection:cleared');
           }
         }, 300);
+      });
+    ''');
+  }
+
+  void _injectTapListener() {
+    _webController.runJavaScript('''
+      var _mokuLastTap = 0;
+      var _mokuTapTimer = null;
+      document.addEventListener('click', function(e) {
+        if (e.target.tagName === 'A') return;
+        var sel = window.getSelection();
+        if (sel && sel.toString().trim().length > 0) return;
+
+        var now = Date.now();
+        if (now - _mokuLastTap < 300) {
+          clearTimeout(_mokuTapTimer);
+          _mokuLastTap = 0;
+          MokuBridge.postMessage('doubletap');
+        } else {
+          _mokuLastTap = now;
+          _mokuTapTimer = setTimeout(function() {
+            if (_mokuLastTap > 0) {
+              MokuBridge.postMessage('tap');
+              _mokuLastTap = 0;
+            }
+          }, 300);
+        }
       });
     ''');
   }
@@ -579,25 +619,10 @@ function highlightTextInBody(text, id, color) {
           body: Stack(
             children: [
               // WebView reader
-              GestureDetector(
-                onTap: () {
-                  if (state.zenMode) {
-                    // Single tap in zen mode: briefly show the hint again
-                    _showZenHint();
-                  } else {
-                    context.read<ReaderCubit>().toggleControls();
-                  }
-                },
-                onDoubleTap: () {
-                  if (state.zenMode) {
-                    context.read<ReaderCubit>().toggleZenMode();
-                  }
-                },
-                child: SafeArea(
-                  top: !state.zenMode,
-                  bottom: !state.zenMode,
-                  child: WebViewWidget(controller: _webController),
-                ),
+              SafeArea(
+                top: !state.zenMode,
+                bottom: !state.zenMode,
+                child: WebViewWidget(controller: _webController),
               ),
 
               // Top controls
