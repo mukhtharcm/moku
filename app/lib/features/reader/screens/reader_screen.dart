@@ -943,6 +943,26 @@ window.addEventListener('load', function() {
                     _webController.runJavaScript(
                         'mokuPagination.goToPage($page);');
                   },
+                  onBookScrub: (progress) {
+                    final cubit = context.read<ReaderCubit>();
+                    final totalCh = cubit.state.chapters.length;
+                    if (totalCh == 0) return;
+                    // Convert 0.0–1.0 progress to chapter + fraction
+                    final scaled = progress * totalCh;
+                    final chapter = scaled.floor().clamp(0, totalCh - 1);
+                    final fraction = scaled - chapter;
+                    if (chapter != cubit.state.currentChapter) {
+                      _pendingStartPosition = 'fraction:$fraction';
+                      cubit.goToChapter(chapter);
+                    } else {
+                      // Same chapter — just scrub within it
+                      final page = (fraction * (cubit.state.totalPages - 1))
+                          .round()
+                          .clamp(0, cubit.state.totalPages - 1);
+                      _webController.runJavaScript(
+                          'mokuPagination.goToPage($page);');
+                    }
+                  },
                 ),
 
               // Selection highlight FAB
@@ -1164,6 +1184,7 @@ class _BottomControls extends StatelessWidget {
   final VoidCallback onBookmark;
   final VoidCallback onAnnotations;
   final ValueChanged<int> onPageScrub;
+  final ValueChanged<double> onBookScrub;
 
   const _BottomControls({
     required this.state,
@@ -1172,17 +1193,18 @@ class _BottomControls extends StatelessWidget {
     required this.onBookmark,
     required this.onAnnotations,
     required this.onPageScrub,
+    required this.onBookScrub,
   });
 
   @override
   Widget build(BuildContext context) {
-    final overallPercent = state.chapters.isEmpty
-        ? 0
-        : (((state.currentChapter + state.scrollProgress) /
-                    state.chapters.length) *
-                100)
-            .round()
-            .clamp(0, 100);
+    final totalChapters = state.chapters.length;
+    // Overall progress: 0.0 → 1.0 across entire book
+    final overallProgress = totalChapters == 0
+        ? 0.0
+        : ((state.currentChapter + state.scrollProgress) / totalChapters)
+            .clamp(0.0, 1.0);
+    final overallPercent = (overallProgress * 100).round();
 
     final chapterName = state.chapterTitle;
 
@@ -1210,8 +1232,8 @@ class _BottomControls extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Chapter scrubber slider
-                if (state.totalPages > 1)
+                // Whole-book scrubber slider
+                if (totalChapters > 0)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
@@ -1232,27 +1254,26 @@ class _BottomControls extends StatelessWidget {
                                 Theme.of(context).colorScheme.primary,
                           ),
                           child: Slider(
-                            value: state.currentPage.toDouble(),
+                            value: overallProgress,
                             min: 0,
-                            max: (state.totalPages - 1).toDouble(),
-                            divisions: state.totalPages > 1
-                                ? state.totalPages - 1
-                                : null,
-                            onChanged: (v) => onPageScrub(v.round()),
+                            max: 1.0,
+                            onChanged: (v) => onBookScrub(v),
                           ),
                         ),
                         Text(
-                          'Page ${state.currentPage + 1} of ${state.totalPages}',
+                          '$chapterName · $overallPercent%',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.6),
                             fontSize: 11,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
                 const SizedBox(height: 4),
-                // Action buttons with center chapter info
+                // Action buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -1268,13 +1289,15 @@ class _BottomControls extends StatelessWidget {
                       onPressed: onSettings,
                       tooltip: 'Settings',
                     ),
+                    // Page within chapter
                     Flexible(
                       child: Text(
-                        '$chapterName · $overallPercent%',
+                        state.totalPages > 1
+                            ? 'Page ${state.currentPage + 1} of ${state.totalPages}'
+                            : '',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 10,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
