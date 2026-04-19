@@ -35,6 +35,8 @@ class ReaderState extends Equatable {
   final String? errorMessage;
   final List<db.Highlight> highlights;
   final bool zenMode;
+  final int currentPage;
+  final int totalPages;
 
   const ReaderState({
     this.status = ReaderStatus.initial,
@@ -53,6 +55,8 @@ class ReaderState extends Equatable {
     this.errorMessage,
     this.highlights = const [],
     this.zenMode = false,
+    this.currentPage = 0,
+    this.totalPages = 1,
   });
 
   ReaderState copyWith({
@@ -72,6 +76,8 @@ class ReaderState extends Equatable {
     String? errorMessage,
     List<db.Highlight>? highlights,
     bool? zenMode,
+    int? currentPage,
+    int? totalPages,
   }) {
     return ReaderState(
       status: status ?? this.status,
@@ -90,6 +96,8 @@ class ReaderState extends Equatable {
       errorMessage: errorMessage ?? this.errorMessage,
       highlights: highlights ?? this.highlights,
       zenMode: zenMode ?? this.zenMode,
+      currentPage: currentPage ?? this.currentPage,
+      totalPages: totalPages ?? this.totalPages,
     );
   }
 
@@ -121,5 +129,7 @@ class ReaderState extends Equatable {
     errorMessage,
     highlights,
     zenMode,
+    currentPage,
+    totalPages,
   ];
 }

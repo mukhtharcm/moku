@@ -177,17 +177,6 @@ class EpubContentServer {
     final buffer = StringBuffer();
     buffer.write(bodyContent);
 
-    // If there's a fragment, inject JS to scroll to it
-    if (chapter.fragment != null) {
-      buffer.writeln('''
-<script type="text/javascript">
-window.addEventListener('DOMContentLoaded', function() {
-  var target = document.getElementById('${chapter.fragment}');
-  if (target) target.scrollIntoView({behavior: 'instant', block: 'start'});
-});
-</script>''');
-    }
-
     return buffer.toString();
   }
 

@@ -93,6 +93,7 @@ class EpubService {
               index: ch.index,
               title: ch.title,
               fileName: ch.contentHref,
+              fragment: ch.fragment,
             ))
         .toList();
   }
@@ -138,10 +139,12 @@ class EpubChapterInfo {
   final int index;
   final String title;
   final String fileName;
+  final String? fragment;
 
   const EpubChapterInfo({
     required this.index,
     required this.title,
     required this.fileName,
+    this.fragment,
   });
 }

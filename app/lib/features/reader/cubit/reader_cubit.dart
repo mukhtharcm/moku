@@ -116,6 +116,16 @@ class ReaderCubit extends Cubit<ReaderState> {
     await _saveProgress();
   }
 
+  void updatePageInfo(int page, int total) {
+    final progress = total > 1 ? page / (total - 1) : 0.0;
+    emit(state.copyWith(
+      currentPage: page,
+      totalPages: total,
+      scrollProgress: progress.clamp(0.0, 1.0),
+    ));
+    _saveProgress();
+  }
+
   void toggleControls() {
     emit(state.copyWith(showControls: !state.showControls));
   }

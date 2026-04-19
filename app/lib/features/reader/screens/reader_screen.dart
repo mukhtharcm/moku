@@ -11,7 +11,6 @@ import '../../../core/database/database.dart'
 import '../../../core/models/book.dart';
 import '../../../core/services/epub_service.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/theme_cubit.dart';
 import '../cubit/reader_cubit.dart';
 import '../cubit/reader_state.dart';
 import 'annotations_screen.dart';
@@ -67,6 +66,9 @@ class _ReaderViewState extends State<_ReaderView>
   ReaderFontFamily? _lastLoadedFontFamily;
   ReaderTheme? _lastLoadedTheme;
 
+  // Pagination start position: 'restore', 'first', 'last', 'fraction:X', 'fragment:id'
+  String _pendingStartPosition = 'restore';
+
   // Zen‑mode hint animation
   late AnimationController _zenHintController;
   late Animation<double> _zenHintOpacity;
@@ -97,9 +99,7 @@ class _ReaderViewState extends State<_ReaderView>
         NavigationDelegate(
           onPageFinished: (_) {
             setState(() => _webViewReady = true);
-            _injectScrollListener();
-            _injectSelectionListener();
-            _injectTapListener();
+            // Highlights are applied after content loads; pagination JS is in the HTML template
             final state = context.read<ReaderCubit>().state;
             _applyHighlightsToWebView(state.highlights);
           },
@@ -132,9 +132,27 @@ class _ReaderViewState extends State<_ReaderView>
 
   void _onJsMessage(JavaScriptMessage message) {
     final data = message.message;
-    if (data.startsWith('scroll:')) {
-      final progress = double.tryParse(data.substring(7)) ?? 0.0;
-      context.read<ReaderCubit>().updateScrollProgress(progress);
+
+    if (data.startsWith('page:')) {
+      // page:currentPage:totalPages
+      final parts = data.split(':');
+      if (parts.length == 3) {
+        final page = int.tryParse(parts[1]) ?? 0;
+        final total = int.tryParse(parts[2]) ?? 1;
+        context.read<ReaderCubit>().updatePageInfo(page, total);
+      }
+    } else if (data == 'chapter:next') {
+      final cubit = context.read<ReaderCubit>();
+      if (cubit.state.hasNextChapter) {
+        _pendingStartPosition = 'first';
+        cubit.nextChapter();
+      }
+    } else if (data == 'chapter:prev') {
+      final cubit = context.read<ReaderCubit>();
+      if (cubit.state.hasPreviousChapter) {
+        _pendingStartPosition = 'last';
+        cubit.previousChapter();
+      }
     } else if (data == 'tap') {
       final cubit = context.read<ReaderCubit>();
       if (cubit.state.zenMode) {
@@ -167,80 +185,6 @@ class _ReaderViewState extends State<_ReaderView>
         _selectionEndOffset = null;
       });
     }
-  }
-
-  void _injectScrollListener() {
-    final powerSaver = context.read<ThemeCubit>().state.powerSaver;
-    final throttleMs = powerSaver ? 1000 : 200;
-
-    _webController.runJavaScript('''
-      var _mokuScrollTimer = null;
-      window.addEventListener('scroll', function() {
-        if (_mokuScrollTimer) return;
-        _mokuScrollTimer = setTimeout(function() {
-          _mokuScrollTimer = null;
-          var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-          var scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-          var progress = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
-          MokuBridge.postMessage('scroll:' + progress.toFixed(4));
-        }, $throttleMs);
-      });
-    ''');
-  }
-
-  void _injectSelectionListener() {
-    _webController.runJavaScript('''
-      var _mokuSelectionTimeout = null;
-      document.addEventListener('selectionchange', function() {
-        clearTimeout(_mokuSelectionTimeout);
-        _mokuSelectionTimeout = setTimeout(function() {
-          var sel = window.getSelection();
-          if (sel && sel.rangeCount > 0 && sel.toString().trim().length > 0) {
-            var range = sel.getRangeAt(0);
-            var preRange = document.createRange();
-            preRange.selectNodeContents(document.body);
-            preRange.setEnd(range.startContainer, range.startOffset);
-            var startOffset = preRange.toString().length;
-            var endOffset = startOffset + sel.toString().length;
-            var data = JSON.stringify({
-              text: sel.toString().trim(),
-              startOffset: startOffset,
-              endOffset: endOffset
-            });
-            MokuBridge.postMessage('selection:' + data);
-          } else {
-            MokuBridge.postMessage('selection:cleared');
-          }
-        }, 300);
-      });
-    ''');
-  }
-
-  void _injectTapListener() {
-    _webController.runJavaScript('''
-      var _mokuLastTap = 0;
-      var _mokuTapTimer = null;
-      document.addEventListener('click', function(e) {
-        if (e.target.tagName === 'A') return;
-        var sel = window.getSelection();
-        if (sel && sel.toString().trim().length > 0) return;
-
-        var now = Date.now();
-        if (now - _mokuLastTap < 300) {
-          clearTimeout(_mokuTapTimer);
-          _mokuLastTap = 0;
-          MokuBridge.postMessage('doubletap');
-        } else {
-          _mokuLastTap = now;
-          _mokuTapTimer = setTimeout(function() {
-            if (_mokuLastTap > 0) {
-              MokuBridge.postMessage('tap');
-              _mokuLastTap = 0;
-            }
-          }, 300);
-        }
-      });
-    ''');
   }
 
   void _applyHighlightsToWebView(List highlights) {
@@ -405,18 +349,33 @@ class _ReaderViewState extends State<_ReaderView>
 
   // -- HTML content --------------------------------------------------------
 
-  void _loadContent(ReaderState state) {
-    final html = _wrapHtml(state.currentContent, state);
+  void _loadContent(ReaderState state, {String startPosition = 'first'}) {
+    setState(() => _webViewReady = false);
+    final html = _wrapHtml(state.currentContent, state, startPosition: startPosition);
     _webController.loadHtmlString(html);
   }
 
-  String _wrapHtml(String content, ReaderState state) {
+  String _wrapHtml(String content, ReaderState state, {String startPosition = 'first'}) {
     final bgColor = _colorToHex(state.readerTheme.backgroundColor);
     final textColor = _colorToHex(state.readerTheme.textColor);
     final fontFamily = state.fontFamily.cssFontFamily;
     final fontSize = state.fontSize;
     final lineHeight = state.lineHeight;
-    final hMargin = state.horizontalMargin;
+    final hMargin = state.horizontalMargin.toInt();
+    final colWidth = 'calc(100vw - ${2 * hMargin}px)';
+    final colGap = '${2 * hMargin}px';
+
+    // Build start position JS object
+    String startPosJs;
+    if (startPosition == 'last') {
+      startPosJs = "{ type: 'last' }";
+    } else if (startPosition.startsWith('fraction:')) {
+      startPosJs = "{ type: 'fraction', value: ${startPosition.substring(9)} }";
+    } else if (startPosition.startsWith('fragment:')) {
+      startPosJs = "{ type: 'fragment', value: '${startPosition.substring(9)}' }";
+    } else {
+      startPosJs = "{ type: 'first' }";
+    }
 
     return '''
 <!DOCTYPE html>
@@ -425,33 +384,68 @@ class _ReaderViewState extends State<_ReaderView>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
-  * { box-sizing: border-box; }
-  body {
-    background-color: $bgColor !important;
-    color: $textColor !important;
-    font-family: $fontFamily !important;
-    font-size: ${fontSize}px !important;
-    line-height: $lineHeight !important;
-    padding: 20px ${hMargin}px 60px ${hMargin}px !important;
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-color: $bgColor;
+    color: $textColor;
+  }
+  #moku-viewport {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+  #moku-content {
+    height: 100vh;
+    padding: 24px ${hMargin}px 48px ${hMargin}px;
+    column-width: $colWidth;
+    column-gap: $colGap;
+    column-fill: auto;
+    font-family: $fontFamily;
+    font-size: ${fontSize}px;
+    line-height: $lineHeight;
     word-wrap: break-word;
     overflow-wrap: break-word;
     -webkit-text-size-adjust: none;
+    transition: transform 0.25s ease-out;
   }
   h1, h2, h3, h4, h5, h6 {
     margin: 1em 0 0.5em 0;
     line-height: 1.3;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
   h1 { font-size: 1.6em; }
   h2 { font-size: 1.4em; }
   h3 { font-size: 1.2em; }
   p { margin: 0.8em 0; text-align: justify; }
-  img { max-width: 100%; height: auto; display: block; margin: 1em auto; }
+  img {
+    max-width: 100%;
+    max-height: 80vh;
+    height: auto;
+    display: block;
+    margin: 1em auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  figure {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin: 1em 0;
+  }
   a { color: inherit; text-decoration: underline; }
   blockquote {
     border-left: 3px solid $textColor;
     opacity: 0.8;
     padding-left: 16px;
     margin: 1em 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
   pre, code {
     font-family: monospace;
@@ -460,8 +454,19 @@ class _ReaderViewState extends State<_ReaderView>
     padding: 2px 4px;
     border-radius: 3px;
   }
-  pre { padding: 12px; overflow-x: auto; }
-  table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+  pre {
+    padding: 12px;
+    overflow-x: auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
   td, th { border: 1px solid rgba(128,128,128,0.3); padding: 8px; }
   .moku-highlight {
     background-color: rgba(255, 235, 59, 0.4);
@@ -471,8 +476,167 @@ class _ReaderViewState extends State<_ReaderView>
 </style>
 </head>
 <body>
+<div id="moku-viewport">
+  <div id="moku-content">
 $content
+  </div>
+</div>
 <script>
+// --- Start position ---
+window._mokuStartPosition = $startPosJs;
+
+// --- Pagination Engine ---
+var mokuPagination = {
+  currentPage: 0,
+  totalPages: 1,
+
+  init: function() {
+    var content = document.getElementById('moku-content');
+    if (!content) return;
+    var pageWidth = window.innerWidth;
+    this.totalPages = Math.max(1, Math.ceil(content.scrollWidth / pageWidth));
+
+    var start = window._mokuStartPosition || { type: 'first' };
+    if (start.type === 'last') {
+      this.goToPage(this.totalPages - 1, true);
+    } else if (start.type === 'fraction' && start.value > 0) {
+      var page = Math.round(start.value * Math.max(this.totalPages - 1, 0));
+      this.goToPage(page, true);
+    } else if (start.type === 'fragment' && start.value) {
+      this.goToFragment(start.value);
+    } else {
+      this.goToPage(0, true);
+    }
+  },
+
+  goToPage: function(page, skipAnimation) {
+    page = Math.max(0, Math.min(page, this.totalPages - 1));
+    this.currentPage = page;
+    var content = document.getElementById('moku-content');
+    if (skipAnimation) {
+      content.style.transition = 'none';
+      content.offsetHeight;
+    }
+    content.style.transform = 'translateX(' + (-page * window.innerWidth) + 'px)';
+    if (skipAnimation) {
+      content.offsetHeight;
+      content.style.transition = 'transform 0.25s ease-out';
+    }
+    this.reportPage();
+  },
+
+  nextPage: function() {
+    if (this.currentPage >= this.totalPages - 1) {
+      MokuBridge.postMessage('chapter:next');
+      return;
+    }
+    this.goToPage(this.currentPage + 1);
+  },
+
+  prevPage: function() {
+    if (this.currentPage <= 0) {
+      MokuBridge.postMessage('chapter:prev');
+      return;
+    }
+    this.goToPage(this.currentPage - 1);
+  },
+
+  reportPage: function() {
+    MokuBridge.postMessage('page:' + this.currentPage + ':' + this.totalPages);
+  },
+
+  goToFragment: function(fragmentId) {
+    var el = document.getElementById(fragmentId);
+    if (!el) { this.goToPage(0, true); return; }
+    var rect = el.getBoundingClientRect();
+    var page = Math.floor((rect.left + this.currentPage * window.innerWidth) / window.innerWidth);
+    this.goToPage(Math.max(0, page), true);
+  }
+};
+
+// --- Tap & Gesture Handling ---
+var _mokuLastTap = 0;
+var _mokuTapTimer = null;
+var _touchStartX = 0;
+var _touchStartY = 0;
+var _touchMoved = false;
+
+document.addEventListener('touchstart', function(e) {
+  _touchStartX = e.changedTouches[0].clientX;
+  _touchStartY = e.changedTouches[0].clientY;
+  _touchMoved = false;
+}, { passive: true });
+
+document.addEventListener('touchmove', function(e) {
+  var dx = Math.abs(e.changedTouches[0].clientX - _touchStartX);
+  var dy = Math.abs(e.changedTouches[0].clientY - _touchStartY);
+  if (dx > 10 || dy > 10) _touchMoved = true;
+}, { passive: true });
+
+document.addEventListener('touchend', function(e) {
+  if (!_touchMoved) return;
+  var dx = e.changedTouches[0].clientX - _touchStartX;
+  var dy = e.changedTouches[0].clientY - _touchStartY;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    if (dx < 0) mokuPagination.nextPage();
+    else mokuPagination.prevPage();
+  }
+}, { passive: true });
+
+document.addEventListener('click', function(e) {
+  if (e.target.tagName === 'A') return;
+  if (_touchMoved) return;
+  var sel = window.getSelection();
+  if (sel && sel.toString().trim().length > 0) return;
+
+  var x = e.clientX;
+  var w = window.innerWidth;
+  var now = Date.now();
+
+  if (now - _mokuLastTap < 300) {
+    clearTimeout(_mokuTapTimer);
+    _mokuLastTap = 0;
+    MokuBridge.postMessage('doubletap');
+  } else {
+    _mokuLastTap = now;
+    var zone = x < w * 0.33 ? 'left' : (x > w * 0.67 ? 'right' : 'center');
+    _mokuTapTimer = setTimeout(function() {
+      if (_mokuLastTap > 0) {
+        _mokuLastTap = 0;
+        if (zone === 'left') mokuPagination.prevPage();
+        else if (zone === 'right') mokuPagination.nextPage();
+        else MokuBridge.postMessage('tap');
+      }
+    }, 300);
+  }
+});
+
+// --- Selection Listener ---
+var _mokuSelectionTimeout = null;
+document.addEventListener('selectionchange', function() {
+  clearTimeout(_mokuSelectionTimeout);
+  _mokuSelectionTimeout = setTimeout(function() {
+    var sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && sel.toString().trim().length > 0) {
+      var range = sel.getRangeAt(0);
+      var preRange = document.createRange();
+      preRange.selectNodeContents(document.body);
+      preRange.setEnd(range.startContainer, range.startOffset);
+      var startOffset = preRange.toString().length;
+      var endOffset = startOffset + sel.toString().length;
+      var data = JSON.stringify({
+        text: sel.toString().trim(),
+        startOffset: startOffset,
+        endOffset: endOffset
+      });
+      MokuBridge.postMessage('selection:' + data);
+    } else {
+      MokuBridge.postMessage('selection:cleared');
+    }
+  }, 300);
+});
+
+// --- Highlight Functions ---
 function clearHighlights() {
   var spans = document.querySelectorAll('.moku-highlight');
   spans.forEach(function(span) {
@@ -539,6 +703,13 @@ function highlightTextInBody(text, id, color) {
     range.surroundContents(span);
   } catch(e) {}
 }
+
+// --- Initialize ---
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    mokuPagination.init();
+  }, 100);
+});
 </script>
 </body>
 </html>
@@ -574,21 +745,36 @@ function highlightTextInBody(text, id, color) {
           _showZenHint();
         }
 
-        final contentChanged = state.currentContent != _lastLoadedContent ||
-            state.fontSize != _lastLoadedFontSize ||
+        final contentChanged = state.currentContent != _lastLoadedContent;
+        final settingsChanged = state.fontSize != _lastLoadedFontSize ||
             state.lineHeight != _lastLoadedLineHeight ||
             state.horizontalMargin != _lastLoadedMargin ||
             state.fontFamily != _lastLoadedFontFamily ||
             state.readerTheme != _lastLoadedTheme;
 
-        if (state.currentContent.isNotEmpty && contentChanged) {
+        if (state.currentContent.isNotEmpty && (contentChanged || settingsChanged)) {
           _lastLoadedContent = state.currentContent;
           _lastLoadedFontSize = state.fontSize;
           _lastLoadedLineHeight = state.lineHeight;
           _lastLoadedMargin = state.horizontalMargin;
           _lastLoadedFontFamily = state.fontFamily;
           _lastLoadedTheme = state.readerTheme;
-          _loadContent(state);
+
+          if (contentChanged) {
+            // Chapter changed — use pending start position
+            var sp = _pendingStartPosition;
+            if (sp == 'restore') {
+              sp = 'fraction:${state.scrollProgress}';
+            }
+            _pendingStartPosition = 'first';
+            _loadContent(state, startPosition: sp);
+          } else {
+            // Settings changed — preserve current page position
+            final fraction = state.totalPages > 1
+                ? state.currentPage / (state.totalPages - 1)
+                : 0.0;
+            _loadContent(state, startPosition: 'fraction:$fraction');
+          }
         } else if (_webViewReady) {
           _applyHighlightsToWebView(state.highlights);
         }
@@ -638,12 +824,8 @@ function highlightTextInBody(text, id, color) {
               if (state.showControls && !state.zenMode)
                 _BottomControls(
                   state: state,
-                  onPrevious: state.hasPreviousChapter
-                      ? () => context.read<ReaderCubit>().previousChapter()
-                      : null,
-                  onNext: state.hasNextChapter
-                      ? () => context.read<ReaderCubit>().nextChapter()
-                      : null,
+                  onToc: () =>
+                      context.read<ReaderCubit>().toggleToc(),
                   onSettings: () => _showSettingsSheet(context),
                   onBookmark: () => context
                       .read<ReaderCubit>()
@@ -679,8 +861,13 @@ function highlightTextInBody(text, id, color) {
                 _TocDrawer(
                   chapters: state.chapters,
                   currentChapter: state.currentChapter,
-                  onChapterTap: (index) =>
-                      context.read<ReaderCubit>().goToChapter(index),
+                  onChapterTap: (index) {
+                    final fragment = state.chapters[index].fragment;
+                    _pendingStartPosition = fragment != null
+                        ? 'fragment:$fragment'
+                        : 'first';
+                    context.read<ReaderCubit>().goToChapter(index);
+                  },
                   onClose: () => context.read<ReaderCubit>().toggleToc(),
                 ),
 
@@ -697,7 +884,7 @@ function highlightTextInBody(text, id, color) {
                         ? 0
                         : (state.currentChapter + state.scrollProgress) /
                             state.chapters.length,
-                    minHeight: state.zenMode ? 1.5 : 2,
+                    minHeight: state.zenMode ? 1.5 : 2.5,
                     backgroundColor: Colors.transparent,
                     valueColor: AlwaysStoppedAnimation(
                       Theme.of(context)
@@ -844,16 +1031,14 @@ class _TopControls extends StatelessWidget {
 
 class _BottomControls extends StatelessWidget {
   final ReaderState state;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onNext;
+  final VoidCallback onToc;
   final VoidCallback onSettings;
   final VoidCallback onBookmark;
   final VoidCallback onAnnotations;
 
   const _BottomControls({
     required this.state,
-    this.onPrevious,
-    this.onNext,
+    required this.onToc,
     required this.onSettings,
     required this.onBookmark,
     required this.onAnnotations,
@@ -861,6 +1046,10 @@ class _BottomControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pageText = state.totalPages > 1
+        ? 'Page ${state.currentPage + 1} of ${state.totalPages}'
+        : '';
+
     return Positioned(
       bottom: 0,
       left: 0,
@@ -880,44 +1069,63 @@ class _BottomControls extends StatelessWidget {
           top: false,
           child: Padding(
             padding: const EdgeInsets.only(bottom: 8, top: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.navigate_before, color: Colors.white),
-                  onPressed: onPrevious,
-                  tooltip: 'Previous chapter',
-                ),
-                Text(
-                  '${state.currentChapter + 1} / ${state.chapters.length}',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+                // Page info
+                if (pageText.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      pageText,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.settings_outlined,
-                      color: Colors.white),
-                  onPressed: onSettings,
-                  tooltip: 'Settings',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.bookmark_add_outlined,
-                      color: Colors.white),
-                  onPressed: onBookmark,
-                  tooltip: 'Bookmark',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.format_list_bulleted,
-                      color: Colors.white),
-                  onPressed: onAnnotations,
-                  tooltip: 'Annotations',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.navigate_next, color: Colors.white),
-                  onPressed: onNext,
-                  tooltip: 'Next chapter',
+                // Action buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.toc_rounded,
+                          color: Colors.white),
+                      onPressed: onToc,
+                      tooltip: 'Table of Contents',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.settings_outlined,
+                          color: Colors.white),
+                      onPressed: onSettings,
+                      tooltip: 'Settings',
+                    ),
+                    // Chapter info
+                    Flexible(
+                      child: Text(
+                        '${state.currentChapter + 1} / ${state.chapters.length}',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.bookmark_add_outlined,
+                          color: Colors.white),
+                      onPressed: onBookmark,
+                      tooltip: 'Bookmark',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.format_list_bulleted,
+                          color: Colors.white),
+                      onPressed: onAnnotations,
+                      tooltip: 'Annotations',
+                    ),
+                  ],
                 ),
               ],
             ),
