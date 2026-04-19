@@ -137,7 +137,9 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
             ...highlights.map((h) => _HighlightTile(
                   highlight: h,
                   onTap: () {
-                    context.read<ReaderCubit>().goToChapter(h.chapterIndex);
+                    context
+                        .read<ReaderCubit>()
+                        .goToHighlight(h.chapterIndex, h.selectedText);
                     Navigator.pop(context);
                   },
                   onDelete: () => _confirmDelete(context, h),

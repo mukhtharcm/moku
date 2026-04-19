@@ -37,6 +37,7 @@ class ReaderState extends Equatable {
   final bool zenMode;
   final int currentPage;
   final int totalPages;
+  final String? pendingHighlightText;
 
   const ReaderState({
     this.status = ReaderStatus.initial,
@@ -57,6 +58,7 @@ class ReaderState extends Equatable {
     this.zenMode = false,
     this.currentPage = 0,
     this.totalPages = 1,
+    this.pendingHighlightText,
   });
 
   ReaderState copyWith({
@@ -78,6 +80,8 @@ class ReaderState extends Equatable {
     bool? zenMode,
     int? currentPage,
     int? totalPages,
+    String? pendingHighlightText,
+    bool clearPendingHighlight = false,
   }) {
     return ReaderState(
       status: status ?? this.status,
@@ -98,6 +102,9 @@ class ReaderState extends Equatable {
       zenMode: zenMode ?? this.zenMode,
       currentPage: currentPage ?? this.currentPage,
       totalPages: totalPages ?? this.totalPages,
+      pendingHighlightText: clearPendingHighlight
+          ? null
+          : (pendingHighlightText ?? this.pendingHighlightText),
     );
   }
 
@@ -131,5 +138,6 @@ class ReaderState extends Equatable {
     zenMode,
     currentPage,
     totalPages,
+    pendingHighlightText,
   ];
 }

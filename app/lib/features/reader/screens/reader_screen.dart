@@ -58,6 +58,9 @@ class _ReaderViewState extends State<_ReaderView>
   int? _selectionStartOffset;
   int? _selectionEndOffset;
 
+  // Zen exit overlay
+  bool _zenExitOverlayVisible = false;
+
   // Track last loaded state to avoid redundant reloads
   String _lastLoadedContent = '';
   double _lastLoadedFontSize = 0;
@@ -69,11 +72,10 @@ class _ReaderViewState extends State<_ReaderView>
   // Pagination start position: 'restore', 'first', 'last', 'fraction:X', 'fragment:id'
   String _pendingStartPosition = 'restore';
 
-  // Zen‑mode hint animation
+  // Zen‑mode exit overlay animation
   late AnimationController _zenHintController;
   late Animation<double> _zenHintOpacity;
   Timer? _zenHintTimer;
-  bool _zenHintVisible = false;
 
   @override
   void initState() {
@@ -99,9 +101,23 @@ class _ReaderViewState extends State<_ReaderView>
         NavigationDelegate(
           onPageFinished: (_) {
             setState(() => _webViewReady = true);
-            // Highlights are applied after content loads; pagination JS is in the HTML template
-            final state = context.read<ReaderCubit>().state;
+            final cubit = context.read<ReaderCubit>();
+            final state = cubit.state;
             _applyHighlightsToWebView(state.highlights);
+
+            // If there's a pending highlight to navigate to, do it after load
+            if (state.pendingHighlightText != null) {
+              final escaped = state.pendingHighlightText!
+                  .replaceAll('\\', '\\\\')
+                  .replaceAll("'", "\\'")
+                  .replaceAll('\n', '\\n');
+              // Small delay to let highlights render first
+              Future.delayed(const Duration(milliseconds: 200), () {
+                _webController.runJavaScript(
+                    "scrollToHighlightText('$escaped');");
+                cubit.clearPendingHighlight();
+              });
+            }
           },
         ),
       );
@@ -115,15 +131,21 @@ class _ReaderViewState extends State<_ReaderView>
     super.dispose();
   }
 
-  // -- Zen hint helpers ----------------------------------------------------
+  // -- Zen exit overlay helpers -----------------------------------------------
 
-  void _showZenHint() {
+  void _showZenExitOverlay() {
     _zenHintTimer?.cancel();
     _zenHintController.reset();
-    setState(() => _zenHintVisible = true);
-    _zenHintTimer = Timer(const Duration(seconds: 2), () {
+    setState(() {
+      _zenExitOverlayVisible = true;
+    });
+    _zenHintTimer = Timer(const Duration(seconds: 3), () {
       _zenHintController.forward().then((_) {
-        if (mounted) setState(() => _zenHintVisible = false);
+        if (mounted) {
+          setState(() {
+            _zenExitOverlayVisible = false;
+          });
+        }
       });
     });
   }
@@ -156,8 +178,8 @@ class _ReaderViewState extends State<_ReaderView>
     } else if (data == 'tap') {
       final cubit = context.read<ReaderCubit>();
       if (cubit.state.zenMode) {
-        // Single center-tap exits zen mode (more discoverable than double-tap)
-        cubit.toggleZenMode();
+        // Show floating exit overlay instead of instant exit
+        _showZenExitOverlay();
       } else {
         cubit.toggleControls();
       }
@@ -719,6 +741,57 @@ function highlightTextInBody(text, id, color) {
   }
 }
 
+// --- Scroll to a specific highlight text and show it ---
+function scrollToHighlightText(text) {
+  if (!text || text.length === 0) return;
+  var content = document.getElementById('moku-content');
+  if (!content) return;
+
+  // First check if there's already a highlight span with this text
+  var spans = content.querySelectorAll('.moku-highlight');
+  for (var i = 0; i < spans.length; i++) {
+    if (spans[i].textContent.indexOf(text) !== -1 ||
+        text.indexOf(spans[i].textContent) !== -1) {
+      var rect = spans[i].getBoundingClientRect();
+      var page = Math.floor(
+        (rect.left + mokuPagination.currentPage * window.innerWidth) /
+          window.innerWidth
+      );
+      mokuPagination.goToPage(Math.max(0, page));
+      return;
+    }
+  }
+
+  // Fallback: find the text in DOM and calculate its page
+  var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null, false);
+  var allText = '';
+  var nodes = [];
+  while (walker.nextNode()) {
+    nodes.push({ node: walker.currentNode, start: allText.length });
+    allText += walker.currentNode.textContent;
+  }
+  var idx = allText.indexOf(text);
+  if (idx === -1) return;
+
+  // Find the text node containing the start of the match
+  for (var j = 0; j < nodes.length; j++) {
+    var n = nodes[j];
+    var nodeEnd = n.start + n.node.textContent.length;
+    if (nodeEnd > idx) {
+      var range = document.createRange();
+      range.setStart(n.node, idx - n.start);
+      range.setEnd(n.node, Math.min(n.node.textContent.length, idx - n.start + text.length));
+      var rect = range.getBoundingClientRect();
+      var page = Math.floor(
+        (rect.left + mokuPagination.currentPage * window.innerWidth) /
+          window.innerWidth
+      );
+      mokuPagination.goToPage(Math.max(0, page));
+      return;
+    }
+  }
+}
+
 // --- Initialize ---
 window.addEventListener('load', function() {
   setTimeout(function() {
@@ -753,11 +826,12 @@ window.addEventListener('load', function() {
           prev.horizontalMargin != curr.horizontalMargin ||
           prev.fontFamily != curr.fontFamily ||
           prev.highlights != curr.highlights ||
-          prev.zenMode != curr.zenMode,
+          prev.zenMode != curr.zenMode ||
+          prev.pendingHighlightText != curr.pendingHighlightText,
       listener: (context, state) {
-        // Show zen hint when entering zen mode
-        if (state.zenMode && !_zenHintVisible) {
-          _showZenHint();
+        // Show zen exit overlay when entering zen mode
+        if (state.zenMode && !_zenExitOverlayVisible) {
+          _showZenExitOverlay();
         }
 
         final contentChanged = state.currentContent != _lastLoadedContent;
@@ -792,6 +866,17 @@ window.addEventListener('load', function() {
           }
         } else if (_webViewReady) {
           _applyHighlightsToWebView(state.highlights);
+
+          // Navigate to a pending highlight after highlights are applied
+          if (state.pendingHighlightText != null) {
+            final escaped = state.pendingHighlightText!
+                .replaceAll('\\', '\\\\')
+                .replaceAll("'", "\\'")
+                .replaceAll('\n', '\\n');
+            _webController.runJavaScript(
+                "scrollToHighlightText('$escaped');");
+            context.read<ReaderCubit>().clearPendingHighlight();
+          }
         }
       },
       builder: (context, state) {
@@ -854,6 +939,10 @@ window.addEventListener('load', function() {
                       ),
                     ),
                   ),
+                  onPageScrub: (page) {
+                    _webController.runJavaScript(
+                        'mokuPagination.goToPage($page);');
+                  },
                 ),
 
               // Selection highlight FAB
@@ -911,26 +1000,50 @@ window.addEventListener('load', function() {
                 ),
               ),
 
-              // Zen mode exit hint — fades in then out
-              if (state.zenMode && _zenHintVisible)
+              // Zen mode exit overlay — shows on center-tap, fades after 3s
+              if (state.zenMode && _zenExitOverlayVisible)
                 Positioned(
-                  bottom: 20,
+                  bottom: 40,
                   left: 0,
                   right: 0,
                   child: Center(
                     child: FadeTransition(
                       opacity: _zenHintOpacity,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text(
-                          'Double-tap to exit zen mode',
-                          style:
-                              TextStyle(color: Colors.white70, fontSize: 12),
+                      child: GestureDetector(
+                        onTap: () {
+                          _zenHintTimer?.cancel();
+                          setState(() {
+                            _zenExitOverlayVisible = false;
+                          });
+                          context.read<ReaderCubit>().toggleZenMode();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.close_rounded,
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  size: 16),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Exit Zen Mode',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -1041,7 +1154,7 @@ class _TopControls extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// 4. _BottomControls — redesigned single row
+// 4. _BottomControls — scrubber + simplified info
 // ---------------------------------------------------------------------------
 
 class _BottomControls extends StatelessWidget {
@@ -1050,6 +1163,7 @@ class _BottomControls extends StatelessWidget {
   final VoidCallback onSettings;
   final VoidCallback onBookmark;
   final VoidCallback onAnnotations;
+  final ValueChanged<int> onPageScrub;
 
   const _BottomControls({
     required this.state,
@@ -1057,16 +1171,20 @@ class _BottomControls extends StatelessWidget {
     required this.onSettings,
     required this.onBookmark,
     required this.onAnnotations,
+    required this.onPageScrub,
   });
 
   @override
   Widget build(BuildContext context) {
-    final pagesLeft = state.totalPages - state.currentPage - 1;
-    final pageText = state.totalPages > 1
-        ? pagesLeft == 0
-            ? 'Last page of chapter'
-            : '$pagesLeft page${pagesLeft == 1 ? '' : 's'} left in chapter'
-        : '';
+    final overallPercent = state.chapters.isEmpty
+        ? 0
+        : (((state.currentChapter + state.scrollProgress) /
+                    state.chapters.length) *
+                100)
+            .round()
+            .clamp(0, 100);
+
+    final chapterName = state.chapterTitle;
 
     return Positioned(
       bottom: 0,
@@ -1078,32 +1196,63 @@ class _BottomControls extends StatelessWidget {
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
             colors: [
-              Colors.black.withValues(alpha: 0.8),
+              Colors.black.withValues(alpha: 0.85),
+              Colors.black.withValues(alpha: 0.4),
               Colors.transparent,
             ],
+            stops: const [0.0, 0.7, 1.0],
           ),
         ),
         child: SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 8, top: 12),
+            padding: const EdgeInsets.only(bottom: 8, top: 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Page info — Apple Books style
-                if (pageText.isNotEmpty)
+                // Chapter scrubber slider
+                if (state.totalPages > 1)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      pageText,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SliderTheme(
+                          data: SliderThemeData(
+                            trackHeight: 3,
+                            thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 6),
+                            overlayShape: const RoundSliderOverlayShape(
+                                overlayRadius: 14),
+                            activeTrackColor:
+                                Theme.of(context).colorScheme.primary,
+                            inactiveTrackColor:
+                                Colors.white.withValues(alpha: 0.2),
+                            thumbColor:
+                                Theme.of(context).colorScheme.primary,
+                          ),
+                          child: Slider(
+                            value: state.currentPage.toDouble(),
+                            min: 0,
+                            max: (state.totalPages - 1).toDouble(),
+                            divisions: state.totalPages > 1
+                                ? state.totalPages - 1
+                                : null,
+                            onChanged: (v) => onPageScrub(v.round()),
+                          ),
+                        ),
+                        Text(
+                          'Page ${state.currentPage + 1} of ${state.totalPages}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                // Action buttons
+                const SizedBox(height: 4),
+                // Action buttons with center chapter info
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -1119,29 +1268,17 @@ class _BottomControls extends StatelessWidget {
                       onPressed: onSettings,
                       tooltip: 'Settings',
                     ),
-                    // Chapter & page info
                     Flexible(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Ch ${state.currentChapter + 1} of ${state.chapters.length}',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.6),
-                              fontSize: 11,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (state.totalPages > 1)
-                            Text(
-                              '${state.currentPage + 1} / ${state.totalPages}',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.4),
-                                fontSize: 10,
-                              ),
-                            ),
-                        ],
+                      child: Text(
+                        '$chapterName · $overallPercent%',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                       ),
                     ),
                     IconButton(

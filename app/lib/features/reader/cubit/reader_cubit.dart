@@ -99,6 +99,40 @@ class ReaderCubit extends Cubit<ReaderState> {
     }
   }
 
+  /// Navigate to a specific highlight's location (chapter + text)
+  Future<void> goToHighlight(int chapterIndex, String selectedText) async {
+    if (chapterIndex < 0 || chapterIndex >= state.chapters.length) return;
+
+    try {
+      if (chapterIndex != state.currentChapter) {
+        final content = await _epubService.getChapterContent(
+          state.book.filePath,
+          chapterIndex,
+        );
+        emit(state.copyWith(
+          currentChapter: chapterIndex,
+          currentContent: content,
+          scrollProgress: 0.0,
+          showToc: false,
+          pendingHighlightText: selectedText,
+        ));
+        await _saveProgress();
+        await loadHighlightsForChapter();
+      } else {
+        // Same chapter — just signal to scroll to highlight
+        emit(state.copyWith(pendingHighlightText: selectedText));
+      }
+    } catch (e) {
+      emit(state.copyWith(
+        errorMessage: 'Failed to navigate to highlight: $e',
+      ));
+    }
+  }
+
+  void clearPendingHighlight() {
+    emit(state.copyWith(clearPendingHighlight: true));
+  }
+
   Future<void> nextChapter() async {
     if (state.hasNextChapter) {
       await goToChapter(state.currentChapter + 1);
