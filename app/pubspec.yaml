@@ -43,13 +43,13 @@ dependencies:
   path_provider: ^2.1.5
   path: ^1.9.1
   uuid: ^4.5.3
-  file_picker: ^3.0.4
+  file_picker: ^8.3.2
   epubx: ^4.0.0
   webview_flutter: ^4.13.1
   http: ^1.6.0
   cached_network_image: ^3.4.1
   google_fonts: ^8.0.2
-  share_plus: ^13.0.0
+  share_plus: ^12.0.2
   image: ^3.3.0
   shared_preferences: ^2.5.5
   archive: ^3.6.1
