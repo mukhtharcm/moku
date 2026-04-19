@@ -4,6 +4,7 @@ import 'core/database/database.dart';
 import 'core/services/epub_service.dart';
 import 'core/services/open_library_service.dart';
 import 'core/services/path_resolver.dart';
+import 'features/onboarding/screens/onboarding_screen.dart';
 import 'app.dart';
 
 void main() async {
@@ -16,9 +17,13 @@ void main() async {
   final epubService = EpubService();
   final openLibraryService = OpenLibraryService();
 
+  // Check if this is a first launch
+  final needsOnboarding = !(await isOnboardingCompleted());
+
   runApp(MokuApp(
     database: database,
     epubService: epubService,
     openLibraryService: openLibraryService,
+    showOnboarding: needsOnboarding,
   ));
 }

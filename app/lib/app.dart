@@ -10,18 +10,21 @@ import 'core/theme/theme_cubit.dart';
 import 'features/library/cubit/library_cubit.dart';
 import 'features/collections/cubit/collections_cubit.dart';
 import 'features/search/cubit/search_cubit.dart';
+import 'features/onboarding/screens/onboarding_screen.dart';
 import 'app_shell.dart';
 
 class MokuApp extends StatelessWidget {
   final AppDatabase database;
   final EpubService epubService;
   final OpenLibraryService openLibraryService;
+  final bool showOnboarding;
 
   const MokuApp({
     super.key,
     required this.database,
     required this.epubService,
     required this.openLibraryService,
+    this.showOnboarding = false,
   });
 
   @override
@@ -64,7 +67,9 @@ class MokuApp extends StatelessWidget {
               theme: MokuTheme.lightTheme(),
               darkTheme: MokuTheme.darkTheme(),
               themeMode: themeState.themeMode,
-              home: const AppShell(),
+              home: showOnboarding
+                  ? const OnboardingScreen()
+                  : const AppShell(),
             );
           },
         ),
