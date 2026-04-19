@@ -34,7 +34,8 @@ class BookGridItem extends StatelessWidget {
                   width: double.infinity,
                   height: double.infinity,
                 ),
-                if (progress != null && progress! > 0)
+                // Progress bar overlay at bottom
+                if (progress != null && progress! > 0.01)
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -46,7 +47,8 @@ class BookGridItem extends StatelessWidget {
                           bottomLeft: Radius.circular(12),
                           bottomRight: Radius.circular(12),
                         ),
-                        color: colorScheme.surfaceContainerHighest,
+                        color: colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.6),
                       ),
                       child: FractionallySizedBox(
                         alignment: Alignment.centerLeft,
@@ -66,11 +68,12 @@ class BookGridItem extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             book.title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
+                  height: 1.3,
                 ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -79,7 +82,7 @@ class BookGridItem extends StatelessWidget {
           Text(
             book.author,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                   fontSize: 11,
                 ),
             maxLines: 1,

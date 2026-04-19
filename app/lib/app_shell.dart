@@ -25,9 +25,13 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: IndexedStack(
+          key: ValueKey(_currentIndex),
+          index: _currentIndex,
+          children: _screens,
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
@@ -37,22 +41,22 @@ class _AppShellState extends State<AppShell> {
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.auto_stories_outlined),
-            selectedIcon: Icon(Icons.auto_stories),
+            selectedIcon: Icon(Icons.auto_stories_rounded),
             label: 'Library',
           ),
           NavigationDestination(
             icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore),
+            selectedIcon: Icon(Icons.explore_rounded),
             label: 'Discover',
           ),
           NavigationDestination(
             icon: Icon(Icons.collections_bookmark_outlined),
-            selectedIcon: Icon(Icons.collections_bookmark),
+            selectedIcon: Icon(Icons.collections_bookmark_rounded),
             label: 'Shelves',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
+            selectedIcon: Icon(Icons.settings_rounded),
             label: 'Settings',
           ),
         ],

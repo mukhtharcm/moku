@@ -19,6 +19,7 @@ class ReaderState extends Equatable {
   final double scrollProgress;
   final String? errorMessage;
   final List<db.Highlight> highlights;
+  final bool zenMode;
 
   const ReaderState({
     this.status = ReaderStatus.initial,
@@ -33,6 +34,7 @@ class ReaderState extends Equatable {
     this.scrollProgress = 0.0,
     this.errorMessage,
     this.highlights = const [],
+    this.zenMode = false,
   });
 
   ReaderState copyWith({
@@ -48,6 +50,7 @@ class ReaderState extends Equatable {
     double? scrollProgress,
     String? errorMessage,
     List<db.Highlight>? highlights,
+    bool? zenMode,
   }) {
     return ReaderState(
       status: status ?? this.status,
@@ -62,6 +65,7 @@ class ReaderState extends Equatable {
       scrollProgress: scrollProgress ?? this.scrollProgress,
       errorMessage: errorMessage ?? this.errorMessage,
       highlights: highlights ?? this.highlights,
+      zenMode: zenMode ?? this.zenMode,
     );
   }
 
@@ -89,5 +93,6 @@ class ReaderState extends Equatable {
     scrollProgress,
     errorMessage,
     highlights,
+    zenMode,
   ];
 }

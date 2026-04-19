@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../core/database/database.dart' hide Book, Bookmark, Highlight, BookCollection;
 import '../../../core/models/book.dart';
 import '../../../core/services/epub_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/theme_cubit.dart';
 import '../cubit/reader_cubit.dart';
 import '../cubit/reader_state.dart';
 import 'annotations_screen.dart';
@@ -76,6 +78,13 @@ class _ReaderViewState extends State<_ReaderView> {
       );
   }
 
+  @override
+  void dispose() {
+    // Restore system UI when leaving reader
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    super.dispose();
+  }
+
   void _onJsMessage(JavaScriptMessage message) {
     final data = message.message;
     if (data.startsWith('scroll:')) {
@@ -104,12 +113,21 @@ class _ReaderViewState extends State<_ReaderView> {
   }
 
   void _injectScrollListener() {
+    // Use throttled scroll in power saver mode
+    final powerSaver = context.read<ThemeCubit>().state.powerSaver;
+    final throttleMs = powerSaver ? 1000 : 200;
+
     _webController.runJavaScript('''
+      var _mokuScrollTimer = null;
       window.addEventListener('scroll', function() {
-        var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-        var scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-        var progress = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
-        MokuBridge.postMessage('scroll:' + progress.toFixed(4));
+        if (_mokuScrollTimer) return;
+        _mokuScrollTimer = setTimeout(function() {
+          _mokuScrollTimer = null;
+          var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+          var scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+          var progress = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
+          MokuBridge.postMessage('scroll:' + progress.toFixed(4));
+        }, $throttleMs);
       });
     ''');
   }
@@ -185,7 +203,7 @@ class _ReaderViewState extends State<_ReaderView> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -472,27 +490,50 @@ function highlightTextInBody(text, id, color) {
           );
         }
 
+        // Zen mode: immersive, hide system UI
+        if (state.zenMode) {
+          SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+        } else {
+          SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+        }
+
         return Scaffold(
           backgroundColor: state.readerTheme.backgroundColor,
           body: Stack(
             children: [
               // WebView reader
               GestureDetector(
-                onTap: () => context.read<ReaderCubit>().toggleControls(),
+                onTap: () {
+                  if (state.zenMode) {
+                    // In zen mode, single tap does nothing (just reads)
+                    // Double-tap exits zen mode
+                  } else {
+                    context.read<ReaderCubit>().toggleControls();
+                  }
+                },
+                onDoubleTap: () {
+                  if (state.zenMode) {
+                    context.read<ReaderCubit>().toggleZenMode();
+                  }
+                },
                 child: SafeArea(
+                  top: !state.zenMode,
+                  bottom: !state.zenMode,
                   child: WebViewWidget(controller: _webController),
                 ),
               ),
 
-              // Top controls
-              if (state.showControls)
+              // Top controls — animated
+              if (state.showControls && !state.zenMode)
                 _TopControls(
                   title: state.book.title,
                   chapterTitle: state.chapterTitle,
+                  onZenMode: () =>
+                      context.read<ReaderCubit>().toggleZenMode(),
                 ),
 
-              // Bottom controls
-              if (state.showControls)
+              // Bottom controls — animated
+              if (state.showControls && !state.zenMode)
                 _BottomControls(
                   state: state,
                   onPrevious: state.hasPreviousChapter
@@ -525,19 +566,22 @@ function highlightTextInBody(text, id, color) {
                 ),
 
               // Selection highlight FAB
-              if (_selectedText != null && _selectedText!.isNotEmpty)
+              if (_selectedText != null &&
+                  _selectedText!.isNotEmpty &&
+                  !state.zenMode)
                 Positioned(
                   bottom: 80,
                   right: 16,
                   child: FloatingActionButton.extended(
+                    heroTag: 'reader_highlight',
                     onPressed: () => _showHighlightActions(context),
-                    icon: const Icon(Icons.highlight),
+                    icon: const Icon(Icons.highlight_rounded),
                     label: const Text('Highlight'),
                   ),
                 ),
 
               // TOC drawer
-              if (state.showToc)
+              if (state.showToc && !state.zenMode)
                 _TocDrawer(
                   chapters: state.chapters,
                   currentChapter: state.currentChapter,
@@ -546,23 +590,56 @@ function highlightTextInBody(text, id, color) {
                   onClose: () => context.read<ReaderCubit>().toggleToc(),
                 ),
 
-              // Progress bar at bottom
+              // Progress bar at very bottom — always visible, even in zen
               Positioned(
                 bottom: 0,
                 left: 0,
                 right: 0,
-                child: LinearProgressIndicator(
-                  value: state.chapters.isEmpty
-                      ? 0
-                      : (state.currentChapter + state.scrollProgress) /
-                          state.chapters.length,
-                  minHeight: 2,
-                  backgroundColor: Colors.transparent,
-                  valueColor: AlwaysStoppedAnimation(
-                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+                child: AnimatedOpacity(
+                  opacity: state.zenMode ? 0.3 : 0.8,
+                  duration: const Duration(milliseconds: 300),
+                  child: LinearProgressIndicator(
+                    value: state.chapters.isEmpty
+                        ? 0
+                        : (state.currentChapter + state.scrollProgress) /
+                            state.chapters.length,
+                    minHeight: state.zenMode ? 1.5 : 2,
+                    backgroundColor: Colors.transparent,
+                    valueColor: AlwaysStoppedAnimation(
+                      Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.6),
+                    ),
                   ),
                 ),
               ),
+
+              // Zen mode exit hint — shows briefly when entering
+              if (state.zenMode)
+                Positioned(
+                  bottom: 20,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: AnimatedOpacity(
+                      opacity: 0.0,
+                      duration: const Duration(seconds: 3),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'Double-tap to exit zen mode',
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         );
@@ -574,8 +651,13 @@ function highlightTextInBody(text, id, color) {
 class _TopControls extends StatelessWidget {
   final String title;
   final String chapterTitle;
+  final VoidCallback? onZenMode;
 
-  const _TopControls({required this.title, required this.chapterTitle});
+  const _TopControls({
+    required this.title,
+    required this.chapterTitle,
+    this.onZenMode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -612,7 +694,7 @@ class _TopControls extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: GoogleFonts.literata(
                           color: Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -632,6 +714,12 @@ class _TopControls extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (onZenMode != null)
+                  IconButton(
+                    icon: const Icon(Icons.spa_outlined, color: Colors.white),
+                    onPressed: onZenMode,
+                    tooltip: 'Zen Mode',
+                  ),
               ],
             ),
           ),

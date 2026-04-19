@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/services/open_library_service.dart';
@@ -29,7 +30,13 @@ class _SearchScreenState extends State<SearchScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Discover'),
+        title: Text(
+          'Discover',
+          style: GoogleFonts.literata(
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+          ),
+        ),
       ),
       body: Column(
         children: [

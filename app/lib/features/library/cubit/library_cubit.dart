@@ -13,6 +13,7 @@ class LibraryCubit extends Cubit<LibraryState> {
   final db.AppDatabase _database;
   final EpubService _epubService;
   StreamSubscription? _booksSubscription;
+  bool _isImporting = false;
 
   LibraryCubit({
     required db.AppDatabase database,
@@ -53,6 +54,8 @@ class LibraryCubit extends Cubit<LibraryState> {
   }
 
   Future<void> importBook() async {
+    if (_isImporting) return;
+    _isImporting = true;
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -71,6 +74,8 @@ class LibraryCubit extends Cubit<LibraryState> {
         status: LibraryStatus.error,
         errorMessage: 'Failed to import book: $e',
       ));
+    } finally {
+      _isImporting = false;
     }
   }
 

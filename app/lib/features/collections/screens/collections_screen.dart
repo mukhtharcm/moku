@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/models/models.dart';
 import '../cubit/collections_cubit.dart';
@@ -14,7 +15,15 @@ class CollectionsScreen extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Collections')),
+      appBar: AppBar(
+        title: Text(
+          'Shelves',
+          style: GoogleFonts.literata(
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+          ),
+        ),
+      ),
       body: BlocBuilder<CollectionsCubit, CollectionsState>(
         builder: (context, state) {
           if (state.status == CollectionsStatus.loading) {
@@ -23,30 +32,50 @@ class CollectionsScreen extends StatelessWidget {
 
           if (state.collections.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.collections_bookmark_outlined,
-                      size: 64, color: colorScheme.primary.withValues(alpha: 0.5)),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No collections yet',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Organize your books into shelves',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer
+                            .withValues(alpha: 0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.collections_bookmark_outlined,
+                          size: 44,
+                          color: colorScheme.primary.withValues(alpha: 0.7)),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'No shelves yet',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Organize your books into collections',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () => _showCreateDialog(context),
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('Create Shelf'),
+                    ),
+                  ],
+                ),
               ),
             );
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
             itemCount: state.collections.length,
             itemBuilder: (context, index) {
               final collection = state.collections[index];
@@ -60,8 +89,9 @@ class CollectionsScreen extends StatelessWidget {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'collections_create',
         onPressed: () => _showCreateDialog(context),
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add_rounded),
       ),
     );
   }
@@ -81,19 +111,26 @@ class CollectionsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('New Collection'),
+        title: const Text('New Shelf'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: const InputDecoration(
+                labelText: 'Name',
+                hintText: 'e.g. Favorites, To Read…',
+              ),
               autofocus: true,
+              textCapitalization: TextCapitalization.words,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: descController,
-              decoration: const InputDecoration(labelText: 'Description (optional)'),
+              decoration: const InputDecoration(
+                labelText: 'Description (optional)',
+              ),
+              textCapitalization: TextCapitalization.sentences,
             ),
           ],
         ),
@@ -125,8 +162,9 @@ class CollectionsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Collection'),
-        content: Text('Delete "${collection.name}"? Books won\'t be removed.'),
+        title: const Text('Delete Shelf'),
+        content: Text(
+            'Delete "${collection.name}"? Your books won\'t be removed from the library.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -163,34 +201,69 @@ class _CollectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            Icons.collections_bookmark,
-            color: colorScheme.onPrimaryContainer,
+    // Generate a colour from collection name hash
+    final hash = collection.name.hashCode;
+    final hue = (hash % 360).toDouble().abs();
+    final iconColor = HSLColor.fromAHSL(1, hue, 0.5, 0.6).toColor();
+    final bgColor = HSLColor.fromAHSL(0.12, hue, 0.5, 0.6).toColor();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Card(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.collections_bookmark_rounded,
+                    color: iconColor,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(collection.name,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w600)),
+                      if (collection.description != null) ...[
+                        const SizedBox(height: 2),
+                        Text(collection.description!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                    color: colorScheme.onSurfaceVariant)),
+                      ],
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.more_horiz_rounded,
+                      color: colorScheme.onSurfaceVariant),
+                  onPressed: onDelete,
+                ),
+              ],
+            ),
           ),
         ),
-        title: Text(collection.name,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: collection.description != null
-            ? Text(collection.description!,
-                maxLines: 1, overflow: TextOverflow.ellipsis)
-            : null,
-        trailing: IconButton(
-          icon: const Icon(Icons.more_vert),
-          onPressed: onDelete,
-        ),
-        onTap: onTap,
       ),
     );
   }

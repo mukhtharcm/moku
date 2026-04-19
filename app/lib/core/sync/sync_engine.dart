@@ -44,7 +44,9 @@ class SyncEngine {
   }
 
   Future<void> _pushBooks() async {
-    final userId = pb.authStore.record!.id;
+    final record = pb.authStore.record;
+    if (record == null) return;
+    final userId = record.id;
     final allBooks = await db.getAllBooks();
 
     // Push new records (no remoteId)
@@ -199,7 +201,9 @@ class SyncEngine {
   }
 
   Future<void> _pushReadingProgress() async {
-    final userId = pb.authStore.record!.id;
+    final record = pb.authStore.record;
+    if (record == null) return;
+    final userId = record.id;
     final allProgress = await db.select(db.readingProgresses).get();
 
     for (final progress in allProgress) {
@@ -313,7 +317,9 @@ class SyncEngine {
   }
 
   Future<void> _pushBookmarks() async {
-    final userId = pb.authStore.record!.id;
+    final record = pb.authStore.record;
+    if (record == null) return;
+    final userId = record.id;
     final allBookmarks = await db.select(db.bookmarks).get();
 
     final newBookmarks =
@@ -377,7 +383,9 @@ class SyncEngine {
   }
 
   Future<void> _pushHighlights() async {
-    final userId = pb.authStore.record!.id;
+    final record = pb.authStore.record;
+    if (record == null) return;
+    final userId = record.id;
     final allHighlights = await db.select(db.highlights).get();
 
     final newHighlights =
@@ -484,7 +492,9 @@ class SyncEngine {
   }
 
   Future<void> _pushCollections() async {
-    final userId = pb.authStore.record!.id;
+    final record = pb.authStore.record;
+    if (record == null) return;
+    final userId = record.id;
     final allCollections = await db.getAllCollections();
 
     final newCollections =

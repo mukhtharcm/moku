@@ -102,9 +102,9 @@ class ReaderCubit extends Cubit<ReaderState> {
     }
   }
 
-  void updateScrollProgress(double progress) {
+  Future<void> updateScrollProgress(double progress) async {
     emit(state.copyWith(scrollProgress: progress));
-    _saveProgress();
+    await _saveProgress();
   }
 
   void toggleControls() {
@@ -113,6 +113,15 @@ class ReaderCubit extends Cubit<ReaderState> {
 
   void toggleToc() {
     emit(state.copyWith(showToc: !state.showToc));
+  }
+
+  void toggleZenMode() {
+    final entering = !state.zenMode;
+    emit(state.copyWith(
+      zenMode: entering,
+      showControls: false,
+      showToc: false,
+    ));
   }
 
   Future<void> setFontSize(double size) async {
@@ -195,7 +204,9 @@ class ReaderCubit extends Cubit<ReaderState> {
   }
 
   Future<void> updateHighlightNote(String id, String note) async {
-    final highlight = state.highlights.firstWhere((h) => h.id == id);
+    final highlightIndex = state.highlights.indexWhere((h) => h.id == id);
+    if (highlightIndex == -1) return;
+    final highlight = state.highlights[highlightIndex];
     await _database.updateHighlight(
       db.HighlightsCompanion(
         id: Value(highlight.id),
