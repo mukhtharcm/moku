@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../../core/database/database.dart' as db;
 import '../../../core/models/models.dart';
 import '../../../core/services/epub_service.dart';
+import '../../../core/services/path_resolver.dart';
 import 'library_state.dart';
 
 class LibraryCubit extends Cubit<LibraryState> {
@@ -125,8 +126,8 @@ class LibraryCubit extends Cubit<LibraryState> {
       title: dbBook.title,
       author: dbBook.author,
       description: dbBook.description,
-      coverPath: dbBook.coverPath,
-      filePath: dbBook.filePath,
+      coverPath: PathResolver.resolveNullable(dbBook.coverPath),
+      filePath: PathResolver.resolve(dbBook.filePath),
       isbn: dbBook.isbn,
       language: dbBook.language,
       publisher: dbBook.publisher,

@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:pocketbase/pocketbase.dart';
 
 import '../database/database.dart';
+import '../services/path_resolver.dart';
 
 /// Syncs local Drift database with a remote PocketBase server.
 /// Uses last-write-wins conflict resolution based on updatedAt timestamps.
@@ -55,16 +55,18 @@ class SyncEngine {
     for (final book in newBooks) {
       try {
         final files = <http.MultipartFile>[];
-        final epubFile = File(book.filePath);
+        final resolvedFilePath = PathResolver.resolve(book.filePath);
+        final epubFile = File(resolvedFilePath);
         if (await epubFile.exists()) {
           files.add(await http.MultipartFile.fromPath(
-              'epub_file', book.filePath));
+              'epub_file', resolvedFilePath));
         }
         if (book.coverPath != null) {
-          final coverFile = File(book.coverPath!);
+          final resolvedCoverPath = PathResolver.resolve(book.coverPath!);
+          final coverFile = File(resolvedCoverPath);
           if (await coverFile.exists()) {
             files.add(await http.MultipartFile.fromPath(
-                'cover_image', book.coverPath!));
+                'cover_image', resolvedCoverPath));
           }
         }
 
@@ -145,23 +147,24 @@ class SyncEngine {
       final response = await http.get(epubUrl);
       if (response.statusCode != 200) return;
 
-      // Save to app documents directory
-      final appDir = await _getAppDocumentsDir();
-      final filePath = '$appDir/books/${record.id}_$epubFilename';
-      final file = File(filePath);
+      // Save to app documents directory using moku_books structure
+      final basePath = PathResolver.basePath;
+      final absFilePath = '$basePath/moku_books/${record.id}_$epubFilename';
+      final file = File(absFilePath);
       await file.parent.create(recursive: true);
       await file.writeAsBytes(response.bodyBytes);
 
-      String? coverPath;
+      String? relCoverPath;
       final coverFilename = record.getStringValue('cover_image');
       if (coverFilename.isNotEmpty) {
         final coverUrl = pb.files.getUrl(record, coverFilename);
         final coverResp = await http.get(coverUrl);
         if (coverResp.statusCode == 200) {
-          coverPath = '$appDir/covers/${record.id}_$coverFilename';
-          final coverFile = File(coverPath);
+          final absCoverPath = '$basePath/moku_books/covers/${record.id}_$coverFilename';
+          final coverFile = File(absCoverPath);
           await coverFile.parent.create(recursive: true);
           await coverFile.writeAsBytes(coverResp.bodyBytes);
+          relCoverPath = PathResolver.toRelative(absCoverPath);
         }
       }
 
@@ -172,8 +175,8 @@ class SyncEngine {
         title: record.getStringValue('title'),
         author: record.getStringValue('author'),
         description: Value(record.getStringValue('description')),
-        coverPath: Value(coverPath),
-        filePath: filePath,
+        coverPath: Value(relCoverPath),
+        filePath: PathResolver.toRelative(absFilePath),
         isbn: Value(record.getStringValue('isbn')),
         language: Value(record.getStringValue('language')),
         publisher: Value(record.getStringValue('publisher')),
@@ -719,8 +722,4 @@ class SyncEngine {
     );
   }
 
-  Future<String> _getAppDocumentsDir() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return dir.path;
-  }
 }

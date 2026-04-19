@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../epub/moku_epub.dart';
 import '../models/models.dart';
+import 'path_resolver.dart';
 
 /// Cached representation of a parsed EPUB, keyed by file path.
 class _CachedEpub {
@@ -21,14 +21,17 @@ class EpubService {
   final Map<String, _CachedEpub> _cache = {};
 
   /// Parse an EPUB file and extract metadata + cover.
+  ///
+  /// Stores **relative** paths (e.g. `moku_books/{id}.epub`) so they survive
+  /// iOS sandbox UUID changes across reinstalls.
   Future<Book> parseEpub(String filePath) async {
     final file = File(filePath);
     final bytes = await file.readAsBytes();
     final doc = EpubParser.parse(bytes);
     final server = EpubContentServer(doc);
 
-    final appDir = await getApplicationDocumentsDirectory();
-    final booksDir = Directory(p.join(appDir.path, 'moku_books'));
+    final basePath = PathResolver.basePath;
+    final booksDir = Directory(p.join(basePath, 'moku_books'));
     if (!await booksDir.exists()) {
       await booksDir.create(recursive: true);
     }
@@ -55,8 +58,8 @@ class EpubService {
       title: meta.title,
       author: meta.authors.join(', '),
       description: meta.description,
-      coverPath: coverPath,
-      filePath: destPath,
+      coverPath: coverPath != null ? PathResolver.toRelative(coverPath) : null,
+      filePath: PathResolver.toRelative(destPath),
       isbn: meta.isbn,
       language: meta.language,
       publisher: meta.publisher,

@@ -401,8 +401,9 @@ class _ReaderViewState extends State<_ReaderView>
     position: relative;
   }
   #moku-content {
-    height: 100vh;
-    padding: 24px ${hMargin}px 48px ${hMargin}px;
+    height: calc(100vh - 72px);
+    margin: 24px ${hMargin}px 48px ${hMargin}px;
+    padding: 0;
     column-width: $colWidth;
     column-gap: $colGap;
     column-fill: auto;
@@ -1046,8 +1047,11 @@ class _BottomControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pagesLeft = state.totalPages - state.currentPage - 1;
     final pageText = state.totalPages > 1
-        ? 'Page ${state.currentPage + 1} of ${state.totalPages}'
+        ? pagesLeft == 0
+            ? 'Last page of chapter'
+            : '$pagesLeft page${pagesLeft == 1 ? '' : 's'} left in chapter'
         : '';
 
     return Positioned(
@@ -1072,10 +1076,10 @@ class _BottomControls extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Page info
+                // Page info — Apple Books style
                 if (pageText.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.only(bottom: 4),
                     child: Text(
                       pageText,
                       style: TextStyle(
@@ -1101,16 +1105,29 @@ class _BottomControls extends StatelessWidget {
                       onPressed: onSettings,
                       tooltip: 'Settings',
                     ),
-                    // Chapter info
+                    // Chapter & page info
                     Flexible(
-                      child: Text(
-                        '${state.currentChapter + 1} / ${state.chapters.length}',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 11,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Ch ${state.currentChapter + 1} of ${state.chapters.length}',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (state.totalPages > 1)
+                            Text(
+                              '${state.currentPage + 1} / ${state.totalPages}',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.4),
+                                fontSize: 10,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     IconButton(

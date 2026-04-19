@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/database/database.dart' as db;
 import '../../../core/models/models.dart';
+import '../../../core/services/path_resolver.dart';
 import '../../library/widgets/book_cover.dart';
 import '../../library/widgets/book_grid_item.dart';
 import '../../reader/screens/reader_screen.dart';
@@ -92,8 +93,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                 title: dbBook.title,
                 author: dbBook.author,
                 description: dbBook.description,
-                coverPath: dbBook.coverPath,
-                filePath: dbBook.filePath,
+                coverPath: PathResolver.resolveNullable(dbBook.coverPath),
+                filePath: PathResolver.resolve(dbBook.filePath),
                 createdAt: dbBook.createdAt,
                 updatedAt: dbBook.updatedAt,
               );
@@ -190,8 +191,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                     id: dbBook.id,
                     title: dbBook.title,
                     author: dbBook.author,
-                    coverPath: dbBook.coverPath,
-                    filePath: dbBook.filePath,
+                    coverPath: PathResolver.resolveNullable(dbBook.coverPath),
+                    filePath: PathResolver.resolve(dbBook.filePath),
                     createdAt: dbBook.createdAt,
                     updatedAt: dbBook.updatedAt,
                   );
