@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/services/open_library_service.dart';
 import '../cubit/search_cubit.dart';
@@ -125,9 +126,12 @@ class _SearchResultCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _showBookDetail(context, book),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Cover
@@ -221,6 +225,189 @@ class _SearchResultCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+      ),
+    );
+  }
+
+  void _showBookDetail(BuildContext context, OpenLibraryBook book) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final largeCover = book.coverId != null
+        ? OpenLibraryService.getCoverUrl(book.coverId, size: 'L')
+        : null;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.95,
+        minChildSize: 0.4,
+        expand: false,
+        builder: (_, controller) => SingleChildScrollView(
+          controller: controller,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Cover + basic info
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: largeCover != null
+                        ? CachedNetworkImage(
+                            imageUrl: largeCover,
+                            width: 120,
+                            height: 180,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              width: 120,
+                              height: 180,
+                              color: colorScheme.surfaceContainerHighest,
+                              child: const Icon(Icons.book, size: 40),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              width: 120,
+                              height: 180,
+                              color: colorScheme.surfaceContainerHighest,
+                              child: const Icon(Icons.book, size: 40),
+                            ),
+                          )
+                        : Container(
+                            width: 120,
+                            height: 180,
+                            color: colorScheme.surfaceContainerHighest,
+                            child: const Icon(Icons.book, size: 40),
+                          ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          book.title,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          book.authorString,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: colorScheme.primary,
+                              ),
+                        ),
+                        if (book.firstPublishYear != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'First published ${book.firstPublishYear}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                        if (book.pageCount != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '${book.pageCount} pages',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // Publishers
+              if (book.publishers.isNotEmpty) ...[
+                Text('Publishers',
+                    style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 4),
+                Text(
+                  book.publishers.take(3).join(', '),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              // Subjects
+              if (book.subjects.isNotEmpty) ...[
+                Text('Subjects',
+                    style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: book.subjects.map((s) {
+                    return Chip(
+                      label: Text(s, style: const TextStyle(fontSize: 12)),
+                      visualDensity: VisualDensity.compact,
+                      backgroundColor: colorScheme.secondaryContainer,
+                      side: BorderSide.none,
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+              ],
+              // ISBN
+              if (book.isbn.isNotEmpty) ...[
+                Text('ISBN', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 4),
+                Text(
+                  book.isbn.first,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontFamily: 'monospace',
+                      ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              // Actions
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    final url = Uri.parse(
+                        'https://openlibrary.org${book.key}');
+                    launchUrl(url, mode: LaunchMode.externalApplication);
+                  },
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('View on Open Library'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                  },
+                  icon: const Icon(Icons.close),
+                  label: const Text('Close'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
