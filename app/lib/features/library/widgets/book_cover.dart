@@ -134,6 +134,7 @@ class _PlaceholderCover extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.end,
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // Accent line
                 Container(
@@ -145,16 +146,18 @@ class _PlaceholderCover extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  book.title,
-                  style: GoogleFonts.literata(
-                    color: Colors.white.withValues(alpha: 0.92),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    height: 1.3,
+                Flexible(
+                  child: Text(
+                    book.title,
+                    style: GoogleFonts.literata(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      height: 1.3,
+                    ),
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
                 Text(
