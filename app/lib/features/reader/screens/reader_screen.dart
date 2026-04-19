@@ -156,7 +156,8 @@ class _ReaderViewState extends State<_ReaderView>
     } else if (data == 'tap') {
       final cubit = context.read<ReaderCubit>();
       if (cubit.state.zenMode) {
-        _showZenHint();
+        // Single center-tap exits zen mode (more discoverable than double-tap)
+        cubit.toggleZenMode();
       } else {
         cubit.toggleControls();
       }
@@ -818,9 +819,9 @@ window.addEventListener('load', function() {
           backgroundColor: state.readerTheme.backgroundColor,
           body: Stack(
             children: [
-              // WebView reader
+              // WebView reader — always respect top safe area to avoid notch
               SafeArea(
-                top: !state.zenMode,
+                top: true,
                 bottom: !state.zenMode,
                 child: WebViewWidget(controller: _webController),
               ),
