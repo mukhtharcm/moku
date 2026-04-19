@@ -662,47 +662,60 @@ function applyHighlights(jsonStr) {
 
 function highlightTextInBody(text, id, color) {
   if (!text || text.length === 0) return;
-  var bodyText = document.body.innerText;
-  var idx = bodyText.indexOf(text);
-  if (idx === -1) return;
+  var content = document.getElementById('moku-content');
+  if (!content) return;
 
-  var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
-  var charCount = 0;
-  var startNode = null, startOff = 0, endNode = null, endOff = 0;
-  var targetEnd = idx + text.length;
-
+  // Collect all text nodes and build a combined string
+  var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null, false);
+  var textNodes = [];
+  var allText = '';
   while (walker.nextNode()) {
-    var node = walker.currentNode;
-    var nodeLen = node.textContent.length;
-    if (!startNode && charCount + nodeLen > idx) {
-      startNode = node;
-      startOff = idx - charCount;
-    }
-    if (charCount + nodeLen >= targetEnd) {
-      endNode = node;
-      endOff = targetEnd - charCount;
-      break;
-    }
-    charCount += nodeLen;
+    textNodes.push({ node: walker.currentNode, start: allText.length });
+    allText += walker.currentNode.textContent;
   }
 
-  if (!startNode || !endNode) return;
+  var idx = allText.indexOf(text);
+  if (idx === -1) return;
+  var targetEnd = idx + text.length;
 
-  try {
-    var range = document.createRange();
-    range.setStart(startNode, startOff);
-    range.setEnd(endNode, endOff);
-    var span = document.createElement('span');
-    span.className = 'moku-highlight';
-    span.dataset.highlightId = id || '';
-    if (color) {
-      var r = parseInt(color.substr(1,2), 16);
-      var g = parseInt(color.substr(3,2), 16);
-      var b = parseInt(color.substr(5,2), 16);
-      span.style.backgroundColor = 'rgba(' + r + ',' + g + ',' + b + ',0.4)';
-    }
-    range.surroundContents(span);
-  } catch(e) {}
+  // Determine background color
+  var bgColor = 'rgba(255, 235, 59, 0.4)';
+  if (color) {
+    var r = parseInt(color.substr(1,2), 16);
+    var g = parseInt(color.substr(3,2), 16);
+    var b = parseInt(color.substr(5,2), 16);
+    bgColor = 'rgba(' + r + ',' + g + ',' + b + ',0.4)';
+  }
+
+  // Find affected text nodes and wrap each segment individually
+  // (handles cross-element ranges that surroundContents can't)
+  var segments = [];
+  for (var i = 0; i < textNodes.length; i++) {
+    var tn = textNodes[i];
+    var nodeEnd = tn.start + tn.node.textContent.length;
+    if (nodeEnd <= idx) continue;
+    if (tn.start >= targetEnd) break;
+    segments.push({
+      node: tn.node,
+      start: Math.max(0, idx - tn.start),
+      end: Math.min(tn.node.textContent.length, targetEnd - tn.start)
+    });
+  }
+
+  // Process in reverse to avoid offset invalidation
+  for (var j = segments.length - 1; j >= 0; j--) {
+    var seg = segments[j];
+    try {
+      var range = document.createRange();
+      range.setStart(seg.node, seg.start);
+      range.setEnd(seg.node, seg.end);
+      var span = document.createElement('span');
+      span.className = 'moku-highlight';
+      span.dataset.highlightId = id || '';
+      span.style.backgroundColor = bgColor;
+      range.surroundContents(span);
+    } catch(e) {}
+  }
 }
 
 // --- Initialize ---
