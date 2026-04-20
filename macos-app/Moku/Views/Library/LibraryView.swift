@@ -320,11 +320,12 @@ struct LibraryView: View {
             provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { item, _ in
                 guard let data = item as? Data,
                       let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
-                if url.pathExtension.lowercased() == "epub" {
+                let ext = url.pathExtension.lowercased()
+                if BookFormat.allExtensions.contains(ext) {
                     Task { @MainActor in
                         do {
-                            let epubService = EpubService()
-                            let book = try epubService.importEpub(from: url)
+                            let bookService = BookService()
+                            let book = try bookService.importBook(from: url)
                             modelContext.insert(book)
                             try modelContext.save()
                             viewModel.loadBooks()
@@ -508,79 +509,79 @@ struct BookCoverView: View {
 
     var body: some View {
         GeometryReader { geo in
-            if let coverPath,
-               let coverURL = EpubService.coverURL(for: coverPath),
-               let image = NSImage(contentsOf: coverURL) {
-                ZStack {
-                    Image(nsImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .clipped()
+            if let coverPath {
+                let coverURL = BookService.booksDirectory().appendingPathComponent(coverPath)
+                if let image = NSImage(contentsOf: coverURL) {
+                    ZStack {
+                        Image(nsImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .clipped()
 
-                    // Subtle spine highlight on left edge
-                    HStack(spacing: 0) {
-                        LinearGradient(
-                            colors: [.white.opacity(0.2), .white.opacity(0)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                        .frame(width: 5)
-                        Spacer()
+                        // Subtle spine highlight on left edge
+                        HStack(spacing: 0) {
+                            LinearGradient(
+                                colors: [.white.opacity(0.2), .white.opacity(0)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                            .frame(width: 5)
+                            Spacer()
+                        }
                     }
+                } else {
+                    placeholderCover(title: title, size: geo.size)
                 }
             } else {
-                // Generated placeholder cover
-                ZStack(alignment: .bottomLeading) {
-                    LinearGradient(
-                        colors: [
-                            MokuTheme.coverColor(for: title),
-                            MokuTheme.coverColor(for: title).opacity(0.7)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                placeholderCover(title: title, size: geo.size)
+            }
+        }
+    }
 
-                    // Spine highlight
-                    HStack(spacing: 0) {
-                        LinearGradient(
-                            colors: [.white.opacity(0.18), .clear],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                        .frame(width: 5)
-                        Spacer()
-                    }
+    private func placeholderCover(title: String, size: CGSize) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            LinearGradient(
+                colors: [
+                    MokuTheme.coverColor(for: title),
+                    MokuTheme.coverColor(for: title).opacity(0.7)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
 
-                    // Title and accent
-                    VStack(alignment: .leading, spacing: 6) {
-                        Spacer()
+            HStack(spacing: 0) {
+                LinearGradient(
+                    colors: [.white.opacity(0.18), .clear],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(width: 5)
+                Spacer()
+            }
 
-                        // Accent bar
-                        RoundedRectangle(cornerRadius: 1)
-                            .fill(MokuTheme.coverAccentColor(for: title))
-                            .frame(width: 20, height: 3)
+            VStack(alignment: .leading, spacing: 6) {
+                Spacer()
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(MokuTheme.coverAccentColor(for: title))
+                    .frame(width: 20, height: 3)
+                Text(title)
+                    .font(.system(size: max(9, size.width * 0.08), weight: .bold, design: .serif))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .lineLimit(3)
+                    .lineSpacing(1)
+            }
+            .padding(10)
 
-                        Text(title)
-                            .font(.system(size: max(9, geo.size.width * 0.08), weight: .bold, design: .serif))
-                            .foregroundStyle(.white.opacity(0.9))
-                            .lineLimit(3)
-                            .lineSpacing(1)
-                    }
-                    .padding(10)
-
-                    // Faint book icon watermark
-                    VStack {
-                        HStack {
-                            Spacer()
-                            Image(systemName: "book.closed.fill")
-                                .font(.system(size: geo.size.width * 0.22))
-                                .foregroundStyle(.white.opacity(0.04))
-                                .padding(8)
-                        }
-                        Spacer()
-                    }
+            VStack {
+                HStack {
+                    Spacer()
+                    Image(systemName: "book.closed.fill")
+                        .font(.system(size: size.width * 0.22))
+                        .foregroundStyle(.white.opacity(0.04))
+                        .padding(8)
                 }
+                Spacer()
             }
         }
     }

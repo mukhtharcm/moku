@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 @MainActor
 @Observable
@@ -10,7 +11,7 @@ final class LibraryViewModel {
     var viewMode: ViewMode = .grid
 
     private var modelContext: ModelContext?
-    private let epubService = EpubService()
+    private let bookService = BookService()
 
     enum SortMode: String, CaseIterable {
         case recent = "Recent"
@@ -72,7 +73,16 @@ final class LibraryViewModel {
 
     func importBook() {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.epub]
+
+        // Build UTType list for all supported formats
+        var types: [UTType] = [.epub]
+        types.append(.pdf)
+        types.append(.plainText)
+        if let zip = UTType(filenameExtension: "cbz") { types.append(zip) }
+        if let cbr = UTType(filenameExtension: "cbr") { types.append(cbr) }
+        types.append(.html)
+
+        panel.allowedContentTypes = types
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
 
@@ -80,7 +90,7 @@ final class LibraryViewModel {
 
         for url in panel.urls {
             do {
-                let book = try epubService.importEpub(from: url)
+                let book = try bookService.importBook(from: url)
                 modelContext?.insert(book)
                 try modelContext?.save()
             } catch {
@@ -92,13 +102,13 @@ final class LibraryViewModel {
     }
 
     func deleteBook(_ book: MokuBook) {
-        // Delete files
+        let booksDir = BookService.booksDirectory()
         if let filePath = book.filePath {
-            let fileURL = EpubService.booksDirectory().appendingPathComponent(filePath)
+            let fileURL = booksDir.appendingPathComponent(filePath)
             try? FileManager.default.removeItem(at: fileURL)
         }
         if let coverPath = book.coverPath {
-            let coverURL = EpubService.booksDirectory().appendingPathComponent(coverPath)
+            let coverURL = booksDir.appendingPathComponent(coverPath)
             try? FileManager.default.removeItem(at: coverURL)
         }
 

@@ -5,9 +5,9 @@ struct MokuCommands: Commands {
 
     var body: some Commands {
         CommandGroup(after: .newItem) {
-            Button("Import EPUB…") {
+            Button("Import Book…") {
                 NotificationCenter.default.post(
-                    name: .importEPUB,
+                    name: .importBook,
                     object: nil
                 )
             }
@@ -17,5 +17,5 @@ struct MokuCommands: Commands {
 }
 
 extension Notification.Name {
-    static let importEPUB = Notification.Name("importEPUB")
+    static let importBook = Notification.Name("importBook")
 }

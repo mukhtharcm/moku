@@ -1,8 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// Wrapper that resolves a book ID into a MokuBook and presents the reader.
-/// Used by the separate reader WindowGroup.
+/// Wrapper that resolves a book ID into a MokuBook and presents the correct reader.
 struct ReaderWindowView: View {
     let bookId: String
     @Environment(\.modelContext) private var modelContext
@@ -12,7 +11,14 @@ struct ReaderWindowView: View {
     var body: some View {
         Group {
             if let book {
-                ReaderView(book: book)
+                switch book.bookFormat {
+                case .pdf:
+                    PdfReaderView(book: book)
+                case .cbz:
+                    CbzReaderView(book: book)
+                case .epub, .txt, .html:
+                    ReaderView(book: book)
+                }
             } else if loaded {
                 VStack(spacing: 14) {
                     Image(systemName: "book.closed")

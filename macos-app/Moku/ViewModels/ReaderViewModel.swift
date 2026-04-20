@@ -6,7 +6,7 @@ import WebKit
 @Observable
 final class ReaderViewModel {
     var book: MokuBook
-    var chapters: [EpubChapterInfo] = []
+    var chapters: [ChapterInfo] = []
     var currentChapter: Int = 0
     var currentPage: Int = 1
     var totalPages: Int = 1
@@ -20,7 +20,15 @@ final class ReaderViewModel {
     var lineHeight: Double = 1.6
     var readerTheme: ReaderTheme = .system
 
-    private let epubService = EpubService()
+    private let bookService = BookService()
+
+    /// Whether this book uses the WebView reader (epub, txt, html)
+    var usesWebViewReader: Bool {
+        switch book.bookFormat {
+        case .epub, .txt, .html: true
+        case .pdf, .cbz: false
+        }
+    }
 
     enum ReaderTheme: String, CaseIterable {
         case system = "System"
@@ -49,20 +57,14 @@ final class ReaderViewModel {
 
     init(book: MokuBook) {
         self.book = book
-        // Restore progress
         if let progress = book.readingProgress {
             currentChapter = progress.currentChapter
         }
     }
 
     func loadBook() {
-        guard let filePath = book.filePath else {
-            errorMessage = "Book file not found"
-            return
-        }
-
         do {
-            chapters = try epubService.getChapters(filePath: filePath)
+            chapters = try bookService.getChapters(book: book)
             isLoading = false
         } catch {
             errorMessage = "Failed to load book: \(error.localizedDescription)"
@@ -71,9 +73,8 @@ final class ReaderViewModel {
     }
 
     func getChapterHTML() -> String? {
-        guard let filePath = book.filePath else { return nil }
         do {
-            let content = try epubService.getChapterContent(filePath: filePath, chapterIndex: currentChapter)
+            let content = try bookService.getChapterContent(book: book, chapterIndex: currentChapter)
             return buildHTML(content: content)
         } catch {
             return "<p>Failed to load chapter: \(error.localizedDescription)</p>"
@@ -219,7 +220,6 @@ final class ReaderViewModel {
                 window.webkit.messageHandlers.MokuBridge.postMessage(msg);
             }
 
-            // Handle text selection
             document.addEventListener('mouseup', function(e) {
                 const sel = window.getSelection();
                 if (sel && sel.toString().trim().length > 0) {
@@ -231,7 +231,6 @@ final class ReaderViewModel {
                 }
             });
 
-            // Handle keyboard navigation
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'ArrowRight' || e.key === ' ') {
                     e.preventDefault();
@@ -254,7 +253,6 @@ final class ReaderViewModel {
                 }
             });
 
-            // Initial report after content layout
             setTimeout(reportState, 100);
             window.addEventListener('resize', function() {
                 setTimeout(reportState, 100);

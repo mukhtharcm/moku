@@ -1,6 +1,47 @@
 import Foundation
 import SwiftData
 
+/// Supported book formats
+enum BookFormat: String, Codable, CaseIterable {
+    case epub
+    case pdf
+    case txt
+    case cbz
+    case html
+
+    var displayName: String {
+        switch self {
+        case .epub: "EPUB"
+        case .pdf: "PDF"
+        case .txt: "TXT"
+        case .cbz: "CBZ"
+        case .html: "HTML"
+        }
+    }
+
+    var fileExtensions: [String] {
+        switch self {
+        case .epub: ["epub"]
+        case .pdf: ["pdf"]
+        case .txt: ["txt"]
+        case .cbz: ["cbz", "cbr"]
+        case .html: ["html", "htm"]
+        }
+    }
+
+    static var allExtensions: [String] {
+        allCases.flatMap(\.fileExtensions)
+    }
+
+    static func from(extension ext: String) -> BookFormat {
+        let lower = ext.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        for format in allCases {
+            if format.fileExtensions.contains(lower) { return format }
+        }
+        return .epub
+    }
+}
+
 @Model
 final class MokuBook {
     @Attribute(.unique) var id: String
@@ -9,6 +50,7 @@ final class MokuBook {
     var bookDescription: String?
     var coverPath: String?
     var filePath: String?
+    var format: String
     var isbn: String?
     var language: String?
     var publisher: String?
@@ -31,6 +73,11 @@ final class MokuBook {
     @Relationship(inverse: \BookCollection.books)
     var collections: [BookCollection]
 
+    var bookFormat: BookFormat {
+        get { BookFormat(rawValue: format) ?? .epub }
+        set { format = newValue.rawValue }
+    }
+
     init(
         id: String = UUID().uuidString,
         title: String,
@@ -38,6 +85,7 @@ final class MokuBook {
         bookDescription: String? = nil,
         coverPath: String? = nil,
         filePath: String? = nil,
+        format: BookFormat = .epub,
         isbn: String? = nil,
         language: String? = nil,
         publisher: String? = nil,
@@ -52,6 +100,7 @@ final class MokuBook {
         self.bookDescription = bookDescription
         self.coverPath = coverPath
         self.filePath = filePath
+        self.format = format.rawValue
         self.isbn = isbn
         self.language = language
         self.publisher = publisher

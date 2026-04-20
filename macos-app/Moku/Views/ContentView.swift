@@ -27,7 +27,7 @@ struct ContentView: View {
                 .frame(minWidth: 860, minHeight: 560)
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .importEPUB)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .importBook)) { _ in
             selectedTab = .library
             NotificationCenter.default.post(name: .triggerImport, object: nil)
         }
