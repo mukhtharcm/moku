@@ -50,7 +50,7 @@ final class MokuBook {
     var bookDescription: String?
     var coverPath: String?
     var filePath: String?
-    var format: String
+    var format: String?
     var isbn: String?
     var language: String?
     var publisher: String?
@@ -74,7 +74,18 @@ final class MokuBook {
     var collections: [BookCollection]
 
     var bookFormat: BookFormat {
-        get { BookFormat(rawValue: format) ?? .epub }
+        get {
+            if let format, let parsed = BookFormat(rawValue: format) {
+                return parsed
+            }
+            if let filePath {
+                let ext = URL(fileURLWithPath: filePath).pathExtension
+                if !ext.isEmpty {
+                    return BookFormat.from(extension: ext)
+                }
+            }
+            return .epub
+        }
         set { format = newValue.rawValue }
     }
 

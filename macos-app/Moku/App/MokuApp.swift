@@ -20,6 +20,7 @@ struct MokuApp: App {
                 isStoredInMemoryOnly: false
             )
             modelContainer = try ModelContainer(for: schema, configurations: [config])
+            try repairLegacyBooks(in: ModelContext(modelContainer))
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }
@@ -47,6 +48,21 @@ struct MokuApp: App {
         Settings {
             SettingsView()
                 .modelContainer(modelContainer)
+        }
+    }
+
+    private func repairLegacyBooks(in context: ModelContext) throws {
+        let descriptor = FetchDescriptor<MokuBook>()
+        let books = try context.fetch(descriptor)
+
+        var didChange = false
+        for book in books where book.format == nil || book.format?.isEmpty == true {
+            book.format = book.bookFormat.rawValue
+            didChange = true
+        }
+
+        if didChange {
+            try context.save()
         }
     }
 }

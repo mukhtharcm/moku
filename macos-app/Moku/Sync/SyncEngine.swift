@@ -561,7 +561,7 @@ final class SyncEngine {
             "publish_date": book.publishDate.map { isoString($0) } ?? "",
             "total_chapters": "\(book.totalChapters)",
             "file_hash": book.fileHash ?? "",
-            "format": book.format,
+            "format": book.bookFormat.rawValue,
             "user": userId,
         ]
     }
