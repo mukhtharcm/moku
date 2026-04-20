@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Support — Moku</title>
+  <meta name="description" content="Get help with Moku, the offline-first EPUB reader.">
+  <meta name="theme-color" content="#1a1612">
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --ink:#1a1612;
+      --paper:#f7f3ec;
+      --paper-warm:#efe8dc;
+      --rust:#c4653a;
+      --teal:#2a6f6a;
+      --muted:#9a918a;
+      --rule:rgba(26,22,18,0.08);
+    }
+    html{scroll-behavior:smooth}
+    body{
+      font-family:'DM Sans',system-ui,sans-serif;
+      background:var(--paper);
+      color:var(--ink);
+      -webkit-font-smoothing:antialiased;
+      line-height:1.7;
+    }
+    .nav{
+      position:sticky;top:0;z-index:100;
+      background:rgba(247,243,236,0.85);
+      backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--rule);
+    }
+    .nav-inner{
+      max-width:720px;margin:0 auto;padding:16px 24px;
+      display:flex;align-items:center;justify-content:space-between;
+    }
+    .nav-logo{font-family:'Instrument Serif',serif;font-size:1.25rem;color:var(--ink);text-decoration:none}
+    .nav-back{font-size:0.85rem;color:var(--muted);text-decoration:none}
+    .nav-back:hover{color:var(--ink)}
+
+    .page{max-width:720px;margin:0 auto;padding:64px 24px 96px}
+    .page h1{
+      font-family:'Instrument Serif',serif;
+      font-size:2.5rem;font-weight:400;
+      margin-bottom:8px;
+    }
+    .page .subtitle{color:var(--muted);font-size:0.95rem;margin-bottom:48px;display:block}
+    .page h2{
+      font-family:'Instrument Serif',serif;
+      font-size:1.4rem;font-weight:400;
+      margin:40px 0 12px;padding-top:20px;
+      border-top:1px solid var(--rule);
+    }
+    .page h2:first-of-type{border-top:none;padding-top:0}
+    .page p{margin-bottom:16px;color:#3d3731;font-size:0.95rem}
+    .page ul{margin:0 0 16px 20px;color:#3d3731;font-size:0.95rem}
+    .page li{margin-bottom:8px}
+    .page a{color:var(--rust);text-decoration:underline;text-underline-offset:2px}
+    .page strong{font-weight:600;color:var(--ink)}
+
+    .faq-q{font-weight:600;color:var(--ink);margin:24px 0 6px;font-size:0.95rem}
+    .faq-q:first-of-type{margin-top:0}
+    .faq-a{color:#3d3731;font-size:0.95rem;margin-bottom:0}
+
+    .contact-card{
+      background:var(--paper-warm);
+      border-radius:12px;padding:32px;
+      margin:32px 0;
+    }
+    .contact-card h3{
+      font-family:'Instrument Serif',serif;
+      font-size:1.2rem;font-weight:400;margin-bottom:16px;
+    }
+    .contact-link{
+      display:inline-flex;align-items:center;gap:8px;
+      color:var(--ink);text-decoration:none;
+      font-size:0.95rem;padding:10px 20px;
+      border:1px solid var(--rule);border-radius:8px;
+      background:var(--paper);transition:all 0.2s;
+      margin:4px 8px 4px 0;
+    }
+    .contact-link:hover{border-color:var(--rust);color:var(--rust)}
+
+    .footer{
+      max-width:720px;margin:0 auto;padding:32px 24px;
+      border-top:1px solid var(--rule);
+      display:flex;justify-content:space-between;align-items:center;
+      font-size:0.8rem;color:var(--muted);
+    }
+    .footer a{color:var(--muted);text-decoration:none}
+    .footer a:hover{color:var(--ink)}
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">Moku</a>
+    <a href="/" class="nav-back">← Back to home</a>
+  </div>
+</nav>
+
+<main class="page">
+  <h1>Support</h1>
+  <span class="subtitle">Need help with Moku? We've got you.</span>
+
+  <div class="contact-card">
+    <h3>Get in touch</h3>
+    <a href="mailto:mukhtharcm@gmail.com" class="contact-link">
+      ✉ mukhtharcm@gmail.com
+    </a>
+    <a href="https://github.com/mukhtharcm/moku/issues" class="contact-link">
+      ⚑ Open an issue on GitHub
+    </a>
+  </div>
+
+  <h2>Frequently asked questions</h2>
+
+  <p class="faq-q">What file formats does Moku support?</p>
+  <p class="faq-a">Moku currently supports EPUB files. More formats may be added in future updates.</p>
+
+  <p class="faq-q">How do I import books?</p>
+  <p class="faq-a">Tap the "+" button in your library, then choose a file from your device. You can also import books from a URL. On iOS, you can open EPUB files directly from the Files app or Safari.</p>
+
+  <p class="faq-q">Do I need an account to use Moku?</p>
+  <p class="faq-a">No. Moku works entirely offline with no account required. You only need an account if you choose to enable sync.</p>
+
+  <p class="faq-q">How does sync work?</p>
+  <p class="faq-a">Moku syncs via PocketBase — an open-source backend you can self-host. Enter your server URL in Settings → Sync, create an account, and your books, reading progress, and shelves will sync across all your devices.</p>
+
+  <p class="faq-q">Can I host my own sync server?</p>
+  <p class="faq-a">Yes! That's the whole idea. Download PocketBase, run it on any machine or VPS, and point Moku to it. Full instructions are on the <a href="https://github.com/mukhtharcm/moku">GitHub repo</a>.</p>
+
+  <p class="faq-q">My book isn't displaying correctly. What should I do?</p>
+  <p class="faq-a">Some EPUBs have non-standard formatting. Try adjusting font and theme settings in the reader. If the issue persists, <a href="https://github.com/mukhtharcm/moku/issues">open an issue</a> with the book details and we'll look into it.</p>
+
+  <p class="faq-q">How do I reset the app / clear onboarding?</p>
+  <p class="faq-a">On iOS, delete and reinstall the app. On macOS, remove the app's data from ~/Library/Containers/ and relaunch.</p>
+
+  <p class="faq-q">Is Moku free?</p>
+  <p class="faq-a">Yes. Moku is free and open source, licensed under the MIT license.</p>
+
+  <h2>Report a bug</h2>
+  <p>Found something broken? Please <a href="https://github.com/mukhtharcm/moku/issues/new">open a GitHub issue</a> with:</p>
+  <ul>
+    <li>What you expected to happen</li>
+    <li>What actually happened</li>
+    <li>Your device and OS version</li>
+    <li>Steps to reproduce the issue</li>
+  </ul>
+
+  <h2>Feature requests</h2>
+  <p>Have an idea for Moku? We'd love to hear it. <a href="https://github.com/mukhtharcm/moku/issues/new">Open an issue</a> on GitHub with the "enhancement" label.</p>
+</main>
+
+<footer class="footer">
+  <span>© 2026 Moku</span>
+  <div>
+    <a href="/privacy.html">Privacy</a> · <a href="/support.html">Support</a>
+  </div>
+</footer>
+
+</body>
+</html>

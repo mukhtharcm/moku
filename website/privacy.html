@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Moku</title>
+  <meta name="description" content="Moku privacy policy. Your books, your data.">
+  <meta name="theme-color" content="#1a1612">
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --ink:#1a1612;
+      --paper:#f7f3ec;
+      --paper-warm:#efe8dc;
+      --rust:#c4653a;
+      --muted:#9a918a;
+      --rule:rgba(26,22,18,0.08);
+    }
+    html{scroll-behavior:smooth}
+    body{
+      font-family:'DM Sans',system-ui,sans-serif;
+      background:var(--paper);
+      color:var(--ink);
+      -webkit-font-smoothing:antialiased;
+      line-height:1.7;
+    }
+    .nav{
+      position:sticky;top:0;z-index:100;
+      background:rgba(247,243,236,0.85);
+      backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--rule);
+    }
+    .nav-inner{
+      max-width:720px;margin:0 auto;padding:16px 24px;
+      display:flex;align-items:center;justify-content:space-between;
+    }
+    .nav-logo{font-family:'Instrument Serif',serif;font-size:1.25rem;color:var(--ink);text-decoration:none}
+    .nav-back{font-size:0.85rem;color:var(--muted);text-decoration:none}
+    .nav-back:hover{color:var(--ink)}
+
+    .page{max-width:720px;margin:0 auto;padding:64px 24px 96px}
+    .page h1{
+      font-family:'Instrument Serif',serif;
+      font-size:2.5rem;font-weight:400;
+      margin-bottom:8px;
+    }
+    .page .updated{color:var(--muted);font-size:0.85rem;margin-bottom:48px;display:block}
+    .page h2{
+      font-family:'Instrument Serif',serif;
+      font-size:1.4rem;font-weight:400;
+      margin:40px 0 12px;padding-top:20px;
+      border-top:1px solid var(--rule);
+    }
+    .page h2:first-of-type{border-top:none;padding-top:0}
+    .page p{margin-bottom:16px;color:#3d3731;font-size:0.95rem}
+    .page ul{margin:0 0 16px 20px;color:#3d3731;font-size:0.95rem}
+    .page li{margin-bottom:6px}
+    .page a{color:var(--rust);text-decoration:underline;text-underline-offset:2px}
+    .page strong{font-weight:600;color:var(--ink)}
+
+    .footer{
+      max-width:720px;margin:0 auto;padding:32px 24px;
+      border-top:1px solid var(--rule);
+      display:flex;justify-content:space-between;align-items:center;
+      font-size:0.8rem;color:var(--muted);
+    }
+    .footer a{color:var(--muted);text-decoration:none}
+    .footer a:hover{color:var(--ink)}
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">Moku</a>
+    <a href="/" class="nav-back">← Back to home</a>
+  </div>
+</nav>
+
+<main class="page">
+  <h1>Privacy Policy</h1>
+  <span class="updated">Last updated: April 20, 2026</span>
+
+  <h2>The short version</h2>
+  <p><strong>Moku does not collect, store, or transmit any personal data.</strong> Your books and reading activity stay on your device. That's it.</p>
+
+  <h2>Data storage</h2>
+  <p>All data — your books, reading progress, shelves, and preferences — is stored locally on your device. Moku does not have servers that receive your data by default.</p>
+
+  <h2>Optional sync</h2>
+  <p>If you choose to enable sync, your data is sent to a PocketBase server. This can be:</p>
+  <ul>
+    <li><strong>Self-hosted</strong> — a server you run yourself, on hardware you control</li>
+    <li><strong>Hosted</strong> — a server provided by us or a third party</li>
+  </ul>
+  <p>When using a self-hosted server, your data never touches our infrastructure. When using a hosted option, data is transmitted and stored solely for the purpose of syncing your library across devices. We do not analyze, sell, or share this data.</p>
+  <p>Sync is entirely optional. Moku works fully offline without it.</p>
+
+  <h2>Analytics and tracking</h2>
+  <p>Moku does not include any analytics SDKs, crash reporters, or tracking code. We don't know how you use the app, and we prefer it that way.</p>
+
+  <h2>Third-party services</h2>
+  <p>Moku does not integrate with any third-party advertising, analytics, or data-collection services.</p>
+  <p>The app may connect to the internet for:</p>
+  <ul>
+    <li>Downloading books from URLs you provide</li>
+    <li>Syncing with a PocketBase server you configure</li>
+    <li>Loading web fonts (Google Fonts) for the reading experience</li>
+  </ul>
+
+  <h2>Photo library access</h2>
+  <p>Moku may request access to your photo library to allow importing book cover images. This access is optional and the app functions fully without it. No photos are uploaded or transmitted.</p>
+
+  <h2>Children's privacy</h2>
+  <p>Moku does not knowingly collect any information from children. The app does not require an account or any personal information to use.</p>
+
+  <h2>Open source</h2>
+  <p>Moku is open source. You can inspect the full source code to verify these claims at <a href="https://github.com/mukhtharcm/moku">github.com/mukhtharcm/moku</a>.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes, we will update this page with a new date. Since Moku collects no data, meaningful changes are unlikely.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about this policy? Reach out at <a href="mailto:mukhtharcm@gmail.com">mukhtharcm@gmail.com</a>.</p>
+</main>
+
+<footer class="footer">
+  <span>© 2026 Moku</span>
+  <div>
+    <a href="/privacy.html">Privacy</a> · <a href="/support.html">Support</a>
+  </div>
+</footer>
+
+</body>
+</html>
