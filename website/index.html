@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moku — Your Cozy Ebook Reader</title>
+  <meta name="description" content="A beautiful, offline-first EPUB reader with optional self-hostable sync. Available for macOS, with iOS coming soon.">
+  <meta name="theme-color" content="#6B4EFF">
+  <link rel="icon" type="image/png" href="/icon.png">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Moku — Your Cozy Ebook Reader">
+  <meta property="og:description" content="A beautiful, offline-first EPUB reader with optional self-hostable sync.">
+  <meta property="og:image" content="/icon.png">
+  <meta property="og:type" content="website">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600&display=swap');
+
+    :root {
+      --cream: #FAF7F2;
+      --cream-deep: #F0EBE1;
+      --violet: #6B4EFF;
+      --violet-light: #8B74FF;
+      --violet-glow: rgba(107, 78, 255, 0.12);
+      --coral: #FF8A65;
+      --coral-light: #FFAB91;
+      --coral-glow: rgba(255, 138, 101, 0.12);
+      --text: #2D2418;
+      --text-muted: #8A7E6B;
+      --card-bg: rgba(255, 255, 255, 0.7);
+      --card-border: rgba(107, 78, 255, 0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      background: var(--cream);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Background decoration */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -200px;
+      right: -200px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--violet-glow) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -200px;
+      left: -200px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--coral-glow) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Nav ── */
+    nav {
+      padding: 24px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .nav-brand img {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+    }
+    .nav-brand span {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 24px;
+    }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--violet); }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 80px 0 60px;
+    }
+    .hero-icon {
+      width: 120px;
+      height: 120px;
+      border-radius: 28px;
+      margin-bottom: 32px;
+      box-shadow:
+        0 8px 32px rgba(107, 78, 255, 0.15),
+        0 2px 8px rgba(0,0,0,0.06);
+    }
+    .hero h1 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(40px, 6vw, 64px);
+      font-weight: 400;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    .hero h1 .highlight {
+      background: linear-gradient(135deg, var(--violet), var(--coral));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+
+    /* ── Download buttons ── */
+    .download-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.25s ease;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--violet);
+      color: white;
+      box-shadow: 0 4px 16px rgba(107, 78, 255, 0.3);
+    }
+    .btn-primary:hover {
+      background: var(--violet-light);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(107, 78, 255, 0.35);
+    }
+    .btn-secondary {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1.5px solid var(--card-border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .btn-secondary:hover {
+      border-color: var(--violet);
+      transform: translateY(-2px);
+    }
+    .btn-coming-soon {
+      background: var(--cream-deep);
+      color: var(--text-muted);
+      cursor: default;
+      border: 1.5px solid transparent;
+    }
+    .btn-coming-soon:hover {
+      transform: none;
+      box-shadow: none;
+    }
+    .btn svg { width: 20px; height: 20px; }
+    .btn .badge {
+      font-size: 10px;
+      font-weight: 600;
+      background: var(--coral);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Features ── */
+    .features {
+      padding: 60px 0;
+    }
+    .features h2 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 36px;
+      font-weight: 400;
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 28px;
+      backdrop-filter: blur(8px);
+      transition: all 0.25s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    }
+    .feature-icon {
+      font-size: 28px;
+      margin-bottom: 14px;
+    }
+    .feature-card h3 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 20px;
+      font-weight: 400;
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ── Screenshot section ── */
+    .screenshot-section {
+      padding: 40px 0 80px;
+      text-align: center;
+    }
+    .screenshot-section h2 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 36px;
+      font-weight: 400;
+      margin-bottom: 16px;
+    }
+    .screenshot-section p {
+      color: var(--text-muted);
+      margin-bottom: 40px;
+      font-size: 16px;
+    }
+    .screenshot-placeholder {
+      background: linear-gradient(135deg, var(--cream-deep), white);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 60px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .screenshot-placeholder .book-emoji { font-size: 48px; }
+    .screenshot-placeholder span {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* ── Open Source banner ── */
+    .oss-banner {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+      margin-bottom: 80px;
+      backdrop-filter: blur(8px);
+    }
+    .oss-banner h3 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 28px;
+      font-weight: 400;
+      margin-bottom: 12px;
+    }
+    .oss-banner p {
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 32px 0;
+      text-align: center;
+    }
+    footer p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    footer a {
+      color: var(--violet);
+      text-decoration: none;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .hero { padding: 48px 0 40px; }
+      .hero-icon { width: 88px; height: 88px; border-radius: 22px; }
+      .download-buttons { flex-direction: column; align-items: center; }
+      .btn { width: 100%; max-width: 300px; justify-content: center; }
+      .nav-links { gap: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <nav>
+      <a href="/" class="nav-brand">
+        <img src="/icon.png" alt="Moku">
+        <span>Moku</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="https://github.com/mukhtharcm/moku">GitHub</a></li>
+      </ul>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+      <img src="/icon.png" alt="Moku App Icon" class="hero-icon">
+      <h1>Your cozy<br><span class="highlight">ebook reader</span></h1>
+      <p>A beautiful, offline-first EPUB reader with optional self-hostable sync. Read your way — no accounts required.</p>
+
+      <div class="download-buttons">
+        <a href="https://github.com/mukhtharcm/moku/releases/latest/download/Moku-1.0.0.dmg" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          Download for macOS
+        </a>
+        <div class="btn btn-coming-soon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          iOS
+          <span class="badge">Coming Soon</span>
+        </div>
+        <div class="btn btn-coming-soon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 11.48l1.42-2.46c.1-.17.04-.38-.13-.48a.355.355 0 00-.48.13l-1.44 2.49a10.21 10.21 0 00-4.17-.9c-1.5 0-2.9.33-4.17.9L7.39 8.67a.355.355 0 00-.48-.13c-.17.1-.23.31-.13.48l1.42 2.46C5.4 12.78 3.6 15.29 3 18.26h18c-.6-2.97-2.4-5.48-5.14-6.78M8.86 15.72a.72.72 0 110-1.44.72.72 0 010 1.44m6.28 0a.72.72 0 110-1.44.72.72 0 010 1.44"/></svg>
+          Android
+          <span class="badge">Coming Soon</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features" id="features">
+      <h2>Why Moku?</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📖</div>
+          <h3>Beautiful Reading</h3>
+          <p>Paginated EPUB renderer with multiple themes — light, dark, sepia, forest, ocean. Customize fonts, sizes, and spacing.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">✈️</div>
+          <h3>Offline First</h3>
+          <p>Works completely offline. Your books live on your device. No account, no internet connection required to read.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔄</div>
+          <h3>Self-Hostable Sync</h3>
+          <p>Optional PocketBase sync server. Host your own, or use ours. Sync books, reading progress, highlights, and shelves.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔖</div>
+          <h3>Highlights &amp; Bookmarks</h3>
+          <p>Highlight passages and add bookmarks while you read. All your annotations stay organized and easily accessible.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📚</div>
+          <h3>Organize with Shelves</h3>
+          <p>Create custom shelves to organize your library. Sort by title, author, or recently read.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔍</div>
+          <h3>Discover Books</h3>
+          <p>Browse and discover books from Open Library. Find your next read without leaving the app.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Open Source -->
+    <section class="oss-banner">
+      <h3>Free &amp; Open Source</h3>
+      <p>Moku is completely open source. Inspect the code, contribute features, or host your own sync server.</p>
+      <a href="https://github.com/mukhtharcm/moku" class="btn btn-secondary">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        View on GitHub
+      </a>
+    </section>
+
+    <footer>
+      <p>Made with ❤️ by <a href="https://github.com/mukhtharcm">Muhammed Mukhthar CM</a></p>
+    </footer>
+  </div>
+
+</body>
+</html>
