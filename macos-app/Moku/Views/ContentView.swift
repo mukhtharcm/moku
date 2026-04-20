@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var selectedTab: SidebarTab = .library
     @State private var showOnboarding = !OnboardingManager.isCompleted
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Group {
@@ -23,7 +24,7 @@ struct ContentView: View {
                         SettingsView()
                     }
                 }
-                .frame(minWidth: 800, minHeight: 500)
+                .frame(minWidth: 860, minHeight: 560)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .importEPUB)) { _ in
@@ -53,14 +54,29 @@ enum SidebarTab: String, CaseIterable, Identifiable {
 
 struct SidebarView: View {
     @Binding var selectedTab: SidebarTab
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         List(SidebarTab.allCases, selection: $selectedTab) { tab in
             Label(tab.rawValue, systemImage: tab.icon)
                 .tag(tab)
+                .font(.system(size: 13))
         }
         .listStyle(.sidebar)
-        .navigationTitle("Moku")
+        .navigationTitle("")
+        .safeAreaInset(edge: .top) {
+            HStack(spacing: 6) {
+                Image(systemName: "bookmark.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(MokuTheme.coral)
+                Text("Moku")
+                    .font(.system(size: 16, weight: .bold, design: .serif))
+                    .tracking(-0.3)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
     }
 }
 
