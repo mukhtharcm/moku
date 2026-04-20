@@ -6,3 +6,4 @@ app/build/
 macos-app/.build/
 macos-app/dist/
 macos-app/*.xcodeproj
+.wrangler/
