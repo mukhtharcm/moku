@@ -60,6 +60,7 @@ class EpubService {
       description: meta.description,
       coverPath: coverPath != null ? PathResolver.toRelative(coverPath) : null,
       filePath: PathResolver.toRelative(destPath),
+      format: BookFormat.epub,
       isbn: meta.isbn,
       language: meta.language,
       publisher: meta.publisher,

@@ -68,6 +68,16 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _formatMeta = const VerificationMeta('format');
+  @override
+  late final GeneratedColumn<String> format = GeneratedColumn<String>(
+    'format',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('epub'),
+  );
   static const VerificationMeta _isbnMeta = const VerificationMeta('isbn');
   @override
   late final GeneratedColumn<String> isbn = GeneratedColumn<String>(
@@ -174,6 +184,7 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
     description,
     coverPath,
     filePath,
+    format,
     isbn,
     language,
     publisher,
@@ -239,6 +250,12 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
       );
     } else if (isInserting) {
       context.missing(_filePathMeta);
+    }
+    if (data.containsKey('format')) {
+      context.handle(
+        _formatMeta,
+        format.isAcceptableOrUnknown(data['format']!, _formatMeta),
+      );
     }
     if (data.containsKey('isbn')) {
       context.handle(
@@ -337,6 +354,10 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
         DriftSqlType.string,
         data['${effectivePrefix}file_path'],
       )!,
+      format: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}format'],
+      )!,
       isbn: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}isbn'],
@@ -389,6 +410,7 @@ class Book extends DataClass implements Insertable<Book> {
   final String? description;
   final String? coverPath;
   final String filePath;
+  final String format;
   final String? isbn;
   final String? language;
   final String? publisher;
@@ -405,6 +427,7 @@ class Book extends DataClass implements Insertable<Book> {
     this.description,
     this.coverPath,
     required this.filePath,
+    required this.format,
     this.isbn,
     this.language,
     this.publisher,
@@ -428,6 +451,7 @@ class Book extends DataClass implements Insertable<Book> {
       map['cover_path'] = Variable<String>(coverPath);
     }
     map['file_path'] = Variable<String>(filePath);
+    map['format'] = Variable<String>(format);
     if (!nullToAbsent || isbn != null) {
       map['isbn'] = Variable<String>(isbn);
     }
@@ -464,6 +488,7 @@ class Book extends DataClass implements Insertable<Book> {
           ? const Value.absent()
           : Value(coverPath),
       filePath: Value(filePath),
+      format: Value(format),
       isbn: isbn == null && nullToAbsent ? const Value.absent() : Value(isbn),
       language: language == null && nullToAbsent
           ? const Value.absent()
@@ -498,6 +523,7 @@ class Book extends DataClass implements Insertable<Book> {
       description: serializer.fromJson<String?>(json['description']),
       coverPath: serializer.fromJson<String?>(json['coverPath']),
       filePath: serializer.fromJson<String>(json['filePath']),
+      format: serializer.fromJson<String>(json['format']),
       isbn: serializer.fromJson<String?>(json['isbn']),
       language: serializer.fromJson<String?>(json['language']),
       publisher: serializer.fromJson<String?>(json['publisher']),
@@ -519,6 +545,7 @@ class Book extends DataClass implements Insertable<Book> {
       'description': serializer.toJson<String?>(description),
       'coverPath': serializer.toJson<String?>(coverPath),
       'filePath': serializer.toJson<String>(filePath),
+      'format': serializer.toJson<String>(format),
       'isbn': serializer.toJson<String?>(isbn),
       'language': serializer.toJson<String?>(language),
       'publisher': serializer.toJson<String?>(publisher),
@@ -538,6 +565,7 @@ class Book extends DataClass implements Insertable<Book> {
     Value<String?> description = const Value.absent(),
     Value<String?> coverPath = const Value.absent(),
     String? filePath,
+    String? format,
     Value<String?> isbn = const Value.absent(),
     Value<String?> language = const Value.absent(),
     Value<String?> publisher = const Value.absent(),
@@ -554,6 +582,7 @@ class Book extends DataClass implements Insertable<Book> {
     description: description.present ? description.value : this.description,
     coverPath: coverPath.present ? coverPath.value : this.coverPath,
     filePath: filePath ?? this.filePath,
+    format: format ?? this.format,
     isbn: isbn.present ? isbn.value : this.isbn,
     language: language.present ? language.value : this.language,
     publisher: publisher.present ? publisher.value : this.publisher,
@@ -574,6 +603,7 @@ class Book extends DataClass implements Insertable<Book> {
           : this.description,
       coverPath: data.coverPath.present ? data.coverPath.value : this.coverPath,
       filePath: data.filePath.present ? data.filePath.value : this.filePath,
+      format: data.format.present ? data.format.value : this.format,
       isbn: data.isbn.present ? data.isbn.value : this.isbn,
       language: data.language.present ? data.language.value : this.language,
       publisher: data.publisher.present ? data.publisher.value : this.publisher,
@@ -599,6 +629,7 @@ class Book extends DataClass implements Insertable<Book> {
           ..write('description: $description, ')
           ..write('coverPath: $coverPath, ')
           ..write('filePath: $filePath, ')
+          ..write('format: $format, ')
           ..write('isbn: $isbn, ')
           ..write('language: $language, ')
           ..write('publisher: $publisher, ')
@@ -620,6 +651,7 @@ class Book extends DataClass implements Insertable<Book> {
     description,
     coverPath,
     filePath,
+    format,
     isbn,
     language,
     publisher,
@@ -640,6 +672,7 @@ class Book extends DataClass implements Insertable<Book> {
           other.description == this.description &&
           other.coverPath == this.coverPath &&
           other.filePath == this.filePath &&
+          other.format == this.format &&
           other.isbn == this.isbn &&
           other.language == this.language &&
           other.publisher == this.publisher &&
@@ -658,6 +691,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
   final Value<String?> description;
   final Value<String?> coverPath;
   final Value<String> filePath;
+  final Value<String> format;
   final Value<String?> isbn;
   final Value<String?> language;
   final Value<String?> publisher;
@@ -675,6 +709,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
     this.description = const Value.absent(),
     this.coverPath = const Value.absent(),
     this.filePath = const Value.absent(),
+    this.format = const Value.absent(),
     this.isbn = const Value.absent(),
     this.language = const Value.absent(),
     this.publisher = const Value.absent(),
@@ -693,6 +728,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
     this.description = const Value.absent(),
     this.coverPath = const Value.absent(),
     required String filePath,
+    this.format = const Value.absent(),
     this.isbn = const Value.absent(),
     this.language = const Value.absent(),
     this.publisher = const Value.absent(),
@@ -716,6 +752,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
     Expression<String>? description,
     Expression<String>? coverPath,
     Expression<String>? filePath,
+    Expression<String>? format,
     Expression<String>? isbn,
     Expression<String>? language,
     Expression<String>? publisher,
@@ -734,6 +771,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
       if (description != null) 'description': description,
       if (coverPath != null) 'cover_path': coverPath,
       if (filePath != null) 'file_path': filePath,
+      if (format != null) 'format': format,
       if (isbn != null) 'isbn': isbn,
       if (language != null) 'language': language,
       if (publisher != null) 'publisher': publisher,
@@ -754,6 +792,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
     Value<String?>? description,
     Value<String?>? coverPath,
     Value<String>? filePath,
+    Value<String>? format,
     Value<String?>? isbn,
     Value<String?>? language,
     Value<String?>? publisher,
@@ -772,6 +811,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
       description: description ?? this.description,
       coverPath: coverPath ?? this.coverPath,
       filePath: filePath ?? this.filePath,
+      format: format ?? this.format,
       isbn: isbn ?? this.isbn,
       language: language ?? this.language,
       publisher: publisher ?? this.publisher,
@@ -805,6 +845,9 @@ class BooksCompanion extends UpdateCompanion<Book> {
     }
     if (filePath.present) {
       map['file_path'] = Variable<String>(filePath.value);
+    }
+    if (format.present) {
+      map['format'] = Variable<String>(format.value);
     }
     if (isbn.present) {
       map['isbn'] = Variable<String>(isbn.value);
@@ -848,6 +891,7 @@ class BooksCompanion extends UpdateCompanion<Book> {
           ..write('description: $description, ')
           ..write('coverPath: $coverPath, ')
           ..write('filePath: $filePath, ')
+          ..write('format: $format, ')
           ..write('isbn: $isbn, ')
           ..write('language: $language, ')
           ..write('publisher: $publisher, ')
@@ -3347,6 +3391,7 @@ typedef $$BooksTableCreateCompanionBuilder =
       Value<String?> description,
       Value<String?> coverPath,
       required String filePath,
+      Value<String> format,
       Value<String?> isbn,
       Value<String?> language,
       Value<String?> publisher,
@@ -3366,6 +3411,7 @@ typedef $$BooksTableUpdateCompanionBuilder =
       Value<String?> description,
       Value<String?> coverPath,
       Value<String> filePath,
+      Value<String> format,
       Value<String?> isbn,
       Value<String?> language,
       Value<String?> publisher,
@@ -3498,6 +3544,11 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
 
   ColumnFilters<String> get filePath => $composableBuilder(
     column: $table.filePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get format => $composableBuilder(
+    column: $table.format,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3686,6 +3737,11 @@ class $$BooksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get format => $composableBuilder(
+    column: $table.format,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get isbn => $composableBuilder(
     column: $table.isbn,
     builder: (column) => ColumnOrderings(column),
@@ -3760,6 +3816,9 @@ class $$BooksTableAnnotationComposer
 
   GeneratedColumn<String> get filePath =>
       $composableBuilder(column: $table.filePath, builder: (column) => column);
+
+  GeneratedColumn<String> get format =>
+      $composableBuilder(column: $table.format, builder: (column) => column);
 
   GeneratedColumn<String> get isbn =>
       $composableBuilder(column: $table.isbn, builder: (column) => column);
@@ -3933,6 +3992,7 @@ class $$BooksTableTableManager
                 Value<String?> description = const Value.absent(),
                 Value<String?> coverPath = const Value.absent(),
                 Value<String> filePath = const Value.absent(),
+                Value<String> format = const Value.absent(),
                 Value<String?> isbn = const Value.absent(),
                 Value<String?> language = const Value.absent(),
                 Value<String?> publisher = const Value.absent(),
@@ -3950,6 +4010,7 @@ class $$BooksTableTableManager
                 description: description,
                 coverPath: coverPath,
                 filePath: filePath,
+                format: format,
                 isbn: isbn,
                 language: language,
                 publisher: publisher,
@@ -3969,6 +4030,7 @@ class $$BooksTableTableManager
                 Value<String?> description = const Value.absent(),
                 Value<String?> coverPath = const Value.absent(),
                 required String filePath,
+                Value<String> format = const Value.absent(),
                 Value<String?> isbn = const Value.absent(),
                 Value<String?> language = const Value.absent(),
                 Value<String?> publisher = const Value.absent(),
@@ -3986,6 +4048,7 @@ class $$BooksTableTableManager
                 description: description,
                 coverPath: coverPath,
                 filePath: filePath,
+                format: format,
                 isbn: isbn,
                 language: language,
                 publisher: publisher,

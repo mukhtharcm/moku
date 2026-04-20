@@ -1,5 +1,39 @@
 import 'package:equatable/equatable.dart';
 
+/// Supported book formats in Moku.
+enum BookFormat {
+  epub,
+  pdf,
+  txt,
+  cbz,
+  html;
+
+  /// Detect format from file extension.
+  static BookFormat fromExtension(String path) {
+    final ext = path.split('.').last.toLowerCase();
+    return switch (ext) {
+      'epub' => BookFormat.epub,
+      'pdf' => BookFormat.pdf,
+      'txt' || 'text' => BookFormat.txt,
+      'cbz' => BookFormat.cbz,
+      'html' || 'htm' || 'xhtml' => BookFormat.html,
+      _ => throw UnsupportedError('Unsupported format: $ext'),
+    };
+  }
+
+  /// File extensions accepted by the file picker for this format.
+  static List<String> get allExtensions =>
+      ['epub', 'pdf', 'txt', 'cbz', 'html', 'htm'];
+
+  String get displayName => switch (this) {
+    BookFormat.epub => 'EPUB',
+    BookFormat.pdf => 'PDF',
+    BookFormat.txt => 'Text',
+    BookFormat.cbz => 'Comic (CBZ)',
+    BookFormat.html => 'HTML',
+  };
+}
+
 class Book extends Equatable {
   final String id;
   final String title;
@@ -7,6 +41,7 @@ class Book extends Equatable {
   final String? description;
   final String? coverPath;
   final String filePath;
+  final BookFormat format;
   final String? isbn;
   final String? language;
   final String? publisher;
@@ -24,6 +59,7 @@ class Book extends Equatable {
     this.description,
     this.coverPath,
     required this.filePath,
+    this.format = BookFormat.epub,
     this.isbn,
     this.language,
     this.publisher,
@@ -42,6 +78,7 @@ class Book extends Equatable {
     String? description,
     String? coverPath,
     String? filePath,
+    BookFormat? format,
     String? isbn,
     String? language,
     String? publisher,
@@ -59,6 +96,7 @@ class Book extends Equatable {
       description: description ?? this.description,
       coverPath: coverPath ?? this.coverPath,
       filePath: filePath ?? this.filePath,
+      format: format ?? this.format,
       isbn: isbn ?? this.isbn,
       language: language ?? this.language,
       publisher: publisher ?? this.publisher,
@@ -79,6 +117,7 @@ class Book extends Equatable {
     description,
     coverPath,
     filePath,
+    format,
     isbn,
     language,
     publisher,

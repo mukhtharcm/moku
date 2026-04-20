@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../../core/database/database.dart' as db;
 import '../../../core/models/models.dart';
-import '../../../core/services/epub_service.dart';
+import '../../../core/services/book_service.dart';
 import '../../../core/theme/app_theme.dart';
 
 enum ReaderStatus { initial, loading, loaded, error }
@@ -22,7 +22,7 @@ class ReaderState extends Equatable {
   final ReaderStatus status;
   final Book book;
   final int currentChapter;
-  final List<EpubChapterInfo> chapters;
+  final List<ChapterInfo> chapters;
   final String currentContent;
   final double fontSize;
   final double lineHeight;
@@ -65,7 +65,7 @@ class ReaderState extends Equatable {
     ReaderStatus? status,
     Book? book,
     int? currentChapter,
-    List<EpubChapterInfo>? chapters,
+    List<ChapterInfo>? chapters,
     String? currentContent,
     double? fontSize,
     double? lineHeight,

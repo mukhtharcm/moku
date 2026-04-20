@@ -55,6 +55,7 @@ dependencies:
   pocketbase: ^0.23.2
   url_launcher: ^6.3.2
   xml: ^6.6.1
+  pdfrx: ^1.0.97
 
 dev_dependencies:
   flutter_test:

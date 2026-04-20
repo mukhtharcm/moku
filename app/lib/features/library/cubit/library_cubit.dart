@@ -6,21 +6,21 @@ import 'package:file_picker/file_picker.dart';
 
 import '../../../core/database/database.dart' as db;
 import '../../../core/models/models.dart';
-import '../../../core/services/epub_service.dart';
+import '../../../core/services/book_service.dart';
 import '../../../core/services/path_resolver.dart';
 import 'library_state.dart';
 
 class LibraryCubit extends Cubit<LibraryState> {
   final db.AppDatabase _database;
-  final EpubService _epubService;
+  final BookService _bookService;
   StreamSubscription? _booksSubscription;
   bool _isImporting = false;
 
   LibraryCubit({
     required db.AppDatabase database,
-    required EpubService epubService,
+    required BookService bookService,
   })  : _database = database,
-        _epubService = epubService,
+        _bookService = bookService,
         super(const LibraryState());
 
   void loadBooks() {
@@ -60,7 +60,7 @@ class LibraryCubit extends Cubit<LibraryState> {
     try {
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['epub'],
+        allowedExtensions: BookFormat.allExtensions,
         allowMultiple: true,
       );
 
@@ -81,7 +81,7 @@ class LibraryCubit extends Cubit<LibraryState> {
   }
 
   Future<void> _importSingleBook(String filePath) async {
-    final book = await _epubService.parseEpub(filePath);
+    final book = await _bookService.importBook(filePath);
 
     await _database.insertBook(db.BooksCompanion.insert(
       id: book.id,
@@ -90,6 +90,7 @@ class LibraryCubit extends Cubit<LibraryState> {
       description: Value(book.description),
       coverPath: Value(book.coverPath),
       filePath: book.filePath,
+      format: Value(book.format.name),
       isbn: Value(book.isbn),
       language: Value(book.language),
       publisher: Value(book.publisher),
@@ -128,6 +129,10 @@ class LibraryCubit extends Cubit<LibraryState> {
       description: dbBook.description,
       coverPath: PathResolver.resolveNullable(dbBook.coverPath),
       filePath: PathResolver.resolve(dbBook.filePath),
+      format: BookFormat.values.firstWhere(
+        (f) => f.name == dbBook.format,
+        orElse: () => BookFormat.epub,
+      ),
       isbn: dbBook.isbn,
       language: dbBook.language,
       publisher: dbBook.publisher,

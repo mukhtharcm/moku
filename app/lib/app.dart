@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/database/database.dart';
+import 'core/services/book_service.dart';
 import 'core/services/epub_service.dart';
 import 'core/services/open_library_service.dart';
 import 'core/sync/sync_config.dart';
@@ -15,6 +16,7 @@ import 'app_shell.dart';
 
 class MokuApp extends StatelessWidget {
   final AppDatabase database;
+  final BookService bookService;
   final EpubService epubService;
   final OpenLibraryService openLibraryService;
   final bool showOnboarding;
@@ -22,6 +24,7 @@ class MokuApp extends StatelessWidget {
   const MokuApp({
     super.key,
     required this.database,
+    required this.bookService,
     required this.epubService,
     required this.openLibraryService,
     this.showOnboarding = false,
@@ -32,6 +35,7 @@ class MokuApp extends StatelessWidget {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider.value(value: database),
+        RepositoryProvider.value(value: bookService),
         RepositoryProvider.value(value: epubService),
         RepositoryProvider.value(value: openLibraryService),
       ],
@@ -43,7 +47,7 @@ class MokuApp extends StatelessWidget {
           BlocProvider(
             create: (ctx) => LibraryCubit(
               database: database,
-              epubService: epubService,
+              bookService: bookService,
             )..loadBooks(),
           ),
           BlocProvider(

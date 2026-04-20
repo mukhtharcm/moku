@@ -7,6 +7,8 @@ class Books extends Table {
   TextColumn get description => text().nullable()();
   TextColumn get coverPath => text().nullable()();
   TextColumn get filePath => text()();
+  TextColumn get format =>
+      text().withDefault(const Constant('epub'))();
   TextColumn get isbn => text().nullable()();
   TextColumn get language => text().nullable()();
   TextColumn get publisher => text().nullable()();

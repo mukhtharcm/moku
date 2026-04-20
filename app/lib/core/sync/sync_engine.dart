@@ -699,6 +699,7 @@ class SyncEngine {
       'publish_date': book.publishDate?.toUtc().toIso8601String() ?? '',
       'total_chapters': book.totalChapters,
       'file_hash': book.fileHash ?? '',
+      'format': book.format,
       'user': userId,
     };
   }
@@ -718,6 +719,9 @@ class SyncEngine {
       ),
       totalChapters: Value(record.getIntValue('total_chapters')),
       fileHash: Value(record.getStringValue('file_hash')),
+      format: Value(record.getStringValue('format').isNotEmpty
+          ? record.getStringValue('format')
+          : 'epub'),
       updatedAt: Value(DateTime.now()),
     );
   }

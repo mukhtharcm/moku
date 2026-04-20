@@ -9,14 +9,16 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../core/database/database.dart'
     hide Book, Bookmark, Highlight, BookCollection;
 import '../../../core/models/book.dart';
-import '../../../core/services/epub_service.dart';
+import '../../../core/services/book_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../cubit/reader_cubit.dart';
 import '../cubit/reader_state.dart';
 import 'annotations_screen.dart';
+import 'pdf_reader_screen.dart';
+import 'cbz_reader_screen.dart';
 
 // ---------------------------------------------------------------------------
-// 1. ReaderScreen — entry point, creates BlocProvider
+// 1. ReaderScreen — entry point, routes to format-specific reader
 // ---------------------------------------------------------------------------
 
 class ReaderScreen extends StatelessWidget {
@@ -26,10 +28,19 @@ class ReaderScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // PDF and CBZ get their own dedicated reader screens
+    if (book.format == BookFormat.pdf) {
+      return PdfReaderScreen(book: book);
+    }
+    if (book.format == BookFormat.cbz) {
+      return CbzReaderScreen(book: book);
+    }
+
+    // EPUB, TXT, HTML all use the WebView-based reader
     return BlocProvider(
       create: (context) => ReaderCubit(
         database: context.read<AppDatabase>(),
-        epubService: context.read<EpubService>(),
+        bookService: context.read<BookService>(),
         book: book,
       )..loadBook(),
       child: const _ReaderView(),
@@ -1527,7 +1538,7 @@ class _ReaderSettingsSheet extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _TocDrawer extends StatelessWidget {
-  final List<EpubChapterInfo> chapters;
+  final List<ChapterInfo> chapters;
   final int currentChapter;
   final void Function(int) onChapterTap;
   final VoidCallback onClose;

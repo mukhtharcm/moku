@@ -5,21 +5,21 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/database/database.dart' as db;
 import '../../../core/models/models.dart';
-import '../../../core/services/epub_service.dart';
+import '../../../core/services/book_service.dart';
 import '../../../core/theme/app_theme.dart';
 import 'reader_state.dart';
 
 class ReaderCubit extends Cubit<ReaderState> {
   final db.AppDatabase _database;
-  final EpubService _epubService;
+  final BookService _bookService;
   static const _uuid = Uuid();
 
   ReaderCubit({
     required db.AppDatabase database,
-    required EpubService epubService,
+    required BookService bookService,
     required Book book,
   })  : _database = database,
-        _epubService = epubService,
+        _bookService = bookService,
         super(ReaderState(book: book));
 
   db.AppDatabase get database => _database;
@@ -37,18 +37,25 @@ class ReaderCubit extends Cubit<ReaderState> {
       final fontFamilyIndex = prefs.getInt('reader_font_family') ?? 0;
 
       // Get spine items (reading order)
-      final chapters = await _epubService.getChapters(state.book.filePath);
+      final chapters = await _bookService.getChapters(
+          state.book.filePath, state.book.format);
 
       // Load saved progress
       final progress = await _database.getProgressForBook(state.book.id);
       final startChapter = progress?.currentChapter ?? 0;
       final safeStartChapter = startChapter.clamp(0, chapters.isEmpty ? 0 : chapters.length - 1);
 
-      // Load content
-      final content = await _epubService.getChapterContent(
-        state.book.filePath,
-        safeStartChapter,
-      );
+      // Load content (only for WebView-based formats)
+      String content = '';
+      if (state.book.format == BookFormat.epub ||
+          state.book.format == BookFormat.txt ||
+          state.book.format == BookFormat.html) {
+        content = await _bookService.getChapterContent(
+          state.book.filePath,
+          state.book.format,
+          safeStartChapter,
+        );
+      }
 
       emit(state.copyWith(
         status: ReaderStatus.loaded,
@@ -78,10 +85,16 @@ class ReaderCubit extends Cubit<ReaderState> {
     if (chapterIndex < 0 || chapterIndex >= state.chapters.length) return;
 
     try {
-      final content = await _epubService.getChapterContent(
-        state.book.filePath,
-        chapterIndex,
-      );
+      String content = '';
+      if (state.book.format == BookFormat.epub ||
+          state.book.format == BookFormat.txt ||
+          state.book.format == BookFormat.html) {
+        content = await _bookService.getChapterContent(
+          state.book.filePath,
+          state.book.format,
+          chapterIndex,
+        );
+      }
 
       emit(state.copyWith(
         currentChapter: chapterIndex,
@@ -105,10 +118,16 @@ class ReaderCubit extends Cubit<ReaderState> {
 
     try {
       if (chapterIndex != state.currentChapter) {
-        final content = await _epubService.getChapterContent(
-          state.book.filePath,
-          chapterIndex,
-        );
+        String content = '';
+        if (state.book.format == BookFormat.epub ||
+            state.book.format == BookFormat.txt ||
+            state.book.format == BookFormat.html) {
+          content = await _bookService.getChapterContent(
+            state.book.filePath,
+            state.book.format,
+            chapterIndex,
+          );
+        }
         emit(state.copyWith(
           currentChapter: chapterIndex,
           currentContent: content,
@@ -301,8 +320,7 @@ class ReaderCubit extends Cubit<ReaderState> {
 
   @override
   Future<void> close() {
-    // Evict the cached epub when leaving the reader
-    _epubService.closeBook(state.book.filePath);
+    _bookService.closeBook(state.book.filePath, state.book.format);
     return super.close();
   }
 }

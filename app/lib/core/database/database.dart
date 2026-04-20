@@ -19,7 +19,19 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        // Add 'format' column with default 'epub' for existing rows
+        await customStatement(
+          "ALTER TABLE books ADD COLUMN format TEXT NOT NULL DEFAULT 'epub'",
+        );
+      }
+    },
+  );
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'moku_db');

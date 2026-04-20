@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/database/database.dart';
+import 'core/services/book_service.dart';
 import 'core/services/epub_service.dart';
 import 'core/services/open_library_service.dart';
 import 'core/services/path_resolver.dart';
@@ -15,6 +16,7 @@ void main() async {
 
   final database = AppDatabase();
   final epubService = EpubService();
+  final bookService = BookService(epubService: epubService);
   final openLibraryService = OpenLibraryService();
 
   // Check if this is a first launch
@@ -22,6 +24,7 @@ void main() async {
 
   runApp(MokuApp(
     database: database,
+    bookService: bookService,
     epubService: epubService,
     openLibraryService: openLibraryService,
     showOnboarding: needsOnboarding,
