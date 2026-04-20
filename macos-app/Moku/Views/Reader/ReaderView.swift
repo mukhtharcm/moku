@@ -8,6 +8,7 @@ struct ReaderView: View {
     @State private var viewModel: ReaderViewModel
     @State private var showTOC = false
     @State private var showSettings = false
+    @State private var showAnnotations = false
     @State private var controlsVisible = true
     @State private var controlsOpacity: Double = 1.0
 
@@ -45,6 +46,17 @@ struct ReaderView: View {
                     .opacity(controlsOpacity)
                     .transition(.opacity)
                 }
+
+                // Highlight action bar
+                if viewModel.showHighlightBar, let text = viewModel.pendingSelection {
+                    VStack {
+                        Spacer()
+                        highlightActionBar(text: text)
+                            .padding(.bottom, 70)
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.showHighlightBar)
+                }
             }
         }
         .onAppear { viewModel.loadBook() }
@@ -52,6 +64,14 @@ struct ReaderView: View {
         .navigationTitle(viewModel.book.title)
         .sheet(isPresented: $showTOC) { tocSheet }
         .sheet(isPresented: $showSettings) { settingsSheet }
+        .sheet(isPresented: $showAnnotations) { annotationsSheet }
+        .focusedValue(\.readerActions, ReaderActionsHandler(
+            viewModel: viewModel,
+            modelContext: modelContext,
+            showAnnotationsBinding: $showAnnotations,
+            controlsVisibleBinding: $controlsVisible,
+            controlsOpacityBinding: $controlsOpacity
+        ))
     }
 
     private func closeWindow() {
@@ -133,6 +153,15 @@ struct ReaderView: View {
 
             // Action buttons
             HStack(spacing: 4) {
+                toolbarButton(
+                    icon: viewModel.isCurrentChapterBookmarked ? "bookmark.fill" : "bookmark",
+                    help: "Toggle Bookmark (⌘D)"
+                ) {
+                    viewModel.toggleBookmark(modelContext: modelContext)
+                }
+                toolbarButton(icon: "highlighter", help: "Annotations") {
+                    showAnnotations.toggle()
+                }
                 toolbarButton(icon: "list.bullet", help: "Contents") { showTOC.toggle() }
                 toolbarButton(icon: "textformat.size", help: "Settings") { showSettings.toggle() }
                 toolbarButton(icon: "eye.slash", help: "Zen Mode (hides controls)") {
@@ -394,6 +423,194 @@ struct ReaderView: View {
         }
         .frame(width: 400, height: 300)
     }
+
+    // MARK: - Highlight Action Bar
+
+    private let mokuHighlightColors = ["#FFEB3B", "#FF8A65", "#81C784", "#64B5F6", "#CE93D8"]
+
+    private func highlightActionBar(text: String) -> some View {
+        HStack(spacing: 10) {
+            ForEach(mokuHighlightColors, id: \.self) { color in
+                Button {
+                    viewModel.addHighlight(text: text, color: color, modelContext: modelContext)
+                } label: {
+                    Circle()
+                        .fill(Color(hex: color))
+                        .frame(width: 22, height: 22)
+                        .overlay(Circle().stroke(.white.opacity(0.3), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+
+            Divider().frame(height: 18)
+
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+                viewModel.pendingSelection = nil
+                viewModel.showHighlightBar = false
+            } label: {
+                Image(systemName: "doc.on.doc")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.primary.opacity(0.7))
+            }
+            .buttonStyle(.plain)
+            .help("Copy")
+
+            Button {
+                viewModel.pendingSelection = nil
+                viewModel.showHighlightBar = false
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.primary.opacity(0.5))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial, in: Capsule())
+        .shadow(color: .black.opacity(0.1), radius: 8, y: 2)
+    }
+
+    // MARK: - Annotations Sheet
+
+    private var annotationsSheet: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Annotations")
+                    .font(.system(size: 16, weight: .bold, design: .serif))
+                Spacer()
+                Button { showAnnotations = false } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Bookmarks section
+                    if !viewModel.allBookmarks.isEmpty {
+                        Text("BOOKMARKS")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.tertiary)
+                            .tracking(1)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
+                            .padding(.bottom, 8)
+
+                        ForEach(viewModel.allBookmarks, id: \.id) { bookmark in
+                            Button {
+                                viewModel.goToChapter(bookmark.chapterIndex)
+                                showAnnotations = false
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "bookmark.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(MokuTheme.coral)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(bookmark.title)
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundStyle(.primary)
+                                            .lineLimit(1)
+                                        Text("Chapter \(bookmark.chapterIndex + 1)")
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(.tertiary)
+                                    }
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 6)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button("Delete", role: .destructive) {
+                                    modelContext.delete(bookmark)
+                                    try? modelContext.save()
+                                }
+                            }
+                        }
+                    }
+
+                    // Highlights section
+                    if !viewModel.allHighlights.isEmpty {
+                        Text("HIGHLIGHTS")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.tertiary)
+                            .tracking(1)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
+                            .padding(.bottom, 8)
+
+                        ForEach(viewModel.allHighlights, id: \.id) { highlight in
+                            Button {
+                                viewModel.goToChapter(highlight.chapterIndex)
+                                showAnnotations = false
+                            } label: {
+                                HStack(alignment: .top, spacing: 10) {
+                                    RoundedRectangle(cornerRadius: 2)
+                                        .fill(Color(hex: highlight.color))
+                                        .frame(width: 4, height: 36)
+
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(highlight.selectedText)
+                                            .font(.system(size: 12, design: .serif))
+                                            .foregroundStyle(.primary)
+                                            .lineLimit(2)
+                                            .italic()
+                                        if let note = highlight.note, !note.isEmpty {
+                                            Text(note)
+                                                .font(.system(size: 11))
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                        }
+                                        Text("Chapter \(highlight.chapterIndex + 1)")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(.tertiary)
+                                    }
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 6)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button("Delete", role: .destructive) {
+                                    viewModel.removeHighlight(highlight, modelContext: modelContext)
+                                }
+                            }
+                        }
+                    }
+
+                    if viewModel.allBookmarks.isEmpty && viewModel.allHighlights.isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "text.quote")
+                                .font(.system(size: 28, weight: .light))
+                                .foregroundStyle(.tertiary)
+                            Text("No annotations yet")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.secondary)
+                            Text("Select text to highlight, or tap the bookmark icon")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.tertiary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 60)
+                    }
+                }
+            }
+        }
+        .frame(width: 380, height: 500)
+    }
 }
 
 // MARK: - Theme Swatch
@@ -467,12 +684,14 @@ struct ReaderWebView: NSViewRepresentable {
         if context.coordinator.lastChapter != viewModel.currentChapter ||
            context.coordinator.lastFontSize != viewModel.fontSize ||
            context.coordinator.lastLineHeight != viewModel.lineHeight ||
-           context.coordinator.lastTheme != viewModel.readerTheme.rawValue {
+           context.coordinator.lastTheme != viewModel.readerTheme.rawValue ||
+           context.coordinator.lastHighlightVersion != viewModel.highlightVersion {
             loadContent(webView)
             context.coordinator.lastChapter = viewModel.currentChapter
             context.coordinator.lastFontSize = viewModel.fontSize
             context.coordinator.lastLineHeight = viewModel.lineHeight
             context.coordinator.lastTheme = viewModel.readerTheme.rawValue
+            context.coordinator.lastHighlightVersion = viewModel.highlightVersion
         }
     }
 
@@ -492,6 +711,7 @@ struct ReaderWebView: NSViewRepresentable {
         var lastFontSize: Double = 0
         var lastLineHeight: Double = 0
         var lastTheme: String = ""
+        var lastHighlightVersion: Int = 0
 
         init(viewModel: ReaderViewModel) {
             self.viewModel = viewModel
@@ -499,6 +719,7 @@ struct ReaderWebView: NSViewRepresentable {
             self.lastFontSize = viewModel.fontSize
             self.lastLineHeight = viewModel.lineHeight
             self.lastTheme = viewModel.readerTheme.rawValue
+            self.lastHighlightVersion = viewModel.highlightVersion
         }
 
         func userContentController(_ userContentController: WKUserContentController,
@@ -522,8 +743,12 @@ struct ReaderWebView: NSViewRepresentable {
                     viewModel.previousChapter()
                 case "selection":
                     if let text = json["text"] as? String {
-                        print("Selected: \(text)")
+                        viewModel.pendingSelection = text
+                        viewModel.showHighlightBar = true
                     }
+                case "selectionCleared":
+                    viewModel.pendingSelection = nil
+                    viewModel.showHighlightBar = false
                 default:
                     break
                 }
@@ -533,5 +758,47 @@ struct ReaderWebView: NSViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             // Content loaded
         }
+    }
+}
+
+// MARK: - Reader Actions Handler
+
+@MainActor
+struct ReaderActionsHandler: ReaderActions {
+    let viewModel: ReaderViewModel
+    let modelContext: ModelContext
+    @Binding var showAnnotationsBinding: Bool
+    @Binding var controlsVisibleBinding: Bool
+    @Binding var controlsOpacityBinding: Double
+
+    func toggleBookmark() {
+        viewModel.toggleBookmark(modelContext: modelContext)
+    }
+
+    func showAnnotations() {
+        showAnnotationsBinding.toggle()
+    }
+
+    func toggleZenMode() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            controlsVisibleBinding.toggle()
+            controlsOpacityBinding = controlsVisibleBinding ? 1.0 : 0.0
+        }
+    }
+
+    func increaseFontSize() {
+        viewModel.fontSize = min(32, viewModel.fontSize + 1)
+    }
+
+    func decreaseFontSize() {
+        viewModel.fontSize = max(12, viewModel.fontSize - 1)
+    }
+
+    func nextChapter() {
+        viewModel.nextChapter()
+    }
+
+    func previousChapter() {
+        viewModel.previousChapter()
     }
 }

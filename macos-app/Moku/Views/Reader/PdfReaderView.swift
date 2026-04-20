@@ -9,6 +9,7 @@ struct PdfReaderView: View {
     @State private var viewModel: ReaderViewModel
     @State private var pdfDocument: PDFDocument?
     @State private var controlsVisible = true
+    @State private var showAnnotations = false
 
     init(book: MokuBook) {
         _viewModel = State(initialValue: ReaderViewModel(book: book))
@@ -51,6 +52,11 @@ struct PdfReaderView: View {
                 controlsVisible.toggle()
             }
         }
+        .focusedValue(\.readerActions, PdfReaderActionsHandler(
+            viewModel: viewModel,
+            modelContext: modelContext,
+            controlsVisibleBinding: $controlsVisible
+        ))
     }
 
     private func loadPdf() {
@@ -81,6 +87,16 @@ struct PdfReaderView: View {
                 .foregroundStyle(.primary.opacity(0.6))
 
             Spacer()
+
+            Button {
+                viewModel.toggleBookmark(modelContext: modelContext)
+            } label: {
+                Image(systemName: viewModel.isCurrentChapterBookmarked ? "bookmark.fill" : "bookmark")
+                    .font(.system(size: 13))
+                    .foregroundStyle(viewModel.isCurrentChapterBookmarked ? MokuTheme.coral : .primary.opacity(0.6))
+            }
+            .buttonStyle(.plain)
+            .help("Toggle Bookmark")
 
             Text("PDF")
                 .font(.system(size: 11, weight: .medium))
@@ -169,5 +185,44 @@ struct PdfKitView: NSViewRepresentable {
             viewModel.totalPages = document.pageCount
             viewModel.currentPage = pageIndex + 1
         }
+    }
+}
+
+// MARK: - PDF Reader Actions Handler
+
+@MainActor
+struct PdfReaderActionsHandler: ReaderActions {
+    let viewModel: ReaderViewModel
+    let modelContext: ModelContext
+    @Binding var controlsVisibleBinding: Bool
+
+    func toggleBookmark() {
+        viewModel.toggleBookmark(modelContext: modelContext)
+    }
+
+    func showAnnotations() {
+        // PDF doesn't have a full annotations sheet yet
+    }
+
+    func toggleZenMode() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            controlsVisibleBinding.toggle()
+        }
+    }
+
+    func increaseFontSize() {
+        // Not applicable for PDF
+    }
+
+    func decreaseFontSize() {
+        // Not applicable for PDF
+    }
+
+    func nextChapter() {
+        viewModel.nextChapter()
+    }
+
+    func previousChapter() {
+        viewModel.previousChapter()
     }
 }

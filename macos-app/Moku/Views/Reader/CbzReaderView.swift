@@ -84,6 +84,11 @@ struct CbzReaderView: View {
         .onKeyPress(.rightArrow) { nextPage(); return .handled }
         .onKeyPress(.upArrow) { zoomScale = min(3.0, zoomScale + 0.25); return .handled }
         .onKeyPress(.downArrow) { zoomScale = max(0.5, zoomScale - 0.25); return .handled }
+        .focusedValue(\.readerActions, CbzReaderActionsHandler(
+            viewModel: viewModel,
+            modelContext: modelContext,
+            controlsVisibleBinding: $controlsVisible
+        ))
     }
 
     private func loadCurrentPage() {
@@ -133,6 +138,16 @@ struct CbzReaderView: View {
                 .foregroundStyle(.white.opacity(0.6))
 
             Spacer()
+
+            Button {
+                viewModel.toggleBookmark(modelContext: modelContext)
+            } label: {
+                Image(systemName: viewModel.isCurrentChapterBookmarked ? "bookmark.fill" : "bookmark")
+                    .font(.system(size: 13))
+                    .foregroundStyle(viewModel.isCurrentChapterBookmarked ? MokuTheme.coral : .white.opacity(0.7))
+            }
+            .buttonStyle(.plain)
+            .help("Toggle Bookmark")
 
             Text("CBZ")
                 .font(.system(size: 11, weight: .medium))
@@ -194,5 +209,44 @@ struct CbzReaderView: View {
             .padding(.vertical, 8)
         }
         .background(.ultraThinMaterial.opacity(0.8), in: Rectangle())
+    }
+}
+
+// MARK: - CBZ Reader Actions Handler
+
+@MainActor
+struct CbzReaderActionsHandler: ReaderActions {
+    let viewModel: ReaderViewModel
+    let modelContext: ModelContext
+    @Binding var controlsVisibleBinding: Bool
+
+    func toggleBookmark() {
+        viewModel.toggleBookmark(modelContext: modelContext)
+    }
+
+    func showAnnotations() {
+        // CBZ doesn't have annotations
+    }
+
+    func toggleZenMode() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            controlsVisibleBinding.toggle()
+        }
+    }
+
+    func increaseFontSize() {
+        // Not applicable for CBZ
+    }
+
+    func decreaseFontSize() {
+        // Not applicable for CBZ
+    }
+
+    func nextChapter() {
+        viewModel.nextChapter()
+    }
+
+    func previousChapter() {
+        viewModel.previousChapter()
     }
 }

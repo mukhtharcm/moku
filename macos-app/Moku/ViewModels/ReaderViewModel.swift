@@ -20,6 +20,11 @@ final class ReaderViewModel {
     var lineHeight: Double = 1.6
     var readerTheme: ReaderTheme = .system
 
+    // Selection & annotation state
+    var pendingSelection: String?
+    var showHighlightBar = false
+    var highlightVersion: Int = 0
+
     private let bookService = BookService()
 
     /// Whether this book uses the WebView reader (epub, txt, html)
@@ -130,6 +135,64 @@ final class ReaderViewModel {
         try? modelContext.save()
     }
 
+    // MARK: - Bookmarks & Highlights
+
+    var isCurrentChapterBookmarked: Bool {
+        book.bookmarks.contains { $0.chapterIndex == currentChapter }
+    }
+
+    var highlightsForCurrentChapter: [Highlight] {
+        book.highlights.filter { $0.chapterIndex == currentChapter }
+    }
+
+    var allHighlights: [Highlight] {
+        book.highlights.sorted { $0.createdAt > $1.createdAt }
+    }
+
+    var allBookmarks: [BookmarkItem] {
+        book.bookmarks.sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func toggleBookmark(modelContext: ModelContext) {
+        if let existing = book.bookmarks.first(where: { $0.chapterIndex == currentChapter }) {
+            modelContext.delete(existing)
+        } else {
+            let title = currentChapter < chapters.count
+                ? chapters[currentChapter].title
+                : "Page \(currentChapter + 1)"
+            let bookmark = BookmarkItem(book: book, chapterIndex: currentChapter, title: title)
+            modelContext.insert(bookmark)
+        }
+        try? modelContext.save()
+    }
+
+    func addHighlight(text: String, color: String = "#FFEB3B", note: String? = nil, modelContext: ModelContext) {
+        let highlight = Highlight(
+            book: book,
+            chapterIndex: currentChapter,
+            selectedText: text,
+            color: color,
+            note: note
+        )
+        modelContext.insert(highlight)
+        try? modelContext.save()
+        pendingSelection = nil
+        showHighlightBar = false
+        highlightVersion += 1
+    }
+
+    func removeHighlight(_ highlight: Highlight, modelContext: ModelContext) {
+        modelContext.delete(highlight)
+        try? modelContext.save()
+        highlightVersion += 1
+    }
+
+    func updateHighlightNote(_ highlight: Highlight, note: String?, modelContext: ModelContext) {
+        highlight.note = note
+        highlight.updatedAt = Date()
+        try? modelContext.save()
+    }
+
     // MARK: - HTML Template
 
     private func buildHTML(content: String) -> String {
@@ -179,9 +242,10 @@ final class ReaderViewModel {
                 text-align: justify;
                 hyphens: auto;
             }
-            .moku-highlight {
-                background-color: rgba(255, 235, 59, 0.4);
+            mark[data-highlight-id] {
                 border-radius: 2px;
+                padding: 1px 0;
+                cursor: pointer;
             }
         </style>
         </head>
@@ -220,6 +284,7 @@ final class ReaderViewModel {
                 window.webkit.messageHandlers.MokuBridge.postMessage(msg);
             }
 
+            // Enhanced selection handler
             document.addEventListener('mouseup', function(e) {
                 const sel = window.getSelection();
                 if (sel && sel.toString().trim().length > 0) {
@@ -228,8 +293,38 @@ final class ReaderViewModel {
                         text: sel.toString().trim()
                     });
                     window.webkit.messageHandlers.MokuBridge.postMessage(msg);
+                } else {
+                    window.webkit.messageHandlers.MokuBridge.postMessage(
+                        JSON.stringify({ type: 'selectionCleared' })
+                    );
                 }
             });
+
+            // Highlight application
+            function mokuApplyHighlights(highlights) {
+                highlights.forEach(function(hl) {
+                    var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+                    var node;
+                    var searchText = hl.text.substring(0, 80);
+                    while (node = walker.nextNode()) {
+                        var idx = node.textContent.indexOf(searchText);
+                        if (idx >= 0) {
+                            try {
+                                var range = document.createRange();
+                                var end = Math.min(idx + hl.text.length, node.textContent.length);
+                                range.setStart(node, idx);
+                                range.setEnd(node, end);
+                                var mark = document.createElement('mark');
+                                mark.style.backgroundColor = hl.color + '55';
+                                mark.dataset.highlightId = hl.id;
+                                range.surroundContents(mark);
+                            } catch(e) {}
+                            break;
+                        }
+                    }
+                });
+                setTimeout(reportState, 50);
+            }
 
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'ArrowRight' || e.key === ' ') {
@@ -253,6 +348,10 @@ final class ReaderViewModel {
                 }
             });
 
+            // Apply saved highlights
+            var mokuHighlights = \(highlightsJSON);
+            setTimeout(function() { mokuApplyHighlights(mokuHighlights); }, 200);
+
             setTimeout(reportState, 100);
             window.addEventListener('resize', function() {
                 setTimeout(reportState, 100);
@@ -262,5 +361,19 @@ final class ReaderViewModel {
         </body>
         </html>
         """
+    }
+
+    private var highlightsJSON: String {
+        let highlights = highlightsForCurrentChapter
+        if highlights.isEmpty { return "[]" }
+        let items = highlights.map { hl in
+            let escapedText = hl.selectedText
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+                .replacingOccurrences(of: "\n", with: "\\n")
+                .replacingOccurrences(of: "\r", with: "")
+            return "{\"id\":\"\(hl.id)\",\"text\":\"\(escapedText)\",\"color\":\"\(hl.color)\"}"
+        }
+        return "[\(items.joined(separator: ","))]"
     }
 }

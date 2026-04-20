@@ -11,6 +11,7 @@ struct SettingsDetailView: View {
     @State private var showResetAlert = false
     @State private var showDeleteAlert = false
     @State private var onboardingReset = false
+    @State private var syncVM = SyncViewModel()
 
     var body: some View {
         ZStack {
@@ -96,23 +97,96 @@ struct SettingsDetailView: View {
                                     .textFieldStyle(.roundedBorder)
                                     .font(.system(size: 13))
                                     .padding(.leading, 44)
+                                    .onChange(of: serverURL) { _, newValue in
+                                        syncVM.initialize(serverURL: newValue)
+                                    }
                             }
 
                             if !serverURL.isEmpty {
-                                HStack(spacing: 8) {
-                                    Circle()
-                                        .fill(.green)
-                                        .frame(width: 6, height: 6)
-                                    Text("Ready to connect")
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(.secondary)
-                                    Spacer()
-                                    Button("Sync Now") {}
+                                if syncVM.pbClient.isAuthenticated {
+                                    HStack(spacing: 8) {
+                                        Circle()
+                                            .fill(.green)
+                                            .frame(width: 6, height: 6)
+                                        Text(syncVM.status == .syncing ? "Syncing…" : "Connected")
+                                            .font(.system(size: 12))
+                                            .foregroundStyle(.secondary)
+                                        Spacer()
+                                        if let lastSync = SyncService.lastSyncAt {
+                                            Text(lastSync, style: .relative)
+                                                .font(.system(size: 10))
+                                                .foregroundStyle(.tertiary)
+                                        }
+                                        Button("Sync Now") {
+                                            Task {
+                                                if let syncTime = await syncVM.syncNow(
+                                                    modelContext: modelContext,
+                                                    lastSyncAt: SyncService.lastSyncAt
+                                                ) {
+                                                    SyncService.lastSyncAt = syncTime
+                                                }
+                                            }
+                                        }
                                         .buttonStyle(.borderedProminent)
                                         .tint(MokuTheme.violet)
                                         .controlSize(.small)
+                                        .disabled(syncVM.isSyncing)
+
+                                        Button("Logout") {
+                                            syncVM.logout()
+                                        }
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.small)
+                                    }
+                                    .padding(.leading, 44)
+                                } else {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text(syncVM.isRegistering ? "REGISTER" : "LOGIN")
+                                            .font(.system(size: 10, weight: .semibold))
+                                            .foregroundStyle(.tertiary)
+                                            .tracking(1)
+
+                                        TextField("Email", text: $syncVM.email)
+                                            .textFieldStyle(.roundedBorder)
+                                            .font(.system(size: 13))
+
+                                        SecureField("Password", text: $syncVM.password)
+                                            .textFieldStyle(.roundedBorder)
+                                            .font(.system(size: 13))
+
+                                        HStack {
+                                            Button(syncVM.isRegistering ? "Register" : "Login") {
+                                                Task {
+                                                    if syncVM.isRegistering {
+                                                        await syncVM.register()
+                                                    } else {
+                                                        await syncVM.login()
+                                                    }
+                                                }
+                                            }
+                                            .buttonStyle(.borderedProminent)
+                                            .tint(MokuTheme.violet)
+                                            .controlSize(.small)
+                                            .disabled(syncVM.status == .connecting)
+
+                                            Button(syncVM.isRegistering ? "Have an account? Login" : "Create account") {
+                                                syncVM.isRegistering.toggle()
+                                            }
+                                            .buttonStyle(.plain)
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(MokuTheme.violet)
+                                        }
+                                    }
+                                    .padding(.leading, 44)
                                 }
-                                .padding(.leading, 44)
+
+                                if let error = syncVM.errorMessage {
+                                    Text(error)
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.red.opacity(0.8))
+                                        .lineLimit(2)
+                                        .padding(.leading, 44)
+                                }
                             }
                         }
 
@@ -158,6 +232,9 @@ struct SettingsDetailView: View {
             }
         } message: {
             Text("This will permanently remove all books from your library. This cannot be undone.")
+        }
+        .onAppear {
+            syncVM.initialize(serverURL: serverURL)
         }
     }
 
