@@ -47,8 +47,8 @@ fi
 xcodegen generate --spec project.yml
 echo "  ✓ Xcode project generated"
 
-# ── Step 2: Build for release ─────────────────────────────────────────
-echo "→ Building $APP_NAME (Release)…"
+# ── Step 2: Build for release (unsigned) ──────────────────────────────
+echo "→ Building $APP_NAME (Release, unsigned)…"
 
 xcodebuild \
     -project "$APP_NAME.xcodeproj" \
@@ -59,10 +59,9 @@ xcodebuild \
     MARKETING_VERSION="$VERSION" \
     CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
     PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_IDENTIFIER" \
-    CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
-    ${DEVELOPMENT_TEAM:+DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM"} \
-    OTHER_CODE_SIGN_FLAGS="--timestamp --options runtime" \
-    CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
+    CODE_SIGN_IDENTITY="" \
+    CODE_SIGNING_REQUIRED=NO \
+    CODE_SIGNING_ALLOWED=NO \
     2>&1 | tail -40
 
 APP_PATH="$DERIVED_DATA/Build/Products/Release/$APP_NAME.app"
@@ -76,13 +75,39 @@ fi
 
 echo "  ✓ Build succeeded: $APP_PATH"
 
-# ── Step 3: Verify code signature ─────────────────────────────────────
-echo "→ Verifying code signature…"
-codesign --verify --deep --strict "$APP_PATH" 2>&1 || {
-    echo "WARNING: Code signature verification failed (may be ad-hoc signed)" >&2
-}
-codesign -dvvv "$APP_PATH" 2>&1 | grep -E "^(Authority|Identifier|TeamIdentifier)" || true
-echo "  ✓ Signature check complete"
+# ── Step 3: Code sign the app bundle ─────────────────────────────────
+ENTITLEMENTS_PATH="$PROJECT_DIR/Moku/App/Moku.entitlements"
+
+if [[ "$SIGNING_IDENTITY" != "-" && -n "$SIGNING_IDENTITY" ]]; then
+    echo "→ Signing app with: $SIGNING_IDENTITY"
+
+    # Sign frameworks and libraries first (deep sign)
+    find "$APP_PATH/Contents/Frameworks" -type f -perm +111 -o -name "*.dylib" 2>/dev/null | while read -r lib; do
+        codesign --force --sign "$SIGNING_IDENTITY" --timestamp --options runtime "$lib" 2>/dev/null || true
+    done
+
+    find "$APP_PATH/Contents/Frameworks" -name "*.framework" 2>/dev/null | while read -r fw; do
+        codesign --force --sign "$SIGNING_IDENTITY" --timestamp --options runtime "$fw" 2>/dev/null || true
+    done
+
+    # Sign the main app bundle with entitlements
+    codesign --force --sign "$SIGNING_IDENTITY" \
+        --timestamp \
+        --options runtime \
+        --entitlements "$ENTITLEMENTS_PATH" \
+        "$APP_PATH"
+
+    echo "  ✓ App signed"
+
+    # Verify
+    codesign --verify --deep --strict "$APP_PATH" 2>&1
+    codesign -dvvv "$APP_PATH" 2>&1 | grep -E "^(Authority|Identifier|TeamIdentifier)" || true
+    echo "  ✓ Signature verified"
+else
+    echo "→ Skipping code signing (no identity provided)"
+    # Ad-hoc sign so the app can at least run
+    codesign --force --sign - --entitlements "$ENTITLEMENTS_PATH" "$APP_PATH" 2>/dev/null || true
+fi
 
 # ── Step 4: Create distribution directory ─────────────────────────────
 echo "→ Preparing distribution artifacts…"
