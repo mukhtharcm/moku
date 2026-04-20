@@ -16,12 +16,12 @@ struct ContentView: View {
                     switch selectedTab {
                     case .library:
                         LibraryView()
-                    case .collections:
+                    case .shelves:
                         CollectionsView()
                     case .search:
                         SearchView()
                     case .settings:
-                        SettingsView()
+                        SettingsDetailView()
                     }
                 }
                 .frame(minWidth: 860, minHeight: 560)
@@ -36,7 +36,7 @@ struct ContentView: View {
 
 enum SidebarTab: String, CaseIterable, Identifiable {
     case library = "Library"
-    case collections = "Collections"
+    case shelves = "Shelves"
     case search = "Discover"
     case settings = "Settings"
 
@@ -45,7 +45,7 @@ enum SidebarTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .library: "books.vertical"
-        case .collections: "square.stack"
+        case .shelves: "square.stack"
         case .search: "magnifyingglass"
         case .settings: "gearshape"
         }

@@ -36,7 +36,7 @@ struct CollectionsView: View {
         }
         .safeAreaInset(edge: .top) {
             HStack {
-                Text("Collections")
+                Text("Shelves")
                     .font(.system(size: 22, weight: .bold, design: .serif))
                     .tracking(-0.3)
                 Spacer()
@@ -114,7 +114,7 @@ struct CollectionsView: View {
                 Image(systemName: "plus.circle")
                     .font(.system(size: 28, weight: .light))
                     .foregroundStyle(.tertiary)
-                Text("New Collection")
+                Text("New Shelf")
                     .font(.system(size: 13))
                     .foregroundStyle(.tertiary)
             }
@@ -139,13 +139,13 @@ struct CollectionsView: View {
                     .font(.system(size: 36, weight: .light))
                     .foregroundStyle(MokuTheme.violet.opacity(0.5))
             }
-            Text("No Collections Yet")
+            Text("No Shelves Yet")
                 .font(.system(size: 20, weight: .bold, design: .serif))
             Text("Organize your books into shelves")
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary)
             Button { showNewCollection = true } label: {
-                Label("Create Collection", systemImage: "plus.circle.fill")
+                Label("Create Shelf", systemImage: "plus.circle.fill")
                     .font(.system(size: 13, weight: .semibold))
                     .padding(.vertical, 2)
             }
@@ -159,10 +159,10 @@ struct CollectionsView: View {
 
     private var newCollectionSheet: some View {
         VStack(spacing: 20) {
-            Text("New Collection")
+            Text("New Shelf")
                 .font(.system(size: 16, weight: .bold, design: .serif))
 
-            TextField("Collection name", text: $newName)
+            TextField("Shelf name", text: $newName)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 260)
 

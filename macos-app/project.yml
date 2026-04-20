@@ -32,8 +32,6 @@ targets:
         excludes:
           - "**/.DS_Store"
           - "**/.gitkeep"
-    resources:
-      - path: Moku/Resources/Assets.xcassets
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
