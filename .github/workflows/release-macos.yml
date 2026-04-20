@@ -1,0 +1,175 @@
+name: Release macOS App
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release (e.g. 1.0.0). Defaults to tag name without leading v.
+        required: false
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  package-release:
+    runs-on: macos-latest
+    env:
+      APP_NAME: Moku
+      BUNDLE_IDENTIFIER: com.mukhtharcm.moku
+      HAS_SIGNING_SECRETS: ${{ secrets.BUILD_CERTIFICATE_BASE64 != '' && secrets.P12_PASSWORD != '' && secrets.KEYCHAIN_PASSWORD != '' && secrets.SIGNING_IDENTITY != '' }}
+      HAS_NOTARY_SECRETS: ${{ secrets.APPLE_ID != '' && secrets.APP_SPECIFIC_PASSWORD != '' && secrets.TEAM_ID != '' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Resolve release metadata
+        id: meta
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          version="$INPUT_VERSION"
+
+          if [[ -z "$version" && "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          fi
+
+          if [[ -z "$version" ]]; then
+            version="1.0.0"
+          fi
+
+          release_tag="v$version"
+
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            release_tag="$GITHUB_REF_NAME"
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Cache dmgbuild environment
+        uses: actions/cache@v5
+        with:
+          path: macos-app/.build/dmgbuild-venv
+          key: ${{ runner.os }}-dmgbuild-${{ hashFiles('macos-app/Tools/package-release.sh', 'macos-app/Packaging/dmgbuild-settings.py') }}
+
+      - name: Import Developer ID certificate
+        if: env.HAS_SIGNING_SECRETS == 'true'
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          certificate_path="$RUNNER_TEMP/moku-signing-certificate.p12"
+          keychain_path="$RUNNER_TEMP/moku-signing.keychain-db"
+
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o "$certificate_path"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$keychain_path"
+          security import "$certificate_path" -P "$P12_PASSWORD" -A -f pkcs12 -k "$keychain_path"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$keychain_path"
+          security list-keychains -d user -s "$keychain_path" login.keychain-db
+          security default-keychain -d user -s "$keychain_path"
+
+      - name: Package release artifacts
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+          SIGNING_IDENTITY: ${{ secrets.SIGNING_IDENTITY }}
+        run: |
+          export DEVELOPER_DIR="$(xcode-select -p)"
+          cd macos-app && ./Tools/package-release.sh
+
+      - name: Notarize release artifacts
+        if: env.HAS_SIGNING_SECRETS == 'true' && env.HAS_NOTARY_SECRETS == 'true'
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+        run: cd macos-app && ./Tools/notarize-release.sh
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: moku-release-${{ steps.meta.outputs.version }}
+          path: |
+            macos-app/dist/${{ steps.meta.outputs.version }}/*.zip
+            macos-app/dist/${{ steps.meta.outputs.version }}/*.dmg
+            macos-app/dist/${{ steps.meta.outputs.version }}/notary-log.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Extract release notes from changelog
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          cd macos-app
+          ./Tools/extract-changelog.sh CHANGELOG.md "$VERSION" > "$RUNNER_TEMP/release-notes.md"
+
+          if [[ ! -s "$RUNNER_TEMP/release-notes.md" ]]; then
+            echo "No changelog entry for $VERSION — using default notes." >&2
+            echo "## Moku $VERSION" > "$RUNNER_TEMP/release-notes.md"
+            echo "" >> "$RUNNER_TEMP/release-notes.md"
+            echo "macOS release of Moku ebook reader." >> "$RUNNER_TEMP/release-notes.md"
+          fi
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          RELEASE_TAG: ${{ steps.meta.outputs.release_tag }}
+        run: |
+          zip_name="Moku-${VERSION}.zip"
+          dmg_name="Moku-${VERSION}.dmg"
+          release_args=()
+
+          if [[ "$VERSION" == *-* ]]; then
+            release_args+=(--prerelease)
+          fi
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" \
+              --title "Moku $VERSION" \
+              --notes-file "$RUNNER_TEMP/release-notes.md"
+          else
+            gh release create "$RELEASE_TAG" \
+              --title "Moku $VERSION" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" \
+              "${release_args[@]}"
+          fi
+
+          gh release upload "$RELEASE_TAG" \
+            "macos-app/dist/$VERSION/$zip_name" \
+            "macos-app/dist/$VERSION/$dmg_name" \
+            --clobber
+
+      - name: Write release summary
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          if [[ "$HAS_SIGNING_SECRETS" == "true" && "$HAS_NOTARY_SECRETS" == "true" ]]; then
+            status="signed and notarized"
+          elif [[ "$HAS_SIGNING_SECRETS" == "true" ]]; then
+            status="signed but not notarized"
+          else
+            status="unsigned"
+          fi
+
+          {
+            echo "## Moku macOS release"
+            echo
+            echo "- Version: $VERSION"
+            echo "- Bundle identifier: com.mukhtharcm.moku"
+            echo "- Artifact status: $status"
+          } >> "$GITHUB_STEP_SUMMARY"

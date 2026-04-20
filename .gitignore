@@ -1,3 +1,8 @@
 server/server
 server/pb_data/
 app/build/
+
+# macOS build artifacts
+macos-app/.build/
+macos-app/dist/
+macos-app/*.xcodeproj
