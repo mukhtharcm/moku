@@ -5,9 +5,9 @@ import UniformTypeIdentifiers
 struct LibraryView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openWindow) private var openWindow
     @State private var viewModel = LibraryViewModel()
     @State private var selectedBook: MokuBook?
-    @State private var openedBook: MokuBook?
     @State private var hoveredBook: String?
     @State private var dropTargeted = false
 
@@ -54,10 +54,6 @@ struct LibraryView: View {
                     .padding(8)
                     .allowsHitTesting(false)
             }
-        }
-        .sheet(item: $openedBook) { book in
-            ReaderView(book: book)
-                .frame(minWidth: 750, minHeight: 550)
         }
     }
 
@@ -158,7 +154,7 @@ struct LibraryView: View {
                         ContinueReadingCard(
                             book: book,
                             isHovered: hoveredBook == "cr-\(book.id)",
-                            onOpen: { openedBook = book }
+                            onOpen: { openWindow(id: "reader", value: book.id) }
                         )
                         .onHover { hovering in
                             withAnimation(.easeOut(duration: 0.2)) {
@@ -218,7 +214,7 @@ struct LibraryView: View {
                             hoveredBook = hovering ? book.id : nil
                         }
                     }
-                    .onTapGesture(count: 2) { openedBook = book }
+                    .onTapGesture(count: 2) { openWindow(id: "reader", value: book.id) }
                     .onTapGesture(count: 1) { selectedBook = book }
                     .contextMenu { bookContextMenu(book) }
                 }
@@ -238,7 +234,7 @@ struct LibraryView: View {
                             hoveredBook = hovering ? book.id : nil
                         }
                     }
-                    .onTapGesture(count: 2) { openedBook = book }
+                    .onTapGesture(count: 2) { openWindow(id: "reader", value: book.id) }
                     .contextMenu { bookContextMenu(book) }
                 }
             }
@@ -249,7 +245,7 @@ struct LibraryView: View {
 
     private func bookContextMenu(_ book: MokuBook) -> some View {
         Group {
-            Button { openedBook = book } label: {
+            Button { openWindow(id: "reader", value: book.id) } label: {
                 Label("Open", systemImage: "book")
             }
             Divider()

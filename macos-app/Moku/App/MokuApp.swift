@@ -34,6 +34,16 @@ struct MokuApp: App {
             MokuCommands()
         }
 
+        // Reader opens in its own window, identified by book ID
+        WindowGroup("Reader", id: "reader", for: String.self) { $bookId in
+            if let bookId {
+                ReaderWindowView(bookId: bookId)
+            }
+        }
+        .modelContainer(modelContainer)
+        .windowStyle(.titleBar)
+        .defaultSize(width: 900, height: 700)
+
         Settings {
             SettingsView()
                 .modelContainer(modelContainer)

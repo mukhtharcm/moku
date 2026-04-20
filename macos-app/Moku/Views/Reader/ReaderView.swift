@@ -4,7 +4,6 @@ import WebKit
 
 struct ReaderView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @State private var viewModel: ReaderViewModel
     @State private var showTOC = false
@@ -50,8 +49,14 @@ struct ReaderView: View {
         }
         .onAppear { viewModel.loadBook() }
         .onDisappear { viewModel.saveProgress(modelContext: modelContext) }
+        .navigationTitle(viewModel.book.title)
         .sheet(isPresented: $showTOC) { tocSheet }
         .sheet(isPresented: $showSettings) { settingsSheet }
+    }
+
+    private func closeWindow() {
+        viewModel.saveProgress(modelContext: modelContext)
+        NSApp.keyWindow?.close()
     }
 
     // MARK: - Background
@@ -95,7 +100,7 @@ struct ReaderView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 300)
-            Button("Back to Library") { dismiss() }
+            Button("Back to Library") { closeWindow() }
                 .buttonStyle(.bordered)
         }
     }
@@ -105,7 +110,7 @@ struct ReaderView: View {
     private var topBar: some View {
         HStack(spacing: 12) {
             // Back button
-            Button { dismiss() } label: {
+            Button { closeWindow() } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 12, weight: .semibold))
