@@ -51,10 +51,10 @@ xcrun notarytool submit "$DMG_PATH" \
     --wait \
     2>&1 | tee "$NOTARY_LOG"
 
-status=$(python3 -c "import json,sys; d=json.load(open('$NOTARY_LOG')); print(d.get('status','unknown'))" 2>/dev/null || echo "unknown")
+notary_status=$(python3 -c "import json,sys; d=json.load(open('$NOTARY_LOG')); print(d.get('status','unknown'))" 2>/dev/null || echo "unknown")
 
-if [[ "$status" != "Accepted" ]]; then
-    echo "ERROR: Notarization failed with status: $status" >&2
+if [[ "$notary_status" != "Accepted" ]]; then
+    echo "ERROR: Notarization failed with status: $notary_status" >&2
 
     submission_id=$(python3 -c "import json; d=json.load(open('$NOTARY_LOG')); print(d.get('id',''))" 2>/dev/null || echo "")
     if [[ -n "$submission_id" ]]; then
