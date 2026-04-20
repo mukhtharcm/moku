@@ -76,6 +76,33 @@ jobs:
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
           echo "Installed profile: $PROFILE_UUID"
 
+      - name: Configure manual signing for CI
+        working-directory: app/ios
+        run: |
+          python3 << 'PYEOF'
+          import re
+
+          with open('Runner.xcodeproj/project.pbxproj', 'r') as f:
+              content = f.read()
+
+          # Change code sign identity to Apple Distribution
+          content = content.replace(
+              '"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer"',
+              '"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution"'
+          )
+
+          # After each DEVELOPMENT_TEAM line, add manual signing settings
+          content = content.replace(
+              'DEVELOPMENT_TEAM = SMKA33JW93;',
+              'DEVELOPMENT_TEAM = SMKA33JW93;\n\t\t\t\tCODE_SIGN_STYLE = Manual;\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "Moku AppStore Distribution";'
+          )
+
+          with open('Runner.xcodeproj/project.pbxproj', 'w') as f:
+              f.write(content)
+
+          print("Configured manual signing for CI")
+          PYEOF
+
       - name: Determine version
         id: version
         run: |
