@@ -3,424 +3,523 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Moku — Your Cozy Ebook Reader</title>
-  <meta name="description" content="A beautiful, offline-first EPUB reader with optional self-hostable sync. Available for macOS, with iOS coming soon.">
-  <meta name="theme-color" content="#6B4EFF">
+  <title>Moku — Read without noise</title>
+  <meta name="description" content="An offline-first EPUB reader. No accounts, no tracking, no noise. Just you and the book.">
+  <meta name="theme-color" content="#1a1612">
   <link rel="icon" type="image/png" href="/icon.png">
-
-  <!-- Open Graph -->
-  <meta property="og:title" content="Moku — Your Cozy Ebook Reader">
-  <meta property="og:description" content="A beautiful, offline-first EPUB reader with optional self-hostable sync.">
+  <meta property="og:title" content="Moku">
+  <meta property="og:description" content="An offline-first EPUB reader. No accounts, no tracking, no noise.">
   <meta property="og:image" content="/icon.png">
-  <meta property="og:type" content="website">
-
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500&display=swap');
 
-    :root {
-      --cream: #FAF7F2;
-      --cream-deep: #F0EBE1;
-      --violet: #6B4EFF;
-      --violet-light: #8B74FF;
-      --violet-glow: rgba(107, 78, 255, 0.12);
-      --coral: #FF8A65;
-      --coral-light: #FFAB91;
-      --coral-glow: rgba(255, 138, 101, 0.12);
-      --text: #2D2418;
-      --text-muted: #8A7E6B;
-      --card-bg: rgba(255, 255, 255, 0.7);
-      --card-border: rgba(107, 78, 255, 0.08);
+    *{margin:0;padding:0;box-sizing:border-box}
+
+    :root{
+      --ink:#1a1612;
+      --paper:#f6f1ea;
+      --paper-dark:#ebe4d8;
+      --rust:#c4653a;
+      --teal:#2a6f6a;
+      --muted:#8c8178;
+      --rule:rgba(26,22,18,0.1);
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html{scroll-behavior:smooth}
 
-    body {
-      font-family: 'Inter', -apple-system, system-ui, sans-serif;
-      background: var(--cream);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* Background decoration */
-    body::before {
-      content: '';
-      position: fixed;
-      top: -200px;
-      right: -200px;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, var(--violet-glow) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
-    }
-    body::after {
-      content: '';
-      position: fixed;
-      bottom: -200px;
-      left: -200px;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, var(--coral-glow) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
+    body{
+      font-family:'DM Sans',sans-serif;
+      background:var(--paper);
+      color:var(--ink);
+      -webkit-font-smoothing:antialiased;
     }
 
-    .container {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 0 24px;
-      position: relative;
-      z-index: 1;
+    /* ── Noise texture overlay ── */
+    body::after{
+      content:'';
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:9999;
+      opacity:0.025;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }
 
-    /* ── Nav ── */
-    nav {
-      padding: 24px 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .nav-brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      text-decoration: none;
-      color: var(--text);
-    }
-    .nav-brand img {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-    }
-    .nav-brand span {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-size: 24px;
-    }
-    .nav-links {
-      display: flex;
-      gap: 32px;
-      list-style: none;
-    }
-    .nav-links a {
-      text-decoration: none;
-      color: var(--text-muted);
-      font-size: 14px;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-    .nav-links a:hover { color: var(--violet); }
+    .page{max-width:1100px;margin:0 auto;padding:0 clamp(20px,4vw,48px)}
 
-    /* ── Hero ── */
-    .hero {
-      text-align: center;
-      padding: 80px 0 60px;
+    /* ── Header ── */
+    header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:28px 0;
+      border-bottom:1px solid var(--rule);
     }
-    .hero-icon {
-      width: 120px;
-      height: 120px;
-      border-radius: 28px;
-      margin-bottom: 32px;
-      box-shadow:
-        0 8px 32px rgba(107, 78, 255, 0.15),
-        0 2px 8px rgba(0,0,0,0.06);
+    .wordmark{
+      font-family:'Playfair Display',serif;
+      font-size:22px;
+      letter-spacing:0.02em;
+      display:flex;align-items:center;gap:12px;
+      text-decoration:none;color:var(--ink);
     }
-    .hero h1 {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-size: clamp(40px, 6vw, 64px);
-      font-weight: 400;
-      line-height: 1.1;
-      margin-bottom: 20px;
+    .wordmark img{width:32px;height:32px;border-radius:8px}
+    header nav a{
+      font-size:13px;
+      text-decoration:none;
+      color:var(--muted);
+      margin-left:28px;
+      letter-spacing:0.03em;
+      text-transform:uppercase;
+      transition:color .2s;
     }
-    .hero h1 .highlight {
-      background: linear-gradient(135deg, var(--violet), var(--coral));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    header nav a:hover{color:var(--ink)}
+
+    /* ── Hero — editorial spread ── */
+    .hero{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:0;
+      min-height:80vh;
+      align-items:center;
+      border-bottom:1px solid var(--rule);
     }
-    .hero p {
-      font-size: 18px;
-      color: var(--text-muted);
-      max-width: 520px;
-      margin: 0 auto 40px;
-      line-height: 1.7;
+    .hero-text{
+      padding:80px 60px 80px 0;
+      border-right:1px solid var(--rule);
+    }
+    .hero-text .chapter-label{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:0.15em;
+      color:var(--rust);
+      margin-bottom:24px;
+      display:block;
+    }
+    .hero-text h1{
+      font-family:'Playfair Display',serif;
+      font-size:clamp(36px,5vw,58px);
+      font-weight:400;
+      line-height:1.12;
+      margin-bottom:28px;
+    }
+    .hero-text h1 em{
+      font-style:italic;
+      color:var(--teal);
+    }
+    .hero-text .lead{
+      font-size:17px;
+      line-height:1.75;
+      color:var(--muted);
+      max-width:400px;
+      margin-bottom:40px;
     }
 
-    /* ── Download buttons ── */
-    .download-buttons {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 28px;
-      border-radius: 14px;
-      font-size: 15px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.25s ease;
-      cursor: pointer;
-      border: none;
-    }
-    .btn-primary {
-      background: var(--violet);
-      color: white;
-      box-shadow: 0 4px 16px rgba(107, 78, 255, 0.3);
-    }
-    .btn-primary:hover {
-      background: var(--violet-light);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 24px rgba(107, 78, 255, 0.35);
-    }
-    .btn-secondary {
-      background: var(--card-bg);
-      color: var(--text);
-      border: 1.5px solid var(--card-border);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-    .btn-secondary:hover {
-      border-color: var(--violet);
-      transform: translateY(-2px);
-    }
-    .btn-coming-soon {
-      background: var(--cream-deep);
-      color: var(--text-muted);
-      cursor: default;
-      border: 1.5px solid transparent;
-    }
-    .btn-coming-soon:hover {
-      transform: none;
-      box-shadow: none;
-    }
-    .btn svg { width: 20px; height: 20px; }
-    .btn .badge {
-      font-size: 10px;
-      font-weight: 600;
-      background: var(--coral);
-      color: white;
-      padding: 2px 8px;
-      border-radius: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+    .hero-visual{
+      padding:80px 0 80px 60px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      position:relative;
     }
 
-    /* ── Features ── */
-    .features {
-      padding: 60px 0;
+    /* Book spine illustration */
+    .book-stack{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      width:100%;
+      max-width:340px;
     }
-    .features h2 {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-size: 36px;
-      font-weight: 400;
-      text-align: center;
-      margin-bottom: 48px;
+    .spine{
+      height:42px;
+      border-radius:4px;
+      display:flex;
+      align-items:center;
+      padding:0 20px;
+      font-family:'Playfair Display',serif;
+      font-size:13px;
+      color:white;
+      letter-spacing:0.03em;
+      position:relative;
+      overflow:hidden;
+      transition:transform .3s ease, box-shadow .3s ease;
     }
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 20px;
+    .spine::after{
+      content:'';
+      position:absolute;
+      left:0;top:0;bottom:0;
+      width:6px;
+      background:rgba(0,0,0,0.15);
     }
-    .feature-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 28px;
-      backdrop-filter: blur(8px);
-      transition: all 0.25s ease;
+    .spine:hover{
+      transform:translateX(12px);
+      box-shadow:4px 4px 0 rgba(0,0,0,0.08);
     }
-    .feature-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-    }
-    .feature-icon {
-      font-size: 28px;
-      margin-bottom: 14px;
-    }
-    .feature-card h3 {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-size: 20px;
-      font-weight: 400;
-      margin-bottom: 8px;
-    }
-    .feature-card p {
-      font-size: 14px;
-      color: var(--text-muted);
-      line-height: 1.6;
+    .spine-1{background:var(--teal);height:48px}
+    .spine-2{background:#8b6b4a}
+    .spine-3{background:var(--rust);height:38px}
+    .spine-4{background:#4a5568;height:44px}
+    .spine-5{background:#6b5b73}
+    .spine-6{background:#3d5a50;height:36px}
+    .spine-7{background:#8c6e4f;height:40px}
+
+    .shelf-shadow{
+      height:8px;
+      background:linear-gradient(to bottom, rgba(0,0,0,0.06), transparent);
+      border-radius:0 0 4px 4px;
+      margin-top:2px;
     }
 
-    /* ── Screenshot section ── */
-    .screenshot-section {
-      padding: 40px 0 80px;
-      text-align: center;
+    /* ── Download bar ── */
+    .download-bar{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
     }
-    .screenshot-section h2 {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-size: 36px;
-      font-weight: 400;
-      margin-bottom: 16px;
+    .dl-btn{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:12px 24px;
+      font-size:14px;
+      font-weight:500;
+      text-decoration:none;
+      border-radius:6px;
+      transition:all .2s ease;
+      cursor:pointer;
+      border:none;
+      font-family:inherit;
     }
-    .screenshot-section p {
-      color: var(--text-muted);
-      margin-bottom: 40px;
-      font-size: 16px;
+    .dl-primary{
+      background:var(--ink);
+      color:var(--paper);
     }
-    .screenshot-placeholder {
-      background: linear-gradient(135deg, var(--cream-deep), white);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 60px 40px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
+    .dl-primary:hover{
+      background:#2d2823;
+      transform:translateY(-1px);
     }
-    .screenshot-placeholder .book-emoji { font-size: 48px; }
-    .screenshot-placeholder span {
-      color: var(--text-muted);
-      font-size: 14px;
+    .dl-ghost{
+      background:transparent;
+      color:var(--muted);
+      border:1px solid var(--rule);
+    }
+    .dl-ghost:hover{
+      border-color:var(--ink);
+      color:var(--ink);
+    }
+    .dl-soon{
+      background:transparent;
+      color:var(--muted);
+      border:1px dashed var(--rule);
+      cursor:default;
+      font-size:13px;
+    }
+    .dl-btn svg{width:16px;height:16px}
+    .version-tag{
+      font-size:11px;
+      color:var(--muted);
+      letter-spacing:0.05em;
     }
 
-    /* ── Open Source banner ── */
-    .oss-banner {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 40px;
-      text-align: center;
-      margin-bottom: 80px;
-      backdrop-filter: blur(8px);
+    /* ── Bento grid ── */
+    .bento{
+      padding:80px 0;
+      border-bottom:1px solid var(--rule);
     }
-    .oss-banner h3 {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-size: 28px;
-      font-weight: 400;
-      margin-bottom: 12px;
+    .bento-label{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:0.15em;
+      color:var(--rust);
+      margin-bottom:40px;
     }
-    .oss-banner p {
-      color: var(--text-muted);
-      margin-bottom: 24px;
-      font-size: 15px;
-      line-height: 1.6;
+    .bento-grid{
+      display:grid;
+      grid-template-columns:repeat(12,1fr);
+      grid-auto-rows:minmax(160px,auto);
+      gap:1px;
+      background:var(--rule);
+      border:1px solid var(--rule);
     }
+    .bento-cell{
+      background:var(--paper);
+      padding:32px;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-end;
+      transition:background .25s;
+    }
+    .bento-cell:hover{background:var(--paper-dark)}
+    .bento-cell h3{
+      font-family:'Playfair Display',serif;
+      font-size:20px;
+      font-weight:400;
+      margin-bottom:8px;
+    }
+    .bento-cell p{
+      font-size:13px;
+      line-height:1.65;
+      color:var(--muted);
+    }
+    .bento-cell .cell-accent{
+      width:24px;
+      height:3px;
+      margin-bottom:16px;
+    }
+    .accent-rust{background:var(--rust)}
+    .accent-teal{background:var(--teal)}
+    .accent-ink{background:var(--ink)}
+    .accent-muted{background:var(--muted)}
+
+    .b-wide{grid-column:span 7}
+    .b-narrow{grid-column:span 5}
+    .b-third{grid-column:span 4}
+    .b-half{grid-column:span 6}
+
+    /* ── Principles strip ── */
+    .principles{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:0;
+      border-bottom:1px solid var(--rule);
+    }
+    .principle{
+      padding:48px 32px;
+      border-right:1px solid var(--rule);
+    }
+    .principle:last-child{border-right:none}
+    .principle .num{
+      font-family:'Playfair Display',serif;
+      font-size:32px;
+      color:var(--rule);
+      margin-bottom:16px;
+      display:block;
+    }
+    .principle h3{
+      font-family:'Playfair Display',serif;
+      font-size:18px;
+      font-weight:400;
+      margin-bottom:8px;
+    }
+    .principle p{
+      font-size:13px;
+      line-height:1.65;
+      color:var(--muted);
+    }
+
+    /* ── Source strip ── */
+    .source-strip{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:40px 0;
+      border-bottom:1px solid var(--rule);
+    }
+    .source-strip p{
+      font-size:15px;
+      line-height:1.7;
+      color:var(--muted);
+      max-width:500px;
+    }
+    .source-strip p strong{color:var(--ink)}
 
     /* ── Footer ── */
-    footer {
-      border-top: 1px solid var(--card-border);
-      padding: 32px 0;
-      text-align: center;
+    footer{
+      padding:32px 0;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
     }
-    footer p {
-      font-size: 13px;
-      color: var(--text-muted);
+    footer .colophon{
+      font-size:12px;
+      color:var(--muted);
+      letter-spacing:0.02em;
     }
-    footer a {
-      color: var(--violet);
-      text-decoration: none;
+    footer nav a{
+      font-size:12px;
+      color:var(--muted);
+      text-decoration:none;
+      margin-left:24px;
+      transition:color .2s;
     }
+    footer nav a:hover{color:var(--ink)}
 
     /* ── Responsive ── */
-    @media (max-width: 640px) {
-      .hero { padding: 48px 0 40px; }
-      .hero-icon { width: 88px; height: 88px; border-radius: 22px; }
-      .download-buttons { flex-direction: column; align-items: center; }
-      .btn { width: 100%; max-width: 300px; justify-content: center; }
-      .nav-links { gap: 20px; }
+    @media(max-width:820px){
+      .hero{grid-template-columns:1fr;min-height:auto}
+      .hero-text{
+        padding:60px 0 40px;
+        border-right:none;
+        border-bottom:1px solid var(--rule);
+      }
+      .hero-visual{padding:40px 0 60px}
+      .b-wide,.b-narrow{grid-column:span 12}
+      .b-third{grid-column:span 12}
+      .b-half{grid-column:span 12}
+      .principles{grid-template-columns:1fr}
+      .principle{border-right:none;border-bottom:1px solid var(--rule)}
+      .principle:last-child{border-bottom:none}
+      .source-strip{flex-direction:column;gap:20px;text-align:center}
+    }
+    @media(max-width:540px){
+      .download-bar{flex-direction:column;align-items:stretch}
+      footer{flex-direction:column;gap:12px}
     }
   </style>
 </head>
 <body>
+<div class="page" x-data="mokuApp()" x-init="fetchRelease()">
 
-  <div class="container">
+  <header>
+    <a href="/" class="wordmark">
+      <img src="/icon.png" alt="Moku">
+      <span>Moku</span>
+    </a>
     <nav>
-      <a href="/" class="nav-brand">
-        <img src="/icon.png" alt="Moku">
-        <span>Moku</span>
-      </a>
-      <ul class="nav-links">
-        <li><a href="#features">Features</a></li>
-        <li><a href="https://github.com/mukhtharcm/moku">GitHub</a></li>
-      </ul>
+      <a href="#features">Features</a>
+      <a href="https://github.com/mukhtharcm/moku">Source</a>
     </nav>
+  </header>
 
-    <!-- Hero -->
-    <section class="hero">
-      <img src="/icon.png" alt="Moku App Icon" class="hero-icon">
-      <h1>Your cozy<br><span class="highlight">ebook reader</span></h1>
-      <p>A beautiful, offline-first EPUB reader with optional self-hostable sync. Read your way — no accounts required.</p>
-
-      <div class="download-buttons">
-        <a href="https://github.com/mukhtharcm/moku/releases/latest/download/Moku-1.0.0.dmg" class="btn btn-primary">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-          Download for macOS
+  <section class="hero">
+    <div class="hero-text">
+      <span class="chapter-label">Chapter I</span>
+      <h1>Read without <em>noise</em></h1>
+      <p class="lead">
+        An ebook reader that stays out of your way. 
+        No accounts, no tracking, no subscriptions. 
+        Your books, on your device, in your hands.
+      </p>
+      <div class="download-bar">
+        <a :href="dmgUrl" class="dl-btn dl-primary" x-show="dmgUrl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          macOS
         </a>
-        <div class="btn btn-coming-soon">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-          iOS
-          <span class="badge">Coming Soon</span>
-        </div>
-        <div class="btn btn-coming-soon">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 11.48l1.42-2.46c.1-.17.04-.38-.13-.48a.355.355 0 00-.48.13l-1.44 2.49a10.21 10.21 0 00-4.17-.9c-1.5 0-2.9.33-4.17.9L7.39 8.67a.355.355 0 00-.48-.13c-.17.1-.23.31-.13.48l1.42 2.46C5.4 12.78 3.6 15.29 3 18.26h18c-.6-2.97-2.4-5.48-5.14-6.78M8.86 15.72a.72.72 0 110-1.44.72.72 0 010 1.44m6.28 0a.72.72 0 110-1.44.72.72 0 010 1.44"/></svg>
-          Android
-          <span class="badge">Coming Soon</span>
-        </div>
+        <span class="version-tag" x-show="version" x-text="version"></span>
+        <span class="dl-btn dl-soon">iOS — soon</span>
+        <span class="dl-btn dl-soon">Android — soon</span>
       </div>
-    </section>
+    </div>
 
-    <!-- Features -->
-    <section class="features" id="features">
-      <h2>Why Moku?</h2>
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">📖</div>
-          <h3>Beautiful Reading</h3>
-          <p>Paginated EPUB renderer with multiple themes — light, dark, sepia, forest, ocean. Customize fonts, sizes, and spacing.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">✈️</div>
-          <h3>Offline First</h3>
-          <p>Works completely offline. Your books live on your device. No account, no internet connection required to read.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">🔄</div>
-          <h3>Self-Hostable Sync</h3>
-          <p>Optional PocketBase sync server. Host your own, or use ours. Sync books, reading progress, highlights, and shelves.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">🔖</div>
-          <h3>Highlights &amp; Bookmarks</h3>
-          <p>Highlight passages and add bookmarks while you read. All your annotations stay organized and easily accessible.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">📚</div>
-          <h3>Organize with Shelves</h3>
-          <p>Create custom shelves to organize your library. Sort by title, author, or recently read.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">🔍</div>
-          <h3>Discover Books</h3>
-          <p>Browse and discover books from Open Library. Find your next read without leaving the app.</p>
-        </div>
+    <div class="hero-visual">
+      <div class="book-stack">
+        <div class="spine spine-1">The Design of Everyday Things</div>
+        <div class="spine spine-2">Siddhartha</div>
+        <div class="spine spine-3">Dune</div>
+        <div class="spine spine-4">Sapiens</div>
+        <div class="spine spine-5">Kafka on the Shore</div>
+        <div class="spine spine-6">The Alchemist</div>
+        <div class="spine spine-7">Meditations</div>
+        <div class="shelf-shadow"></div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- Open Source -->
-    <section class="oss-banner">
-      <h3>Free &amp; Open Source</h3>
-      <p>Moku is completely open source. Inspect the code, contribute features, or host your own sync server.</p>
-      <a href="https://github.com/mukhtharcm/moku" class="btn btn-secondary">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
-        View on GitHub
-      </a>
-    </section>
+  <section class="bento" id="features">
+    <div class="bento-label">What it does</div>
+    <div class="bento-grid">
+      <div class="bento-cell b-wide">
+        <div class="cell-accent accent-teal"></div>
+        <h3>Reads EPUBs beautifully</h3>
+        <p>Paginated rendering with five themes — light, dark, sepia, forest, ocean. Pick your typeface, adjust size and spacing. The text reflows to fit.</p>
+      </div>
+      <div class="bento-cell b-narrow">
+        <div class="cell-accent accent-rust"></div>
+        <h3>Works offline</h3>
+        <p>Everything lives on your device. Open the app, pick a book, read. No Wi-Fi, no login, no fuss.</p>
+      </div>
+      <div class="bento-cell b-narrow">
+        <div class="cell-accent accent-ink"></div>
+        <h3>Highlights &amp; bookmarks</h3>
+        <p>Select text, highlight it, find it later. Bookmark pages to return to. Your annotations travel with the book.</p>
+      </div>
+      <div class="bento-cell b-wide">
+        <div class="cell-accent accent-teal"></div>
+        <h3>Sync on your terms</h3>
+        <p>Optional PocketBase server you can self-host. Sync books, progress, highlights, and shelves across devices. Or don't — the app works fine alone.</p>
+      </div>
+      <div class="bento-cell b-third">
+        <div class="cell-accent accent-muted"></div>
+        <h3>Shelves</h3>
+        <p>Organize your library into named collections.</p>
+      </div>
+      <div class="bento-cell b-third">
+        <div class="cell-accent accent-rust"></div>
+        <h3>Discover</h3>
+        <p>Browse Open Library to find your next read.</p>
+      </div>
+      <div class="bento-cell b-third">
+        <div class="cell-accent accent-teal"></div>
+        <h3>Multiple windows</h3>
+        <p>Open several books at once on macOS.</p>
+      </div>
+    </div>
+  </section>
 
-    <footer>
-      <p>Made with ❤️ by <a href="https://github.com/mukhtharcm">Muhammed Mukhthar CM</a></p>
-    </footer>
+  <div class="principles">
+    <div class="principle">
+      <span class="num">01</span>
+      <h3>Offline first</h3>
+      <p>The server is optional. Your reading never depends on a connection.</p>
+    </div>
+    <div class="principle">
+      <span class="num">02</span>
+      <h3>Your data</h3>
+      <p>No analytics, no telemetry. Self-host the sync server if you want full control.</p>
+    </div>
+    <div class="principle">
+      <span class="num">03</span>
+      <h3>Open source</h3>
+      <p>Read the code, file issues, send patches. MIT licensed.</p>
+    </div>
   </div>
 
+  <div class="source-strip">
+    <p><strong>Free &amp; open source.</strong> Built with Swift (macOS) and Flutter (mobile). The sync server runs on PocketBase — deploy it anywhere in one binary.</p>
+    <a href="https://github.com/mukhtharcm/moku" class="dl-btn dl-ghost">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+      View on GitHub
+    </a>
+  </div>
+
+  <footer>
+    <span class="colophon">Moku — Muhammed Mukhthar CM</span>
+    <nav>
+      <a href="https://github.com/mukhtharcm/moku">GitHub</a>
+      <a href="https://github.com/mukhtharcm/moku/releases">Releases</a>
+    </nav>
+  </footer>
+
+</div>
+
+<script>
+function mokuApp() {
+  return {
+    version: '',
+    dmgUrl: '',
+    zipUrl: '',
+
+    async fetchRelease() {
+      try {
+        const res = await fetch('https://api.github.com/repos/mukhtharcm/moku/releases/latest');
+        if (!res.ok) return;
+        const data = await res.json();
+        this.version = data.tag_name;
+
+        for (const asset of data.assets || []) {
+          if (asset.name.endsWith('.dmg')) this.dmgUrl = asset.browser_download_url;
+          if (asset.name.endsWith('.zip')) this.zipUrl = asset.browser_download_url;
+        }
+      } catch (e) {
+        // Fallback: point to releases page
+        this.dmgUrl = 'https://github.com/mukhtharcm/moku/releases/latest';
+        this.version = '';
+      }
+    }
+  };
+}
+</script>
 </body>
 </html>
