@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/database/database.dart';
 import 'core/services/book_service.dart';
 import 'core/services/epub_service.dart';
-import 'core/services/open_library_service.dart';
+import 'core/services/opds_catalog_service.dart';
 import 'core/sync/sync_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_cubit.dart';
@@ -18,7 +18,7 @@ class MokuApp extends StatelessWidget {
   final AppDatabase database;
   final BookService bookService;
   final EpubService epubService;
-  final OpenLibraryService openLibraryService;
+  final OpdsCatalogService opdsCatalogService;
   final bool showOnboarding;
 
   const MokuApp({
@@ -26,7 +26,7 @@ class MokuApp extends StatelessWidget {
     required this.database,
     required this.bookService,
     required this.epubService,
-    required this.openLibraryService,
+    required this.opdsCatalogService,
     this.showOnboarding = false,
   });
 
@@ -37,31 +37,28 @@ class MokuApp extends StatelessWidget {
         RepositoryProvider.value(value: database),
         RepositoryProvider.value(value: bookService),
         RepositoryProvider.value(value: epubService),
-        RepositoryProvider.value(value: openLibraryService),
+        RepositoryProvider.value(value: opdsCatalogService),
       ],
       child: MultiBlocProvider(
         providers: [
+          BlocProvider(create: (_) => ThemeCubit()..loadTheme()),
           BlocProvider(
-            create: (_) => ThemeCubit()..loadTheme(),
+            create: (ctx) =>
+                LibraryCubit(database: database, bookService: bookService)
+                  ..loadBooks(),
           ),
           BlocProvider(
-            create: (ctx) => LibraryCubit(
-              database: database,
-              bookService: bookService,
-            )..loadBooks(),
-          ),
-          BlocProvider(
-            create: (_) => CollectionsCubit(database: database)
-              ..loadCollections(),
+            create: (_) =>
+                CollectionsCubit(database: database)..loadCollections(),
           ),
           BlocProvider(
             create: (_) => SearchCubit(
-              openLibraryService: openLibraryService,
-            ),
+              catalogService: opdsCatalogService,
+              bookService: bookService,
+              database: database,
+            )..loadCatalogs(),
           ),
-          BlocProvider(
-            create: (_) => SyncConfigCubit()..loadConfig(),
-          ),
+          BlocProvider(create: (_) => SyncConfigCubit()..loadConfig()),
         ],
         child: BlocBuilder<ThemeCubit, ThemeState>(
           builder: (context, themeState) {

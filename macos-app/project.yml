@@ -11,8 +11,8 @@ settings:
     SWIFT_VERSION: "6.0"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     PRODUCT_NAME: Moku
-    MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.1.0"
+    CURRENT_PROJECT_VERSION: "2"
     INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.books"
     INFOPLIST_KEY_CFBundleDisplayName: Moku
     ENABLE_USER_SCRIPT_SANDBOXING: false
