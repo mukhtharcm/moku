@@ -255,4 +255,8 @@ final class BookCollection {
         self.remoteId = remoteId
         self.books = []
     }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
 }

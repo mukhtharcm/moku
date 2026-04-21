@@ -13,16 +13,7 @@ struct ContentView: View {
                 NavigationSplitView {
                     SidebarView(selectedTab: $selectedTab)
                 } detail: {
-                    switch selectedTab {
-                    case .library:
-                        LibraryView()
-                    case .shelves:
-                        CollectionsView()
-                    case .search:
-                        SearchView()
-                    case .settings:
-                        SettingsDetailView()
-                    }
+                    DetailPane(selectedTab: selectedTab)
                 }
                 .frame(minWidth: 860, minHeight: 560)
             }
@@ -82,4 +73,30 @@ struct SidebarView: View {
 
 extension Notification.Name {
     static let triggerImport = Notification.Name("triggerImport")
+}
+
+// MARK: - Detail Pane
+
+struct DetailPane: View {
+    let selectedTab: SidebarTab
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                switch selectedTab {
+                case .library:
+                    LibraryView()
+                case .shelves:
+                    CollectionsView()
+                case .search:
+                    SearchView()
+                case .settings:
+                    SettingsDetailView()
+                }
+            }
+            .navigationDestination(for: BookCollection.self) { collection in
+                CollectionDetailView(collection: collection)
+            }
+        }
+    }
 }

@@ -18,12 +18,17 @@ final class ReaderViewModel {
     // Reader settings
     var fontSize: Double = 18.0
     var lineHeight: Double = 1.6
+    var horizontalMargin: Double = 48.0
+    var fontFamily: ReaderFontFamily = .georgia
     var readerTheme: ReaderTheme = .system
 
     // Selection & annotation state
     var pendingSelection: String?
     var showHighlightBar = false
     var highlightVersion: Int = 0
+    var editingHighlight: Highlight?
+    var editNoteText: String = ""
+    var showEditNote: Bool = false
 
     private let bookService = BookService()
 
@@ -33,6 +38,32 @@ final class ReaderViewModel {
         case .epub, .txt, .html: true
         case .pdf, .cbz: false
         }
+    }
+
+    var overallProgressForDisplay: Double {
+        guard !chapters.isEmpty else { return 0 }
+        let chapterProgress = totalPages > 1 ? Double(currentPage - 1) / Double(totalPages - 1) : 0.0
+        return min(1.0, (Double(currentChapter) + chapterProgress) / Double(chapters.count))
+    }
+
+    enum ReaderFontFamily: String, CaseIterable {
+        case georgia = "Georgia"
+        case literata = "Literata"
+        case merriweather = "Merriweather"
+        case lora = "Lora"
+        case system = "System"
+
+        var cssFontFamily: String {
+            switch self {
+            case .georgia: "Georgia, serif"
+            case .literata: "Literata, Georgia, serif"
+            case .merriweather: "Merriweather, Georgia, serif"
+            case .lora: "Lora, Georgia, serif"
+            case .system: "-apple-system, sans-serif"
+            }
+        }
+
+        var displayName: String { rawValue }
     }
 
     enum ReaderTheme: String, CaseIterable {
@@ -193,12 +224,40 @@ final class ReaderViewModel {
         try? modelContext.save()
     }
 
+    // Navigation state
+    var pendingHighlightText: String?
+    var pendingFragment: String?
+    var startFraction: Double? // fraction to restore on chapter load
+
+    func goToChapterWithHighlight(_ index: Int, highlightText: String? = nil) {
+        pendingHighlightText = highlightText
+        goToChapter(index)
+    }
+
+    func goToChapterWithFragment(_ index: Int, fragment: String? = nil) {
+        pendingFragment = fragment
+        goToChapter(index)
+    }
+
+    private var startPositionJSON: String {
+        if let fragment = pendingFragment {
+            pendingFragment = nil
+            return "{ \"type\": \"fragment\", \"value\": \"\(fragment)\" }"
+        }
+        if let fraction = startFraction, fraction > 0 {
+            startFraction = nil
+            return "{ \"type\": \"fraction\", \"value\": \(fraction) }"
+        }
+        return "null"
+    }
+
     // MARK: - HTML Template
 
     private func buildHTML(content: String) -> String {
         let bgColor = readerTheme.backgroundColor
         let textColor = readerTheme.textColor
-        let margin = 48
+        let margin = Int(horizontalMargin)
+        let fontFamilyCSS = fontFamily.cssFontFamily
 
         return """
         <!DOCTYPE html>
@@ -216,7 +275,7 @@ final class ReaderViewModel {
                 height: 100vh;
             }
             #moku-content {
-                font-family: "Georgia", "Literata", serif;
+                font-family: \(fontFamilyCSS);
                 font-size: \(fontSize)px;
                 line-height: \(lineHeight);
                 margin: 24px \(margin)px 48px \(margin)px;
@@ -351,6 +410,81 @@ final class ReaderViewModel {
             // Apply saved highlights
             var mokuHighlights = \(highlightsJSON);
             setTimeout(function() { mokuApplyHighlights(mokuHighlights); }, 200);
+
+            // Scroll to highlight text — called from native code
+            window.scrollToHighlightText = function(text) {
+                if (!text || text.length === 0) return;
+                var content = document.getElementById('moku-content');
+                if (!content) return;
+
+                // First check existing highlight spans
+                var spans = content.querySelectorAll('.moku-highlight, mark[data-highlight-id]');
+                for (var i = 0; i < spans.length; i++) {
+                    if (spans[i].textContent.indexOf(text) !== -1 || text.indexOf(spans[i].textContent) !== -1) {
+                        var rect = spans[i].getBoundingClientRect();
+                        var page = Math.floor(
+                            (rect.left + mokuPagination.currentPage * window.innerWidth - 1) /
+                            window.innerWidth
+                        );
+                        mokuPagination.goToPage(Math.max(1, page + 1));
+                        return;
+                    }
+                }
+
+                // Fallback: find text in DOM
+                var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null, false);
+                var allText = '';
+                var nodes = [];
+                while (walker.nextNode()) {
+                    nodes.push({ node: walker.currentNode, start: allText.length });
+                    allText += walker.currentNode.textContent;
+                }
+                var idx = allText.indexOf(text);
+                if (idx === -1) return;
+
+                for (var j = 0; j < nodes.length; j++) {
+                    var n = nodes[j];
+                    var nodeEnd = n.start + n.node.textContent.length;
+                    if (nodeEnd > idx) {
+                        try {
+                            var range = document.createRange();
+                            range.setStart(n.node, idx - n.start);
+                            var rect = range.getBoundingClientRect();
+                            var page = Math.floor(
+                                (rect.left + mokuPagination.currentPage * window.innerWidth - 1) /
+                                window.innerWidth
+                            );
+                            mokuPagination.goToPage(Math.max(1, page + 1));
+                        } catch(e) {}
+                        return;
+                    }
+                }
+            };
+
+            // Go to fragment (element ID)
+            window.mokuGoToFragment = function(fragmentId) {
+                var el = document.getElementById(fragmentId);
+                if (!el) { mokuPagination.goToPage(1); return; }
+                var rect = el.getBoundingClientRect();
+                var page = Math.floor(
+                    (rect.left + mokuPagination.currentPage * window.innerWidth - 1) /
+                    window.innerWidth
+                );
+                mokuPagination.goToPage(Math.max(1, page + 1));
+            };
+
+            // Start position (restore, fraction, fragment)
+            var mokuStartPos = \(startPositionJSON);
+            if (mokuStartPos) {
+                setTimeout(function() {
+                    if (mokuStartPos.type === 'fraction' && mokuStartPos.value > 0) {
+                        var page = Math.round(mokuStartPos.value * (mokuPagination.totalPages - 1)) + 1;
+                        mokuPagination.goToPage(page);
+                    } else if (mokuStartPos.type === 'fragment' && mokuStartPos.value) {
+                        window.mokuGoToFragment(mokuStartPos.value);
+                    }
+                }, 300);
+            }
 
             setTimeout(reportState, 100);
             window.addEventListener('resize', function() {

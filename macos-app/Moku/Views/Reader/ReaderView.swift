@@ -11,6 +11,9 @@ struct ReaderView: View {
     @State private var showAnnotations = false
     @State private var controlsVisible = true
     @State private var controlsOpacity: Double = 1.0
+    @State private var showHighlightNote = false
+    @State private var highlightNoteText = ""
+    @State private var highlightNoteSelection = ""
 
     init(book: MokuBook) {
         _viewModel = State(initialValue: ReaderViewModel(book: book))
@@ -65,6 +68,12 @@ struct ReaderView: View {
         .sheet(isPresented: $showTOC) { tocSheet }
         .sheet(isPresented: $showSettings) { settingsSheet }
         .sheet(isPresented: $showAnnotations) { annotationsSheet }
+        .sheet(isPresented: $showHighlightNote) {
+            highlightNoteSheet
+        }
+        .sheet(isPresented: $viewModel.showEditNote) {
+            editNoteSheet
+        }
         .focusedValue(\.readerActions, ReaderActionsHandler(
             viewModel: viewModel,
             modelContext: modelContext,
@@ -77,6 +86,94 @@ struct ReaderView: View {
     private func closeWindow() {
         viewModel.saveProgress(modelContext: modelContext)
         NSApp.keyWindow?.close()
+    }
+
+    private func showHighlightNoteDialog(text: String) {
+        highlightNoteSelection = text
+        highlightNoteText = ""
+        showHighlightNote = true
+    }
+
+    private var highlightNoteSheet: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Highlight with Note")
+                .font(.system(size: 16, weight: .bold, design: .serif))
+
+            Text("\u{201C}\(highlightNoteSelection)\u{201D}")
+                .font(.system(size: 12, design: .serif))
+                .italic()
+                .lineLimit(3)
+                .foregroundStyle(.secondary)
+
+            TextField("Enter your note…", text: $highlightNoteText, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...5)
+
+            HStack {
+                Spacer()
+                Button("Cancel") {
+                    showHighlightNote = false
+                }
+                .buttonStyle(.bordered)
+
+                Button("Save") {
+                    viewModel.addHighlight(
+                        text: highlightNoteSelection,
+                        color: "#FFEB3B",
+                        note: highlightNoteText.isEmpty ? nil : highlightNoteText,
+                        modelContext: modelContext
+                    )
+                    viewModel.pendingSelection = nil
+                    viewModel.showHighlightBar = false
+                    showHighlightNote = false
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(MokuTheme.violet)
+                .disabled(highlightNoteSelection.isEmpty)
+            }
+        }
+        .padding(24)
+        .frame(width: 380)
+    }
+
+    private var editNoteSheet: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Edit Note")
+                .font(.system(size: 16, weight: .bold, design: .serif))
+
+            if let highlight = viewModel.editingHighlight {
+                Text("\u{201C}\(highlight.selectedText)\u{201D}")
+                    .font(.system(size: 12, design: .serif))
+                    .italic()
+                    .lineLimit(3)
+                    .foregroundStyle(.secondary)
+            }
+
+            TextField("Note…", text: $viewModel.editNoteText, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...5)
+
+            HStack {
+                Spacer()
+                Button("Cancel") {
+                    viewModel.showEditNote = false
+                    viewModel.editingHighlight = nil
+                }
+                .buttonStyle(.bordered)
+
+                Button("Save") {
+                    if let highlight = viewModel.editingHighlight {
+                        viewModel.updateHighlightNote(highlight, note: viewModel.editNoteText.isEmpty ? nil : viewModel.editNoteText, modelContext: modelContext)
+                    }
+                    viewModel.showEditNote = false
+                    viewModel.editingHighlight = nil
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(MokuTheme.violet)
+            }
+        }
+        .padding(24)
+        .frame(width: 380)
     }
 
     // MARK: - Background
@@ -196,7 +293,7 @@ struct ReaderView: View {
 
     private var bottomBar: some View {
         VStack(spacing: 0) {
-            // Reading progress slider
+            // Whole-book scrubber
             if viewModel.chapters.count > 1 {
                 HStack(spacing: 12) {
                     Text(chapterLabel(0))
@@ -205,11 +302,20 @@ struct ReaderView: View {
 
                     Slider(
                         value: Binding(
-                            get: { Double(viewModel.currentChapter) },
-                            set: { viewModel.goToChapter(Int($0)) }
+                            get: {
+                                let total = Double(max(1, viewModel.chapters.count - 1))
+                                return total > 0 ? Double(viewModel.currentChapter) / total : 0
+                            },
+                            set: { newValue in
+                                let total = Double(max(1, viewModel.chapters.count - 1))
+                                let targetChapter = Int(round(newValue * total))
+                                let chapter = min(max(0, targetChapter), viewModel.chapters.count - 1)
+                                if chapter != viewModel.currentChapter {
+                                    withAnimation { viewModel.goToChapter(chapter) }
+                                }
+                            }
                         ),
-                        in: 0...Double(max(1, viewModel.chapters.count - 1)),
-                        step: 1
+                        in: 0...1
                     )
                     .tint(MokuTheme.coral.opacity(0.7))
 
@@ -219,6 +325,12 @@ struct ReaderView: View {
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 8)
+
+                // Chapter and progress info
+                Text("\(viewModel.currentChapter < viewModel.chapters.count ? viewModel.chapters[viewModel.currentChapter].title : "") · \(Int(viewModel.overallProgressForDisplay * 100))%")
+                    .font(.system(size: 10).monospacedDigit())
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 2)
             }
 
             HStack {
@@ -237,14 +349,8 @@ struct ReaderView: View {
 
                 Spacer()
 
-                // Chapter info
-                VStack(spacing: 2) {
-                    if viewModel.currentChapter < viewModel.chapters.count {
-                        Text(viewModel.chapters[viewModel.currentChapter].title)
-                            .font(.system(size: 11, weight: .medium, design: .serif))
-                            .foregroundStyle(.primary.opacity(0.5))
-                            .lineLimit(1)
-                    }
+                // Page within chapter
+                if viewModel.totalPages > 1 {
                     Text("Page \(viewModel.currentPage) of \(viewModel.totalPages)")
                         .font(.system(size: 10).monospacedDigit())
                         .foregroundStyle(.tertiary)
@@ -360,6 +466,33 @@ struct ReaderView: View {
             Divider()
 
             VStack(spacing: 20) {
+                // Font family
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Font Family")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(ReaderViewModel.ReaderFontFamily.allCases, id: \.rawValue) { family in
+                                Button {
+                                    viewModel.fontFamily = family
+                                } label: {
+                                    Text(family.displayName)
+                                        .font(.system(size: 12, weight: viewModel.fontFamily == family ? .semibold : .regular))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(viewModel.fontFamily == family ? MokuTheme.violet.opacity(0.15) : (colorScheme == .dark ? .white.opacity(0.06) : .black.opacity(0.04)))
+                                        )
+                                        .foregroundStyle(viewModel.fontFamily == family ? MokuTheme.violet : .primary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+
                 // Font size
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Font Size")
@@ -399,6 +532,24 @@ struct ReaderView: View {
                     }
                 }
 
+                // Margins
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Margins")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: 12) {
+                        Image(systemName: "arrow.left.and.right.right")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
+                        Slider(value: $viewModel.horizontalMargin, in: 16...96, step: 4)
+                            .tint(MokuTheme.violet)
+                        Text("\(Int(viewModel.horizontalMargin))")
+                            .font(.system(size: 12).monospacedDigit())
+                            .foregroundStyle(.tertiary)
+                            .frame(width: 28)
+                    }
+                }
+
                 // Theme selector
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Theme")
@@ -421,7 +572,7 @@ struct ReaderView: View {
             .padding(.horizontal, 24)
             .padding(.top, 20)
         }
-        .frame(width: 400, height: 300)
+        .frame(width: 420, height: 420)
     }
 
     // MARK: - Highlight Action Bar
@@ -443,6 +594,16 @@ struct ReaderView: View {
             }
 
             Divider().frame(height: 18)
+
+            Button {
+                showHighlightNoteDialog(text: text)
+            } label: {
+                Image(systemName: "note.text")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.primary.opacity(0.7))
+            }
+            .buttonStyle(.plain)
+            .help("Highlight with Note")
 
             Button {
                 NSPasteboard.general.clearContents()
@@ -507,7 +668,8 @@ struct ReaderView: View {
 
                         ForEach(viewModel.allBookmarks, id: \.id) { bookmark in
                             Button {
-                                viewModel.goToChapter(bookmark.chapterIndex)
+                                let fragment = bookmark.cfi
+                                viewModel.goToChapterWithFragment(bookmark.chapterIndex, fragment: fragment)
                                 showAnnotations = false
                             } label: {
                                 HStack(spacing: 10) {
@@ -551,7 +713,7 @@ struct ReaderView: View {
 
                         ForEach(viewModel.allHighlights, id: \.id) { highlight in
                             Button {
-                                viewModel.goToChapter(highlight.chapterIndex)
+                                viewModel.goToChapterWithHighlight(highlight.chapterIndex, highlightText: highlight.selectedText)
                                 showAnnotations = false
                             } label: {
                                 HStack(alignment: .top, spacing: 10) {
@@ -583,6 +745,13 @@ struct ReaderView: View {
                             }
                             .buttonStyle(.plain)
                             .contextMenu {
+                                Button {
+                                    viewModel.editingHighlight = highlight
+                                    viewModel.editNoteText = highlight.note ?? ""
+                                    viewModel.showEditNote = true
+                                } label: {
+                                    Label("Edit Note", systemImage: "pencil")
+                                }
                                 Button("Delete", role: .destructive) {
                                     viewModel.removeHighlight(highlight, modelContext: modelContext)
                                 }
@@ -684,12 +853,16 @@ struct ReaderWebView: NSViewRepresentable {
         if context.coordinator.lastChapter != viewModel.currentChapter ||
            context.coordinator.lastFontSize != viewModel.fontSize ||
            context.coordinator.lastLineHeight != viewModel.lineHeight ||
+           context.coordinator.lastMargin != viewModel.horizontalMargin ||
+           context.coordinator.lastFontFamily != viewModel.fontFamily.rawValue ||
            context.coordinator.lastTheme != viewModel.readerTheme.rawValue ||
            context.coordinator.lastHighlightVersion != viewModel.highlightVersion {
             loadContent(webView)
             context.coordinator.lastChapter = viewModel.currentChapter
             context.coordinator.lastFontSize = viewModel.fontSize
             context.coordinator.lastLineHeight = viewModel.lineHeight
+            context.coordinator.lastMargin = viewModel.horizontalMargin
+            context.coordinator.lastFontFamily = viewModel.fontFamily.rawValue
             context.coordinator.lastTheme = viewModel.readerTheme.rawValue
             context.coordinator.lastHighlightVersion = viewModel.highlightVersion
         }
@@ -710,6 +883,8 @@ struct ReaderWebView: NSViewRepresentable {
         var lastChapter: Int = -1
         var lastFontSize: Double = 0
         var lastLineHeight: Double = 0
+        var lastMargin: Double = 0
+        var lastFontFamily: String = ""
         var lastTheme: String = ""
         var lastHighlightVersion: Int = 0
 
@@ -718,6 +893,8 @@ struct ReaderWebView: NSViewRepresentable {
             self.lastChapter = viewModel.currentChapter
             self.lastFontSize = viewModel.fontSize
             self.lastLineHeight = viewModel.lineHeight
+            self.lastMargin = viewModel.horizontalMargin
+            self.lastFontFamily = viewModel.fontFamily.rawValue
             self.lastTheme = viewModel.readerTheme.rawValue
             self.lastHighlightVersion = viewModel.highlightVersion
         }
@@ -756,7 +933,17 @@ struct ReaderWebView: NSViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            // Content loaded
+            // If there's a pending highlight to scroll to, do it after a short delay
+            if let pendingText = viewModel.pendingHighlightText {
+                let escaped = pendingText
+                    .replacingOccurrences(of: "\\", with: "\\\\")
+                    .replacingOccurrences(of: "'", with: "\\'")
+                    .replacingOccurrences(of: "\n", with: "\\n")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    webView.evaluateJavaScript("window.scrollToHighlightText('\(escaped)');")
+                }
+                viewModel.pendingHighlightText = nil
+            }
         }
     }
 }

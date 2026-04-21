@@ -4,11 +4,13 @@ import SwiftData
 struct CollectionsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openWindow) private var openWindow
     @Query(sort: \BookCollection.updatedAt, order: .reverse)
     private var collections: [BookCollection]
     @State private var showNewCollection = false
     @State private var newName = ""
     @State private var hoveredCollection: String?
+    @State private var selectedCollection: BookCollection?
 
     var body: some View {
         ZStack {
@@ -60,45 +62,54 @@ struct CollectionsView: View {
 
     private func collectionCard(_ collection: BookCollection) -> some View {
         let isHovered = hoveredCollection == collection.id
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: "square.stack.fill")
-                    .font(.system(size: 22))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [collectionColor(collection.name), collectionColor(collection.name).opacity(0.6)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+        return NavigationLink(value: collection) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: "square.stack.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [collectionColor(collection.name), collectionColor(collection.name).opacity(0.6)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
-                Spacer()
-                Text("\(collection.books.count)")
-                    .font(.system(size: 12, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Capsule().fill(.quaternary))
+                    Spacer()
+                    Text("\(collection.books.count)")
+                        .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(.quaternary))
+                }
+
+                Text(collection.name)
+                    .font(.system(size: 14, weight: .semibold, design: .serif))
+                    .lineLimit(2)
+
+                Text(collection.books.isEmpty ? "No books yet" : "\(collection.books.count) books")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.tertiary)
             }
-
-            Text(collection.name)
-                .font(.system(size: 14, weight: .semibold, design: .serif))
-                .lineLimit(2)
-
-            Text(collection.books.isEmpty ? "No books yet" : "\(collection.books.count) books")
-                .font(.system(size: 12))
-                .foregroundStyle(.tertiary)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: MokuTheme.cornerRadiusMedium)
+                    .fill(colorScheme == .dark ? MokuTheme.nightCard : MokuTheme.paperWhite)
+                    .shadow(color: .black.opacity(isHovered ? 0.08 : 0.03), radius: isHovered ? 6 : 3, y: isHovered ? 2 : 1)
+            )
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: MokuTheme.cornerRadiusMedium)
-                .fill(colorScheme == .dark ? MokuTheme.nightCard : MokuTheme.paperWhite)
-                .shadow(color: .black.opacity(isHovered ? 0.08 : 0.03), radius: isHovered ? 6 : 3, y: isHovered ? 2 : 1)
-        )
+        .buttonStyle(.plain)
         .scaleEffect(isHovered ? 1.02 : 1.0)
         .animation(.spring(duration: 0.2), value: isHovered)
         .onHover { hovering in hoveredCollection = hovering ? collection.id : nil }
         .contextMenu {
+            NavigationLink {
+                CollectionDetailView(collection: collection)
+            } label: {
+                Label("Open", systemImage: "book")
+            }
+            Divider()
             Button(role: .destructive) {
                 modelContext.delete(collection)
                 try? modelContext.save()

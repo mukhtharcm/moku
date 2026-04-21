@@ -263,7 +263,7 @@ struct SettingsDetailView: View {
                 Text("Moku")
                     .font(.system(size: 24, weight: .bold, design: .serif))
                     .tracking(-0.3)
-                Text("Version 1.0.0")
+                Text("Version 1.1.0")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                 Text("Your cozy reading companion")
