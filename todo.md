@@ -49,16 +49,50 @@
 
 ---
 
-### 2. 📖 Inline Dictionary Lookup
-- [ ] When user selects a word, show a small popover with the definition
-- [ ] macOS: Use Apple Dictionary Services API (`DCSCopyTextDefinition`) — renders returned HTML in a small WKWebView popover. Zero bloat, uses system dictionaries.
-- [ ] iOS (Flutter): Platform channel to `UIReferenceLibraryViewController` — shows native iOS definition card
-- [ ] Android (Flutter): Embed lightweight WordNet (~3MB) as fallback, with option for online Wiktionary API
-- [ ] "Look Up" context menu action on selected text in reader
-- [ ] Lookup history (recent words) — optional, can be modeled as a separate feature
-- **Platforms:** Both
-- **Impact:** ⭐⭐⭐⭐⭐ | **Effort:** Medium
-- **Notes:** Embedded in-app experience, no external app launch. System dictionaries = zero bundle bloat. Online Wiktionary API as fallback when no system dictionary available.
+### 2. 📖 Inline Dictionary Lookup (Downloadable Dictionaries)
+
+**Approach: No bundled dictionaries. Users download in-app from a curated catalog.**
+
+#### Dictionary Format: StarDict (.ifo + .idx + .dict/.dict.dz)
+- Industry standard for e-readers (KOReader, Foliate, GoldenDict, ColorDict all use it)
+- Well-documented binary format: `.ifo` (metadata), `.idx` (sorted word index), `.dict` (definitions)
+- Supports HTML-formatted definitions for rich display
+- Tons of free dictionaries available (Wiktionary, FreeDict, WikDict)
+
+#### Dictionary Catalog (built into app)
+- [ ] Curated list of free dictionaries sourced from:
+  - **reader-dict/monolingual** — daily Wiktionary dumps in StarDict format (20+ languages)
+  - **WikDict** — free bilingual StarDict dictionaries
+  - **FreeDict** — public domain English dictionaries (Webster's 1913, etc.)
+- [ ] Catalog JSON hosted on Moku server or GitHub (lightweight, ~10KB)
+- [ ] Each entry: language, name, description, download URL, size, license
+- [ ] UI: "Dictionaries" section in Settings — browse by language, tap to download, shows installed/available
+
+#### StarDict Parser (needs to be written — no Swift/Dart libs exist)
+- [ ] macOS: Write `StarDictParser.swift` — reads .ifo metadata, loads .idx into memory for binary search, seeks into .dict for definitions
+- [ ] Flutter: Write `stardict_parser.dart` — same logic in Dart
+- [ ] Support compressed .dict.dz (dictzip/zlib decompression)
+- [ ] Support HTML entries (sanitize and render in WKWebView/WebView)
+- [ ] Support plain-text entries (render as formatted Text)
+
+#### Dictionary Lookup UX
+- [ ] Select a word in reader → show small definition popover
+- [ ] Render HTML definitions in a small WKWebView (macOS) or WebView (Flutter)
+- [ ] If multiple dictionaries match, show tabs/arrows to switch between them
+- [ ] "Look Up" context menu action on selected text
+- [ ] Lookup history (recent words) accessible from reader menu
+- [ ] "No dictionary installed" state → prompt user to download one from Settings
+
+#### Custom Dictionary Import
+- [ ] Drag & drop or file picker to import custom StarDict .tar.bz2 / .zip files
+- [ ] Also support importing from OPDS feeds that provide dictionaries
+
+#### Fallback: System Dictionary (macOS only, zero-effort)
+- [ ] macOS: Additionally offer `DCSCopyTextDefinition()` as a fallback when no StarDict dict is installed
+- [ ] This gives instant definitions on macOS without any download, but limited to system languages
+
+**Platforms:** Both | **Impact:** ⭐⭐⭐⭐⭐ | **Effort:** Medium-High
+**Notes:** Zero bloat on install. Users only download what they need. StarDict is the e-reader standard. KOReader does this exact approach with great success.
 
 ### 3. 🔊 Text-to-Speech
 - [ ] Play/pause TTS controls in reader bottom bar
