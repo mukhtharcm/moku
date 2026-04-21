@@ -7,26 +7,58 @@
 ## Tier 1 — High Impact
 
 ### 1. 📊 Reading Statistics & Streak Tracking
-- [ ] Reading streak: consecutive days with reading activity (flame icon, streak count)
-- [ ] Session tracking: pages read per session, time spent, average reading speed
-- [ ] Aggregated stats: books finished, total pages read, total time, average session length
-- [ ] Activity heatmap: calendar-style grid showing daily reading activity
-- [ ] Book completion percentage on library cards
-- [ ] Data model: `ReadingSession` (SwiftData), computed stats
-- [ ] New "Stats" tab/sheet in library, accessible from sidebar
-- **Platforms:** Both (macOS + Flutter)
-- **Impact:** ⭐⭐⭐⭐⭐ | **Effort:** Medium
+
+**Cross-platform plan — all 3 components must land together:**
+
+#### Server (PocketBase migration)
+- [ ] Create `reading_sessions` collection (migration `1749000008`)
+  - Fields: `book` (rel → books), `user` (rel → users), `started_at` (date), `ended_at` (date, optional), `start_chapter` (number), `end_chapter` (number), `start_page` (number), `end_page` (number), `pages_read` (number), `duration_seconds` (number)
+  - Auth rules: user can only CRUD own sessions
+  - Index on `(book, user)` and `(user, started_at)` for efficient queries
+- [ ] Create `reading_goals` collection (migration `1749000009`)
+  - Fields: `user` (rel → users), `year` (number), `books_goal` (number), `pages_per_day_goal` (number)
+  - Auth rules: user can only CRUD own goals
+
+#### macOS (Swift/SwiftData)
+- [ ] Add `ReadingSession` model to `Models.swift`
+  - Fields: id, book (relationship), startedAt, endedAt (optional), startChapter, endChapter, startPage, endPage, pagesRead, duration, bookTitle (denormalized), remoteId
+- [ ] Add `ReadingGoal` model to `Models.swift`
+  - Fields: id, year, booksGoal, pagesPerDayGoal, remoteId
+- [ ] Wire session lifecycle in `ReaderView.swift`:
+  - Create session on `onAppear`, finalize on `onDisappear`
+  - Update `endPage`/`endChapter` on every page change (via `saveProgress`)
+- [ ] Add `StatsViewModel` — computes streak, totals, activity from sessions
+- [ ] Add `StatsView` — streak card, heatmap, stats summary, recent activity
+- [ ] Add `ActivityHeatmapView` — 12-month GitHub-style calendar grid
+- [ ] Add `ReadingStreakView` — flame icon + streak count + longest streak
+- [ ] Add "Stats" tab to `ContentView.swift` sidebar navigation
+- [ ] Register `ReadingSession` + `ReadingGoal` in `MokuApp.swift` SwiftData schema
+- [ ] Add `syncReadingSessions()` + `syncReadingGoals()` to `SyncEngine.swift`
+- [ ] Show pages read / time on book detail cards in library
+
+#### Flutter (Dart/Drift)
+- [ ] Add `ReadingSessions` + `ReadingGoals` tables to `tables.dart`
+- [ ] Generate Drift migration, add DAO methods
+- [ ] Create `ReadingSessionCubit` or extend `ReaderCubit` to track session start/end
+- [ ] Create `StatsPage` widget — streak, heatmap, summary, activity list
+- [ ] Add Stats tab to `AppShell` bottom nav (or accessible from library)
+- [ ] Add sync methods to `SyncEngine` for sessions + goals
+- [ ] Show reading time / streak badge on library cards
+
+**Platforms:** Both (macOS + Flutter) | **Impact:** ⭐⭐⭐⭐⭐ | **Effort:** Medium
+
+---
 
 ### 2. 📖 Inline Dictionary Lookup
 - [ ] When user selects a word, show a small popover with the definition
-- [ ] Use Apple Dictionary Services API (`DCSCopyTextDefinition`) on macOS — zero bloat, uses system dictionaries
-- [ ] Use `UIReferenceLibraryViewController` on iOS — same, zero bloat
-- [ ] Flutter: platform channels to native dictionary, or embed lightweight WordNet (~3MB compressed)
-- [ ] "Look Up" context menu item on selected text
-- [ ] Lookup history (recent words) accessible from reader menu
+- [ ] macOS: Use Apple Dictionary Services API (`DCSCopyTextDefinition`) — renders returned HTML in a small WKWebView popover. Zero bloat, uses system dictionaries.
+- [ ] iOS (Flutter): Platform channel to `UIReferenceLibraryViewController` — shows native iOS definition card
+- [ ] Android (Flutter): Embed lightweight WordNet (~3MB) as fallback, with option for online Wiktionary API
+- [ ] "Look Up" context menu action on selected text in reader
+- [ ] Lookup history (recent words) — optional, can be modeled as a separate feature
 - **Platforms:** Both
 - **Impact:** ⭐⭐⭐⭐⭐ | **Effort:** Medium
-- **Notes:** Embedded in-app experience, no external app launch. System dictionaries = zero bundle bloat. Fallback to online Wiktionary API if no system dictionary available.
+- **Notes:** Embedded in-app experience, no external app launch. System dictionaries = zero bundle bloat. Online Wiktionary API as fallback when no system dictionary available.
 
 ### 3. 🔊 Text-to-Speech
 - [ ] Play/pause TTS controls in reader bottom bar
