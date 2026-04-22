@@ -74,19 +74,44 @@ Or download the latest release from [GitHub Releases](https://github.com/mukhtha
 
 ### Server (Self-Host)
 
+**Option 1 — Go binary:**
+
 ```bash
 cd server
 go build -o moku-server .
 ./moku-server serve
 ```
 
-Or with Docker:
+**Option 2 — Docker Compose (recommended):**
 
 ```bash
 cd server
-docker build -t moku-server .
-docker run -p 8090:8090 moku-server
+
+# Copy and edit environment variables
+cp .env.example .env
+# Edit .env and set your admin email/password
+
+docker compose up -d
 ```
+
+A `.env.example` is provided — set `PB_SUPERUSER_EMAIL` and `PB_SUPERUSER_PASSWORD` and the container will create the admin account on first boot.
+
+**Option 3 — Pre-built image from GHCR:**
+
+```bash
+docker run -d \
+  -p 8090:8090 \
+  -v moku_data:/app/pb_data \
+  -e PB_SUPERUSER_EMAIL=admin@example.com \
+  -e PB_SUPERUSER_PASSWORD=changeme \
+  --name moku-server \
+  --restart unless-stopped \
+  ghcr.io/mukhtharcm/moku-server:latest
+```
+
+The server exposes:
+- **API** — `http://localhost:8090/api/`
+- **Admin UI** — `http://localhost:8090/_/`
 
 ## 🎨 Design
 
