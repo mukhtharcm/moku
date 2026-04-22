@@ -11,24 +11,42 @@ final class SyncEngine {
     let modelContext: ModelContext
     private var lastSyncAt: Date?
 
+    private var isSyncing = false
+    var onError: ((String, String) -> Void)?
+
     init(pb: PocketBaseClient, modelContext: ModelContext) {
         self.pb = pb
         self.modelContext = modelContext
     }
 
     /// Run a full bidirectional sync. Returns the sync timestamp.
-    func syncAll(lastSyncAt: Date? = nil) async throws -> Date {
+    /// Returns existing sync time if already syncing.
+    func syncAll(lastSyncAt: Date? = nil) async throws -> Date? {
+        guard !isSyncing else {
+            print("[SyncEngine] Sync already in progress, skipping")
+            return nil
+        }
+        isSyncing = true
+        defer { isSyncing = false }
+
         self.lastSyncAt = lastSyncAt
         let syncTime = Date()
 
-        try await syncBooks()
-        try await syncReadingProgress()
-        try await syncBookmarks()
-        try await syncHighlights()
-        try await syncCollections()
-        try await syncCollectionBooks()
-        try await syncReadingSessions()
-        try await syncReadingGoals()
+        // Refresh auth token before sync
+        do {
+            try await pb.refreshAuth()
+        } catch {
+            print("[SyncEngine] Auth refresh failed: \(error)")
+        }
+
+        do { try await syncBooks() } catch { print("[SyncEngine] Book sync failed: \(error)") }
+        do { try await syncReadingProgress() } catch { print("[SyncEngine] Reading progress sync failed: \(error)") }
+        do { try await syncBookmarks() } catch { print("[SyncEngine] Bookmark sync failed: \(error)") }
+        do { try await syncHighlights() } catch { print("[SyncEngine] Highlight sync failed: \(error)") }
+        do { try await syncCollections() } catch { print("[SyncEngine] Collection sync failed: \(error)") }
+        do { try await syncCollectionBooks() } catch { print("[SyncEngine] Collection books sync failed: \(error)") }
+        do { try await syncReadingSessions() } catch { print("[SyncEngine] Reading session sync failed: \(error)") }
+        do { try await syncReadingGoals() } catch { print("[SyncEngine] Reading goal sync failed: \(error)") }
 
         return syncTime
     }
@@ -104,7 +122,7 @@ final class SyncEngine {
                 if let updatedStr = record["updated"] as? String,
                    let remoteUpdated = parseDate(updatedStr),
                    remoteUpdated > existing.updatedAt {
-                    updateBookFromRecord(existing, record: record)
+                    updateBookFromRecord(existing, record: record, remoteUpdated: remoteUpdated)
                 }
             } else {
                 // Check by file hash
@@ -234,9 +252,9 @@ final class SyncEngine {
                     existing.overallProgress = record["overall_progress"] as? Double ?? 0
                     existing.lastPosition = record["last_position"] as? String
                     if let lastReadStr = record["last_read_at"] as? String {
-                        existing.lastReadAt = parseDate(lastReadStr) ?? Date()
+                        existing.lastReadAt = parseDate(lastReadStr) ?? remoteUpdated
                     }
-                    existing.updatedAt = Date()
+                    existing.updatedAt = remoteUpdated
                     try? modelContext.save()
                 }
             } else {
@@ -372,7 +390,7 @@ final class SyncEngine {
                     existing.selectedText = record["selected_text"] as? String ?? existing.selectedText
                     existing.color = record["color"] as? String ?? existing.color
                     existing.note = record["note"] as? String
-                    existing.updatedAt = Date()
+                    existing.updatedAt = remoteUpdated
                     try? modelContext.save()
                 }
             } else {
@@ -445,7 +463,7 @@ final class SyncEngine {
                    remoteUpdated > existing.updatedAt {
                     existing.name = record["name"] as? String ?? existing.name
                     existing.collectionDescription = record["description"] as? String
-                    existing.updatedAt = Date()
+                    existing.updatedAt = remoteUpdated
                     try? modelContext.save()
                 }
             } else {
@@ -503,6 +521,7 @@ final class SyncEngine {
         for record in records {
             let colRemoteId = record["collection"] as? String ?? ""
             let bookRemoteId = record["book"] as? String ?? ""
+            _ = record["sort_order"] as? Int ?? 0
 
             guard let localCol = findCollectionByRemoteId(colRemoteId),
                   let localBook = findBookByRemoteId(bookRemoteId) else { continue }
@@ -511,6 +530,8 @@ final class SyncEngine {
                 localCol.books.append(localBook)
                 try? modelContext.save()
             }
+            // TODO: Reordering based on sort_order requires a custom data structure.
+            // For now we preserve server order by appending in the order received.
         }
     }
 
@@ -655,6 +676,40 @@ final class SyncEngine {
         }
     }
 
+    // MARK: - Deletion helpers
+
+    func deleteBook(_ book: MokuBook) async {
+        if let remoteId = book.remoteId {
+            do {
+                try await pb.delete(collection: "books", id: remoteId)
+            } catch {
+                print("[SyncEngine] Remote book delete failed: \(error)")
+            }
+        }
+        if let filePath = book.filePath {
+            let fullPath = BookService.booksDirectory().appendingPathComponent(filePath)
+            try? FileManager.default.removeItem(at: fullPath)
+        }
+        if let coverPath = book.coverPath {
+            let fullCover = BookService.booksDirectory().appendingPathComponent(coverPath)
+            try? FileManager.default.removeItem(at: fullCover)
+        }
+        modelContext.delete(book)
+        try? modelContext.save()
+    }
+
+    func deleteCollection(_ collection: BookCollection) async {
+        if let remoteId = collection.remoteId {
+            do {
+                try await pb.delete(collection: "collections", id: remoteId)
+            } catch {
+                print("[SyncEngine] Remote collection delete failed: \(error)")
+            }
+        }
+        modelContext.delete(collection)
+        try? modelContext.save()
+    }
+
     // MARK: - Helpers
 
     private func fetchRecords(_ collection: String) async throws -> [[String: Any]] {
@@ -693,7 +748,7 @@ final class SyncEngine {
         return try? modelContext.fetch(descriptor).first
     }
 
-    private func bookToMap(_ book: MokuBook, userId: String) -> [String: String] {
+    private func bookToMap(_ book: MokuBook, userId: String) -> [String: Any] {
         [
             "title": book.title,
             "author": book.author,
@@ -702,14 +757,14 @@ final class SyncEngine {
             "language": book.language ?? "",
             "publisher": book.publisher ?? "",
             "publish_date": book.publishDate.map { isoString($0) } ?? "",
-            "total_chapters": "\(book.totalChapters)",
+            "total_chapters": book.totalChapters,
             "file_hash": book.fileHash ?? "",
             "format": book.bookFormat.rawValue,
             "user": userId,
         ]
     }
 
-    private func updateBookFromRecord(_ book: MokuBook, record: [String: Any]) {
+    private func updateBookFromRecord(_ book: MokuBook, record: [String: Any], remoteUpdated: Date) {
         book.title = record["title"] as? String ?? book.title
         book.author = record["author"] as? String ?? book.author
         book.bookDescription = record["description"] as? String
@@ -724,7 +779,7 @@ final class SyncEngine {
         if let fmt = record["format"] as? String, !fmt.isEmpty {
             book.format = fmt
         }
-        book.updatedAt = Date()
+        book.updatedAt = remoteUpdated
         try? modelContext.save()
     }
 

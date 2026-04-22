@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -14,26 +15,87 @@ class SyncEngine {
   final AppDatabase db;
 
   DateTime? _lastSyncAt;
+  bool _isSyncing = false;
 
-  SyncEngine({required this.pb, required this.db});
+  /// Called when a sync stage fails with (collection, error).
+  void Function(String collection, String error)? onError;
+
+  SyncEngine({required this.pb, required this.db, this.onError});
 
   DateTime? get lastSyncAt => _lastSyncAt;
 
-  /// Sync all entity types. Returns the sync timestamp on success.
-  Future<DateTime> syncAll({DateTime? lastSyncAt}) async {
-    _lastSyncAt = lastSyncAt;
-    final syncTime = DateTime.now().toUtc();
+  bool get isSyncing => _isSyncing;
 
-    await _syncBooks();
-    await _syncReadingProgress();
-    await _syncBookmarks();
-    await _syncHighlights();
-    await _syncCollections();
-    await _syncCollectionBooks();
-    await _syncReadingSessions();
-    await _syncReadingGoals();
+  void _reportError(String collection, Object error, StackTrace? stackTrace) {
+    final msg = error.toString();
+    log('\$collection sync failed: \$msg', name: 'SyncEngine', error: error, stackTrace: stackTrace);
+    onError?.call(collection, msg);
+  }
+
+  /// Sync all entity types. Returns the sync timestamp on success.
+  /// Returns null if a sync is already in progress.
+  Future<DateTime?> syncAll({DateTime? lastSyncAt}) async {
+    if (_isSyncing) {
+      log('Sync already in progress, skipping', name: 'SyncEngine');
+      return null;
+    }
+    _isSyncing = true;
+    try {
+      _lastSyncAt = lastSyncAt;
+      final syncTime = DateTime.now().toUtc();
+
+      // Refresh auth token before sync to avoid 401s
+      try {
+        await pb.collection('users').authRefresh();
+      } catch (e) {
+        log('Auth refresh failed: \$e', name: 'SyncEngine');
+      }
+
+    try {
+      await _syncBooks();
+    } catch (e, st) {
+      _reportError('books', e, st);
+    }
+    try {
+      await _syncReadingProgress();
+    } catch (e, st) {
+      _reportError('reading_progress', e, st);
+    }
+    try {
+      await _syncBookmarks();
+    } catch (e, st) {
+      _reportError('bookmarks', e, st);
+    }
+    try {
+      await _syncHighlights();
+    } catch (e, st) {
+      _reportError('highlights', e, st);
+    }
+    try {
+      await _syncCollections();
+    } catch (e, st) {
+      _reportError('collections', e, st);
+    }
+    try {
+      await _syncCollectionBooks();
+    } catch (e, st) {
+      _reportError('collection_books', e, st);
+    }
+    try {
+      await _syncReadingSessions();
+    } catch (e, st) {
+      _reportError('reading_sessions', e, st);
+    }
+    try {
+      await _syncReadingGoals();
+    } catch (e, st) {
+      _reportError('reading_goals', e, st);
+    }
 
     return syncTime;
+    } finally {
+      _isSyncing = false;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -115,7 +177,7 @@ class SyncEngine {
         if (remoteUpdated.isAfter(existingBook.updatedAt)) {
           await (db.update(db.books)
                 ..where((b) => b.id.equals(existingBook.id)))
-              .write(_recordToBookCompanion(record, existingBook));
+              .write(_recordToBookCompanion(record, existingBook, remoteUpdated));
         }
       } else {
         // Check if we already have this book by file hash
@@ -171,6 +233,7 @@ class SyncEngine {
       }
 
       final now = DateTime.now();
+      final remoteUpdated = DateTime.tryParse(record.getStringValue('updated')) ?? now;
       final publishDateStr = record.getStringValue('publish_date');
       await db.insertBook(BooksCompanion.insert(
         id: 'pb_${record.id.substring(0, 11)}',
@@ -187,8 +250,8 @@ class SyncEngine {
         ),
         totalChapters: Value(record.getIntValue('total_chapters')),
         fileHash: Value(record.getStringValue('file_hash')),
-        createdAt: now,
-        updatedAt: now,
+        createdAt: remoteUpdated,
+        updatedAt: remoteUpdated,
         remoteId: Value(record.id),
       ));
     } catch (e) {
@@ -268,8 +331,8 @@ class SyncEngine {
           .getSingleOrNull();
 
       final now = DateTime.now();
+      final remoteUpdated = DateTime.tryParse(record.getStringValue('updated')) ?? now;
       if (existing != null) {
-        final remoteUpdated = DateTime.parse(record.getStringValue('updated'));
         if (remoteUpdated.isAfter(existing.updatedAt)) {
           await (db.update(db.readingProgresses)
                 ..where((p) => p.id.equals(existing.id)))
@@ -287,7 +350,7 @@ class SyncEngine {
                       record.getStringValue('last_read_at')) ??
                   now,
             ),
-            updatedAt: Value(now),
+            updatedAt: Value(remoteUpdated),
           ));
         }
       } else {
@@ -297,7 +360,7 @@ class SyncEngine {
           lastReadAt: DateTime.tryParse(
                   record.getStringValue('last_read_at')) ??
               now,
-          updatedAt: now,
+          updatedAt: remoteUpdated,
           currentChapter:
               Value(record.getIntValue('current_chapter')),
           chapterProgress:
@@ -456,8 +519,8 @@ class SyncEngine {
           .getSingleOrNull();
 
       final now = DateTime.now();
+      final remoteUpdated = DateTime.tryParse(record.getStringValue('updated')) ?? now;
       if (existing != null) {
-        final remoteUpdated = DateTime.parse(record.getStringValue('updated'));
         if (remoteUpdated.isAfter(existing.updatedAt)) {
           await (db.update(db.highlights)
                 ..where((h) => h.id.equals(existing.id)))
@@ -466,7 +529,7 @@ class SyncEngine {
                 Value(record.getStringValue('selected_text')),
             color: Value(record.getStringValue('color')),
             note: Value(record.getStringValue('note')),
-            updatedAt: Value(now),
+            updatedAt: Value(remoteUpdated),
           ));
         }
       } else {
@@ -475,8 +538,8 @@ class SyncEngine {
           bookId: localBookId,
           chapterIndex: record.getIntValue('chapter_index'),
           selectedText: record.getStringValue('selected_text'),
-          createdAt: DateTime.tryParse(record.getStringValue('created')) ?? now,
-          updatedAt: now,
+          createdAt: DateTime.tryParse(record.getStringValue('created')) ?? remoteUpdated,
+          updatedAt: remoteUpdated,
           startCfi: Value(record.getStringValue('start_cfi')),
           endCfi: Value(record.getStringValue('end_cfi')),
           color: Value(record.getStringValue('color')),
@@ -553,8 +616,8 @@ class SyncEngine {
           .getSingleOrNull();
 
       final now = DateTime.now();
+      final remoteUpdated = DateTime.tryParse(record.getStringValue('updated')) ?? now;
       if (existing != null) {
-        final remoteUpdated = DateTime.parse(record.getStringValue('updated'));
         if (remoteUpdated.isAfter(existing.updatedAt)) {
           await (db.update(db.bookCollections)
                 ..where((c) => c.id.equals(existing.id)))
@@ -562,7 +625,7 @@ class SyncEngine {
             name: Value(record.getStringValue('name')),
             description:
                 Value(record.getStringValue('description')),
-            updatedAt: Value(now),
+            updatedAt: Value(remoteUpdated),
           ));
         }
       } else {
@@ -571,8 +634,8 @@ class SyncEngine {
           name: record.getStringValue('name'),
           description:
               Value(record.getStringValue('description')),
-          createdAt: DateTime.tryParse(record.getStringValue('created')) ?? now,
-          updatedAt: now,
+          createdAt: DateTime.tryParse(record.getStringValue('created')) ?? remoteUpdated,
+          updatedAt: remoteUpdated,
           remoteId: Value(record.id),
         ));
       }
@@ -589,34 +652,40 @@ class SyncEngine {
   }
 
   Future<void> _pushCollectionBooks() async {
-    // Get all local collection-book associations
-    final allCollections = await db.getAllCollections();
+    final allAssociations = await db.getAllCollectionBooks();
 
-    for (final collection in allCollections) {
-      if (collection.remoteId == null) continue;
+    for (final assoc in allAssociations) {
+      final collection = await (db.select(db.bookCollections)
+            ..where((c) => c.id.equals(assoc.collectionId)))
+          .getSingleOrNull();
+      final book = await db.getBookById(assoc.bookId);
+      if (collection?.remoteId == null || book?.remoteId == null) continue;
 
-      final localBooks = await db.getBooksInCollection(collection.id);
-      for (final book in localBooks) {
-        if (book.remoteId == null) continue;
-
-        // Check if this association already exists on server
-        try {
-          final existing = await pb.collection('collection_books').getFullList(
-            filter:
-                'collection = "${collection.remoteId}" && book = "${book.remoteId}"',
+      try {
+        final existing = await pb.collection('collection_books').getFullList(
+          filter:
+              'collection = "${collection!.remoteId}" && book = "${book!.remoteId}"',
+        );
+        if (existing.isEmpty) {
+          await pb.collection('collection_books').create(
+            body: {
+              'collection': collection.remoteId,
+              'book': book.remoteId,
+              'sort_order': assoc.sortOrder,
+            },
           );
-          if (existing.isEmpty) {
-            await pb.collection('collection_books').create(
-              body: {
-                'collection': collection.remoteId,
-                'book': book.remoteId,
-                'sort_order': 0,
-              },
+        } else if (existing.isNotEmpty) {
+          final remote = existing.first;
+          final remoteSortOrder = remote.getIntValue('sort_order');
+          if (remoteSortOrder != assoc.sortOrder) {
+            await pb.collection('collection_books').update(
+              remote.id,
+              body: {'sort_order': assoc.sortOrder},
             );
           }
-        } catch (e) {
-          // Skip on error
         }
+      } catch (e) {
+        _reportError('collection_books', e, null);
       }
     }
   }
@@ -634,17 +703,35 @@ class SyncEngine {
 
       if (localCollectionId == null || localBookId == null) continue;
 
-      // Check if association already exists locally
       try {
-        final existingBooks =
-            await db.getBooksInCollection(localCollectionId);
-        final alreadyLinked =
-            existingBooks.any((b) => b.id == localBookId);
-        if (!alreadyLinked) {
-          await db.addBookToCollection(localCollectionId, localBookId);
+        final existing = await (db.select(db.collectionBooks)
+              ..where((cb) =>
+                  cb.collectionId.equals(localCollectionId) &
+                  cb.bookId.equals(localBookId)))
+            .getSingleOrNull();
+        if (existing == null) {
+          await db.into(db.collectionBooks).insert(
+            CollectionBooksCompanion.insert(
+              collectionId: localCollectionId,
+              bookId: localBookId,
+              sortOrder: Value(record.getIntValue('sort_order')),
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+        } else {
+          final remoteSort = record.getIntValue('sort_order');
+          if (existing.sortOrder != remoteSort) {
+            await (db.update(db.collectionBooks)
+                  ..where((cb) =>
+                      cb.collectionId.equals(localCollectionId) &
+                      cb.bookId.equals(localBookId)))
+                .write(CollectionBooksCompanion(
+                  sortOrder: Value(remoteSort),
+                ));
+          }
         }
       } catch (e) {
-        // Skip on error
+        _reportError('collection_books', e, null);
       }
     }
   }
@@ -811,6 +898,57 @@ class SyncEngine {
   }
 
   // ---------------------------------------------------------------------------
+  // Deletion helpers
+  // ---------------------------------------------------------------------------
+
+  /// Delete a remote record, then delete locally. Best-effort: if remote
+  /// delete fails we still delete locally to avoid leaving orphaned data.
+  Future<void> _deleteRemoteThenLocal({
+    required String collection,
+    required String? remoteId,
+    required Future<void> Function() deleteLocal,
+  }) async {
+    if (remoteId != null && remoteId.isNotEmpty) {
+      try {
+        await pb.collection(collection).delete(remoteId);
+      } catch (e) {
+        log('Remote delete failed for \$collection/\$remoteId: \$e',
+            name: 'SyncEngine');
+      }
+    }
+    await deleteLocal();
+  }
+
+  /// Delete a book and all its dependent data (progress, bookmarks,
+  /// highlights, sessions) after deleting from server.
+  Future<void> deleteBook(Book book) async {
+    await _deleteRemoteThenLocal(
+      collection: 'books',
+      remoteId: book.remoteId,
+      deleteLocal: () async {
+        final file = File(PathResolver.resolve(book.filePath));
+        if (await file.exists()) await file.delete();
+        if (book.coverPath != null) {
+          final cover = File(PathResolver.resolve(book.coverPath!));
+          if (await cover.exists()) await cover.delete();
+        }
+        await db.deleteBook(book.id);
+      },
+    );
+  }
+
+  /// Delete a collection after deleting from server.
+  Future<void> deleteCollection(BookCollection collection) async {
+    await _deleteRemoteThenLocal(
+      collection: 'collections',
+      remoteId: collection.remoteId,
+      deleteLocal: () async {
+        await db.deleteCollection(collection.id);
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
 
@@ -868,7 +1006,7 @@ class SyncEngine {
   }
 
   BooksCompanion _recordToBookCompanion(
-      RecordModel record, Book existing) {
+      RecordModel record, Book existing, DateTime remoteUpdated) {
     final publishDateStr = record.getStringValue('publish_date');
     return BooksCompanion(
       title: Value(record.getStringValue('title')),
@@ -885,7 +1023,7 @@ class SyncEngine {
       format: Value(record.getStringValue('format').isNotEmpty
           ? record.getStringValue('format')
           : 'epub'),
-      updatedAt: Value(DateTime.now()),
+      updatedAt: Value(remoteUpdated),
     );
   }
 

@@ -63,7 +63,33 @@ final class PocketBaseClient {
         loadAuthFromKeychain()
     }
 
-    // MARK: - CRUD
+    func refreshAuth() async throws {
+        guard authToken != nil else { return }
+        let url = apiURL("collections/users/auth-refresh")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        addAuth(&request)
+
+        let (data, response) = try await session.data(for: request)
+        try checkResponse(response, data: data)
+
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        if let token = json?["token"] as? String {
+            authToken = token
+            saveAuthToKeychain()
+        }
+    }
+
+    func delete(collection: String, id: String) async throws {
+        let url = apiURL("collections/\(collection)/records/\(id)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        addAuth(&request)
+        let (_, response) = try await session.data(for: request)
+        try checkResponse(response, data: Data())
+    }
+
 
     func getFullList(collection: String, filter: String? = nil) async throws -> [[String: Any]] {
         var components = URLComponents(url: apiURL("collections/\(collection)/records"), resolvingAgainstBaseURL: false)!
@@ -136,7 +162,7 @@ final class PocketBaseClient {
     /// Create a record with file attachments (multipart/form-data).
     func createWithFiles(
         collection: String,
-        body: [String: String],
+        body: [String: Any],
         files: [(fieldName: String, filePath: String, fileName: String)]
     ) async throws -> [String: Any] {
         let url = apiURL("collections/\(collection)/records")
@@ -150,9 +176,10 @@ final class PocketBaseClient {
         var formData = Data()
         // Text fields
         for (key, value) in body {
+            let stringValue = String(describing: value)
             formData.append("--\(boundary)\r\n".data(using: .utf8)!)
             formData.append("Content-Disposition: form-data; name=\"\(key)\"\r\n\r\n".data(using: .utf8)!)
-            formData.append("\(value)\r\n".data(using: .utf8)!)
+            formData.append("\(stringValue)\r\n".data(using: .utf8)!)
         }
         // File fields
         for file in files {

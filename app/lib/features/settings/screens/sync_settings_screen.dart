@@ -6,7 +6,6 @@ import '../../../core/sync/auth_service.dart';
 import '../../../core/sync/sync_config.dart';
 import '../../../core/sync/sync_engine.dart';
 import '../../../core/database/database.dart';
-
 class SyncSettingsScreen extends StatefulWidget {
   const SyncSettingsScreen({super.key});
 
@@ -48,7 +47,13 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
   void _initSyncEngine() {
     if (_authService.pb != null) {
       final db = context.read<AppDatabase>();
-      _syncEngine = SyncEngine(pb: _authService.pb!, db: db);
+      _syncEngine = SyncEngine(
+        pb: _authService.pb!,
+        db: db,
+        onError: (collection, message) {
+          context.read<SyncConfigCubit>().reportSyncError(collection, message);
+        },
+      );
     }
   }
 
@@ -127,8 +132,10 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
       final syncTime = await _syncEngine!.syncAll(
         lastSyncAt: cubit.state.config.lastSyncAt,
       );
-      await cubit.updateLastSyncAt(syncTime);
-      cubit.setStatus(SyncStatus.connected);
+      if (syncTime != null) {
+        await cubit.updateLastSyncAt(syncTime);
+        cubit.setStatus(SyncStatus.connected);
+      }
     } catch (e) {
       cubit.setStatus(SyncStatus.error, errorMessage: 'Sync failed: $e');
     }
@@ -166,6 +173,10 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
                 _buildSyncSection(state),
                 const SizedBox(height: 16),
                 _buildAccountSection(),
+              ],
+              if (state.recentErrors.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildErrorLog(state.recentErrors),
               ],
               if (_errorMessage != null) ...[
                 const SizedBox(height: 16),
@@ -386,6 +397,65 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorLog(List<SyncError> errors) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Recent Sync Errors',
+                    style: Theme.of(context).textTheme.titleMedium),
+                TextButton(
+                  onPressed: () {
+                    context.read<SyncConfigCubit>().clearErrors();
+                  },
+                  child: const Text('Clear'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...errors.take(5).map((e) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.error_outline,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.error),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          e.collection,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                        Text(e.message,
+                            style: Theme.of(context).textTheme.bodySmall),
+                        Text(
+                          DateFormat.Hm().format(e.timestamp),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )),
           ],
         ),
       ),

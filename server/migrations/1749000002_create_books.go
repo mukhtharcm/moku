@@ -44,6 +44,7 @@ func init() {
 			&core.DateField{Name: "publish_date"},
 			&core.NumberField{Name: "total_chapters"},
 			&core.TextField{Name: "file_hash", Max: 128},
+			&core.TextField{Name: "format", Max: 20},
 			&core.RelationField{
 				Name:          "user",
 				Required:      true,

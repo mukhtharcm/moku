@@ -31,17 +31,31 @@ class SyncConfig extends Equatable {
 
 enum SyncStatus { disconnected, connecting, connected, syncing, error }
 
+class SyncError {
+  final String collection;
+  final String message;
+  final DateTime timestamp;
+
+  const SyncError({
+    required this.collection,
+    required this.message,
+    required this.timestamp,
+  });
+}
+
 class SyncConfigState extends Equatable {
   final SyncConfig config;
   final SyncStatus status;
   final String? errorMessage;
   final bool isAuthenticated;
+  final List<SyncError> recentErrors;
 
   const SyncConfigState({
     this.config = const SyncConfig(),
     this.status = SyncStatus.disconnected,
     this.errorMessage,
     this.isAuthenticated = false,
+    this.recentErrors = const [],
   });
 
   SyncConfigState copyWith({
@@ -49,17 +63,19 @@ class SyncConfigState extends Equatable {
     SyncStatus? status,
     String? errorMessage,
     bool? isAuthenticated,
+    List<SyncError>? recentErrors,
   }) {
     return SyncConfigState(
       config: config ?? this.config,
       status: status ?? this.status,
       errorMessage: errorMessage,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      recentErrors: recentErrors ?? this.recentErrors,
     );
   }
 
   @override
-  List<Object?> get props => [config, status, errorMessage, isAuthenticated];
+  List<Object?> get props => [config, status, errorMessage, isAuthenticated, recentErrors];
 }
 
 class SyncConfigCubit extends Cubit<SyncConfigState> {
@@ -122,6 +138,25 @@ class SyncConfigCubit extends Cubit<SyncConfigState> {
     emit(state.copyWith(
       isAuthenticated: authenticated,
       status: authenticated ? SyncStatus.connected : SyncStatus.disconnected,
+    ));
+  }
+
+  void reportSyncError(String collection, String message) {
+    final errors = [
+      SyncError(collection: collection, message: message, timestamp: DateTime.now()),
+      ...state.recentErrors,
+    ].take(50).toList();
+    emit(state.copyWith(
+      status: SyncStatus.error,
+      errorMessage: message,
+      recentErrors: errors,
+    ));
+  }
+
+  void clearErrors() {
+    emit(state.copyWith(
+      errorMessage: null,
+      recentErrors: [],
     ));
   }
 

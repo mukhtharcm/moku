@@ -3379,7 +3379,7 @@ class $ReadingSessionsTable extends ReadingSessions
     type: DriftSqlType.string,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES books (id)',
+      'REFERENCES books (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _bookTitleMeta = const VerificationMeta(
@@ -3947,6 +3947,7 @@ class $ReadingGoalsTable extends ReadingGoals
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
   static const VerificationMeta _booksGoalMeta = const VerificationMeta(
     'booksGoal',
@@ -4319,6 +4320,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     readingSessions,
     readingGoals,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'books',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('reading_sessions', kind: UpdateKind.delete)],
+    ),
+  ]);
 }
 
 typedef $$BooksTableCreateCompanionBuilder =

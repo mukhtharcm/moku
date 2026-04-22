@@ -63,12 +63,14 @@ class AppDatabase extends _$AppDatabase {
   // --- Reading progress queries ---
   Future<ReadingProgress?> getProgressForBook(String bookId) =>
       (select(readingProgresses)
-            ..where((p) => p.bookId.equals(bookId)))
+            ..where((p) => p.bookId.equals(bookId))
+            ..limit(1))
           .getSingleOrNull();
 
   Stream<ReadingProgress?> watchProgressForBook(String bookId) =>
       (select(readingProgresses)
-            ..where((p) => p.bookId.equals(bookId)))
+            ..where((p) => p.bookId.equals(bookId))
+            ..limit(1))
           .watchSingleOrNull();
 
   Future<int> upsertProgress(ReadingProgressesCompanion progress) =>
@@ -212,4 +214,8 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> upsertGoal(ReadingGoalsCompanion goal) =>
       into(readingGoals).insertOnConflictUpdate(goal);
+
+  // --- Collection book queries ---
+  Future<List<CollectionBook>> getAllCollectionBooks() =>
+      select(collectionBooks).get();
 }

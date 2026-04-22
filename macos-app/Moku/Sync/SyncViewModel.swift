@@ -11,6 +11,7 @@ final class SyncViewModel {
     var status: SyncStatus = .disconnected
     var errorMessage: String?
     var isSyncing: Bool { status == .syncing }
+    var recentErrors: [(collection: String, message: String, date: Date)] = []
 
     // Auth form state
     var email = ""
@@ -84,9 +85,16 @@ final class SyncViewModel {
         }
         status = .syncing
         errorMessage = nil
+        let engine = SyncEngine(pb: pbClient, modelContext: modelContext)
+        engine.onError = { [weak self] collection, message in
+            self?.recentErrors.insert((collection: collection, message: message, date: Date()), at: 0)
+            if (self?.recentErrors.count ?? 0) > 50 {
+                self?.recentErrors.removeLast()
+            }
+        }
+        syncEngine = engine
         do {
-            syncEngine = SyncEngine(pb: pbClient, modelContext: modelContext)
-            let syncTime = try await syncEngine!.syncAll(lastSyncAt: lastSyncAt)
+            let syncTime = try await engine.syncAll(lastSyncAt: lastSyncAt)
             status = .connected
             return syncTime
         } catch {
