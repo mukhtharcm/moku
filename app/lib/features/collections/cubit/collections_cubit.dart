@@ -6,15 +6,18 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/database/database.dart' as db;
 import '../../../core/models/models.dart';
+import '../../../core/sync/auto_sync_service.dart';
 import 'collections_state.dart';
 
 class CollectionsCubit extends Cubit<CollectionsState> {
   final db.AppDatabase _database;
+  final AutoSyncService? _autoSync;
   StreamSubscription? _subscription;
   static const _uuid = Uuid();
 
-  CollectionsCubit({required db.AppDatabase database})
+  CollectionsCubit({required db.AppDatabase database, AutoSyncService? autoSync})
       : _database = database,
+        _autoSync = autoSync,
         super(const CollectionsState());
 
   void loadCollections() {
@@ -58,19 +61,23 @@ class CollectionsCubit extends Cubit<CollectionsState> {
         updatedAt: now,
       ),
     );
+    _autoSync?.bump();
   }
 
   Future<void> deleteCollection(String id) async {
     await _database.deleteCollection(id);
+    _autoSync?.bump();
   }
 
   Future<void> addBookToCollection(String collectionId, String bookId) async {
     await _database.addBookToCollection(collectionId, bookId);
+    _autoSync?.bump();
   }
 
   Future<void> removeBookFromCollection(
       String collectionId, String bookId) async {
     await _database.removeBookFromCollection(collectionId, bookId);
+    _autoSync?.bump();
   }
 
   @override

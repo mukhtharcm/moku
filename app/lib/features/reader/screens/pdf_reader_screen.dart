@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/database/database.dart' as db;
 import '../../../core/models/book.dart';
+import '../../../core/sync/auto_sync_service.dart';
 
 /// Dedicated reader screen for PDF files using pdfrx.
 class PdfReaderScreen extends StatefulWidget {
@@ -99,6 +100,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
         updatedAt: Value(now),
       ),
     );
+    // Frequent per-page call — use throttled progress bump.
+    try {
+      context.read<AutoSyncService>().bumpProgress();
+    } catch (_) {}
   }
 
   @override
@@ -134,6 +139,11 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
         endChapter: Value(_currentPage - 1),
       ),
     );
+
+    // Flush on reader close / pause so session lands promptly.
+    try {
+      context.read<AutoSyncService>().flush();
+    } catch (_) {}
   }
 
   @override

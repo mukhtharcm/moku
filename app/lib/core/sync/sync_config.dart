@@ -5,28 +5,33 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SyncConfig extends Equatable {
   final String serverUrl;
   final bool isEnabled;
+  final bool autoSyncEnabled;
   final DateTime? lastSyncAt;
 
   const SyncConfig({
     this.serverUrl = '',
     this.isEnabled = false,
+    this.autoSyncEnabled = true,
     this.lastSyncAt,
   });
 
   SyncConfig copyWith({
     String? serverUrl,
     bool? isEnabled,
+    bool? autoSyncEnabled,
     DateTime? lastSyncAt,
   }) {
     return SyncConfig(
       serverUrl: serverUrl ?? this.serverUrl,
       isEnabled: isEnabled ?? this.isEnabled,
+      autoSyncEnabled: autoSyncEnabled ?? this.autoSyncEnabled,
       lastSyncAt: lastSyncAt ?? this.lastSyncAt,
     );
   }
 
   @override
-  List<Object?> get props => [serverUrl, isEnabled, lastSyncAt];
+  List<Object?> get props =>
+      [serverUrl, isEnabled, autoSyncEnabled, lastSyncAt];
 }
 
 enum SyncStatus { disconnected, connecting, connected, syncing, error }
@@ -81,6 +86,7 @@ class SyncConfigState extends Equatable {
 class SyncConfigCubit extends Cubit<SyncConfigState> {
   static const _serverUrlKey = 'sync_server_url';
   static const _isEnabledKey = 'sync_is_enabled';
+  static const _autoSyncEnabledKey = 'sync_auto_enabled';
   static const _lastSyncAtKey = 'sync_last_sync_at';
 
   SyncConfigCubit() : super(const SyncConfigState());
@@ -89,12 +95,14 @@ class SyncConfigCubit extends Cubit<SyncConfigState> {
     final prefs = await SharedPreferences.getInstance();
     final serverUrl = prefs.getString(_serverUrlKey) ?? '';
     final isEnabled = prefs.getBool(_isEnabledKey) ?? false;
+    final autoSyncEnabled = prefs.getBool(_autoSyncEnabledKey) ?? true;
     final lastSyncAtMs = prefs.getInt(_lastSyncAtKey);
 
     emit(state.copyWith(
       config: SyncConfig(
         serverUrl: serverUrl,
         isEnabled: isEnabled,
+        autoSyncEnabled: autoSyncEnabled,
         lastSyncAt: lastSyncAtMs != null
             ? DateTime.fromMillisecondsSinceEpoch(lastSyncAtMs)
             : null,
@@ -116,6 +124,14 @@ class SyncConfigCubit extends Cubit<SyncConfigState> {
     emit(state.copyWith(
       config: state.config.copyWith(isEnabled: enabled),
       status: enabled ? state.status : SyncStatus.disconnected,
+    ));
+  }
+
+  Future<void> setAutoSyncEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoSyncEnabledKey, enabled);
+    emit(state.copyWith(
+      config: state.config.copyWith(autoSyncEnabled: enabled),
     ));
   }
 
@@ -164,6 +180,7 @@ class SyncConfigCubit extends Cubit<SyncConfigState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_serverUrlKey);
     await prefs.remove(_isEnabledKey);
+    await prefs.remove(_autoSyncEnabledKey);
     await prefs.remove(_lastSyncAtKey);
     emit(const SyncConfigState());
   }

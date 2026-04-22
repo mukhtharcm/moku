@@ -3,10 +3,12 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
+    @Environment(SyncViewModel.self) private var syncVM
+    @Environment(AutoSyncCoordinator.self) private var autoSync
     @AppStorage("syncServerURL") private var serverURL = ""
     @AppStorage("syncEnabled") private var syncEnabled = false
+    @AppStorage("syncAutoEnabled") private var autoSyncEnabled = true
     @State private var showResetAlert = false
-    @State private var syncVM = SyncViewModel()
 
     var body: some View {
         TabView {
@@ -111,7 +113,8 @@ struct SettingsView: View {
     // MARK: - Sync
 
     private var syncTab: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        @Bindable var syncVM = syncVM
+        return VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 16) {
                 Toggle(isOn: $syncEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -127,6 +130,24 @@ struct SettingsView: View {
                 .padding(.top, 20)
 
                 if syncEnabled {
+                    Toggle(isOn: Binding(
+                        get: { autoSyncEnabled },
+                        set: {
+                            autoSyncEnabled = $0
+                            autoSync.setAutoSyncEnabled($0)
+                        }
+                    )) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Automatic sync")
+                                .font(.system(size: 13, weight: .medium))
+                            Text("Sync in the background on launch, resume, and after edits")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .toggleStyle(.switch)
+                    .tint(MokuTheme.violet)
+
                     VStack(alignment: .leading, spacing: 6) {
                         Text("SERVER URL")
                             .font(.system(size: 10, weight: .semibold))
@@ -159,11 +180,12 @@ struct SettingsView: View {
                                 }
                                 Button("Sync Now") {
                                     Task {
-                                        if let syncTime = await syncVM.syncNow(
+                                        if let result = await syncVM.syncNow(
                                             modelContext: modelContext,
                                             lastSyncAt: SyncService.lastSyncAt
-                                        ) {
-                                            SyncService.lastSyncAt = syncTime
+                                        ), let syncedAt = result.syncedAt,
+                                           result.failedCollections.isEmpty {
+                                            SyncService.lastSyncAt = syncedAt
                                         }
                                     }
                                 }
@@ -174,6 +196,7 @@ struct SettingsView: View {
 
                                 Button("Logout") {
                                     syncVM.logout()
+                                    autoSync.detach()
                                 }
                                 .buttonStyle(.bordered)
                                 .controlSize(.small)
@@ -254,6 +277,14 @@ struct SettingsView: View {
         }
         .onAppear {
             syncVM.initialize(serverURL: serverURL)
+            if syncVM.pbClient.isAuthenticated {
+                autoSync.attach(syncVM: syncVM)
+            }
+        }
+        .onChange(of: syncVM.pbClient.isAuthenticated) { _, authed in
+            if authed {
+                autoSync.attach(syncVM: syncVM)
+            }
         }
     }
 }

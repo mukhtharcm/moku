@@ -10,6 +10,7 @@ import '../../../core/database/database.dart'
     hide Book, Bookmark, Highlight, BookCollection;
 import '../../../core/models/book.dart';
 import '../../../core/services/book_service.dart';
+import '../../../core/sync/auto_sync_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../cubit/reader_cubit.dart';
 import '../cubit/reader_state.dart';
@@ -42,6 +43,7 @@ class ReaderScreen extends StatelessWidget {
         database: context.read<AppDatabase>(),
         bookService: context.read<BookService>(),
         book: book,
+        autoSync: context.read<AutoSyncService>(),
       )..loadBook(),
       child: const _ReaderView(),
     );

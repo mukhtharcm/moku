@@ -5,6 +5,9 @@ import 'core/services/book_service.dart';
 import 'core/services/epub_service.dart';
 import 'core/services/opds_catalog_service.dart';
 import 'core/services/path_resolver.dart';
+import 'core/sync/auto_sync_service.dart';
+import 'core/sync/sync_bootstrap.dart';
+import 'core/sync/sync_config.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
 import 'app.dart';
 
@@ -19,6 +22,23 @@ void main() async {
   final bookService = BookService(epubService: epubService);
   final opdsCatalogService = OpdsCatalogService();
 
+  // ---- Sync stack -------------------------------------------------------
+  // We construct these eagerly so auto-sync can run from launch without
+  // requiring the user to visit the Settings screen first.
+  final syncConfigCubit = SyncConfigCubit();
+  await syncConfigCubit.loadConfig();
+
+  final autoSyncService = AutoSyncService(configCubit: syncConfigCubit);
+  final syncBootstrap = SyncBootstrap(
+    database: database,
+    configCubit: syncConfigCubit,
+    autoSyncService: autoSyncService,
+  );
+  // Restore auth + construct shared SyncEngine in the background so app
+  // startup isn't blocked by network.
+  // ignore: unawaited_futures
+  syncBootstrap.init();
+
   // Check if this is a first launch
   final needsOnboarding = !(await isOnboardingCompleted());
 
@@ -29,6 +49,9 @@ void main() async {
       epubService: epubService,
       opdsCatalogService: opdsCatalogService,
       showOnboarding: needsOnboarding,
+      syncConfigCubit: syncConfigCubit,
+      autoSyncService: autoSyncService,
+      syncBootstrap: syncBootstrap,
     ),
   );
 }

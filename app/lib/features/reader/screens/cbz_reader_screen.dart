@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/database/database.dart' as db;
 import '../../../core/formats/cbz/cbz_parser.dart';
 import '../../../core/models/book.dart';
+import '../../../core/sync/auto_sync_service.dart';
 
 /// Dedicated reader screen for CBZ (Comic Book ZIP) files.
 ///
@@ -115,6 +116,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
         updatedAt: Value(now),
       ),
     );
+    try {
+      context.read<AutoSyncService>().bumpProgress();
+    } catch (_) {}
   }
 
   @override
@@ -151,6 +155,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
 
     _sessionId = null;
     _sessionStartedAt = null;
+    try {
+      context.read<AutoSyncService>().flush();
+    } catch (_) {}
   }
 
   Widget _buildPage(int index) {

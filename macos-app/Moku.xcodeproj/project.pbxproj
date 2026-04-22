@@ -26,6 +26,7 @@
 		5F37DA85323DA1632FAF5505 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4766D5867364BE2CEC06535 /* ReaderView.swift */; };
 		60A36589B0DC668EFA21A396 /* EpubService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE21F4E7F182548AFB4F4F29 /* EpubService.swift */; };
 		65E78F3B5A0A17062F1F8097 /* SyncViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08B1FB92DD26D1A2D36C009 /* SyncViewModel.swift */; };
+		6D7ACFB83E680C006CBA1D5D /* AutoSyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B994F12CAAF46B40E8933C63 /* AutoSyncCoordinator.swift */; };
 		7271FA56F6B8FF78E2187E5F /* HtmlParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C5613485B9A060820C22EF7 /* HtmlParser.swift */; };
 		7448D3ACA73AF87A2AFF7B01 /* SettingsDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA9BBCDDEDF623C32340A6C5 /* SettingsDetailView.swift */; };
 		7C4F5B93B738CAB6A26C8CE4 /* OnboardingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F5F3CDAFAE3F131A3148EFA /* OnboardingManager.swift */; };
@@ -72,6 +73,7 @@
 		B08B1FB92DD26D1A2D36C009 /* SyncViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncViewModel.swift; sourceTree = "<group>"; };
 		B3336E555B42116E1F37E23D /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		B4766D5867364BE2CEC06535 /* ReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderView.swift; sourceTree = "<group>"; };
+		B994F12CAAF46B40E8933C63 /* AutoSyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoSyncCoordinator.swift; sourceTree = "<group>"; };
 		BD57F251CCE570BA8FA1B84D /* SyncEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncEngine.swift; sourceTree = "<group>"; };
 		BE21F4E7F182548AFB4F4F29 /* EpubService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpubService.swift; sourceTree = "<group>"; };
 		BF87953A708A5A07504767FB /* CbzParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CbzParser.swift; sourceTree = "<group>"; };
@@ -229,6 +231,7 @@
 		A9CA7795A27C144EDF918792 /* Sync */ = {
 			isa = PBXGroup;
 			children = (
+				B994F12CAAF46B40E8933C63 /* AutoSyncCoordinator.swift */,
 				DA043EADD40A358B88372273 /* PocketBaseClient.swift */,
 				BD57F251CCE570BA8FA1B84D /* SyncEngine.swift */,
 				D29DC781EC6CC148C57505ED /* SyncService.swift */,
@@ -377,6 +380,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AAF3B407A7AB8E2312B43A9F /* ActivityHeatmapView.swift in Sources */,
+				6D7ACFB83E680C006CBA1D5D /* AutoSyncCoordinator.swift in Sources */,
 				2485750DB8A9211A9C7C60D7 /* BookService.swift in Sources */,
 				C50A370A725F26C896691E54 /* CbzParser.swift in Sources */,
 				AA5A8D040613FD1BB573113C /* CbzReaderView.swift in Sources */,

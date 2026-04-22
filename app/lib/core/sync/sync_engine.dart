@@ -8,6 +8,37 @@ import 'package:pocketbase/pocketbase.dart';
 import '../database/database.dart';
 import '../services/path_resolver.dart';
 
+/// Result of a sync run.
+/// `syncedAt` is only set when ALL collections succeeded — partial successes
+/// deliberately keep the old `lastSyncAt` cursor so failed entities will be
+/// retried on the next run.
+class SyncResult {
+  /// Timestamp to advance `lastSyncAt` to. Null on any failure or if a sync
+  /// was already in progress.
+  final DateTime? syncedAt;
+
+  /// Names of collections that failed. Empty on full success.
+  final List<String> failedCollections;
+
+  /// True if auth token was invalid/expired during the sync.
+  final bool authFailed;
+
+  /// True if another sync was already running and this call was skipped.
+  final bool skippedAlreadyRunning;
+
+  const SyncResult({
+    this.syncedAt,
+    this.failedCollections = const [],
+    this.authFailed = false,
+    this.skippedAlreadyRunning = false,
+  });
+
+  bool get isFullSuccess =>
+      syncedAt != null && failedCollections.isEmpty && !authFailed;
+
+  bool get hasFailures => failedCollections.isNotEmpty || authFailed;
+}
+
 /// Syncs local Drift database with a remote PocketBase server.
 /// Uses last-write-wins conflict resolution based on updatedAt timestamps.
 class SyncEngine {
@@ -26,20 +57,28 @@ class SyncEngine {
 
   bool get isSyncing => _isSyncing;
 
-  void _reportError(String collection, Object error, StackTrace? stackTrace) {
+  void _reportError(
+      String collection, Object error, StackTrace? stackTrace,
+      [List<String>? failed]) {
     final msg = error.toString();
-    log('\$collection sync failed: \$msg', name: 'SyncEngine', error: error, stackTrace: stackTrace);
+    log('$collection sync failed: $msg',
+        name: 'SyncEngine', error: error, stackTrace: stackTrace);
+    if (failed != null && !failed.contains(collection)) {
+      failed.add(collection);
+    }
     onError?.call(collection, msg);
   }
 
-  /// Sync all entity types. Returns the sync timestamp on success.
-  /// Returns null if a sync is already in progress.
-  Future<DateTime?> syncAll({DateTime? lastSyncAt}) async {
+  /// Sync all entity types. Returns a [SyncResult] describing the outcome.
+  /// Returns a result with `skippedAlreadyRunning: true` if a sync is in flight.
+  Future<SyncResult> syncAll({DateTime? lastSyncAt}) async {
     if (_isSyncing) {
       log('Sync already in progress, skipping', name: 'SyncEngine');
-      return null;
+      return const SyncResult(skippedAlreadyRunning: true);
     }
     _isSyncing = true;
+    final failed = <String>[];
+    bool authFailed = false;
     try {
       _lastSyncAt = lastSyncAt;
       final syncTime = DateTime.now().toUtc();
@@ -49,50 +88,61 @@ class SyncEngine {
         await pb.collection('users').authRefresh();
       } catch (e) {
         log('Auth refresh failed: \$e', name: 'SyncEngine');
+        // A failed refresh when token is no longer valid -> auth failure.
+        if (!pb.authStore.isValid) {
+          authFailed = true;
+          return SyncResult(authFailed: true);
+        }
       }
 
     try {
       await _syncBooks();
     } catch (e, st) {
-      _reportError('books', e, st);
+      _reportError('books', e, st, failed);
     }
     try {
       await _syncReadingProgress();
     } catch (e, st) {
-      _reportError('reading_progress', e, st);
+      _reportError('reading_progress', e, st, failed);
     }
     try {
       await _syncBookmarks();
     } catch (e, st) {
-      _reportError('bookmarks', e, st);
+      _reportError('bookmarks', e, st, failed);
     }
     try {
       await _syncHighlights();
     } catch (e, st) {
-      _reportError('highlights', e, st);
+      _reportError('highlights', e, st, failed);
     }
     try {
       await _syncCollections();
     } catch (e, st) {
-      _reportError('collections', e, st);
+      _reportError('collections', e, st, failed);
     }
     try {
       await _syncCollectionBooks();
     } catch (e, st) {
-      _reportError('collection_books', e, st);
+      _reportError('collection_books', e, st, failed);
     }
     try {
       await _syncReadingSessions();
     } catch (e, st) {
-      _reportError('reading_sessions', e, st);
+      _reportError('reading_sessions', e, st, failed);
     }
     try {
       await _syncReadingGoals();
     } catch (e, st) {
-      _reportError('reading_goals', e, st);
+      _reportError('reading_goals', e, st, failed);
     }
 
-    return syncTime;
+    return SyncResult(
+      // Only advance lastSyncAt on full success. Partial failures keep the
+      // old cursor so the next run retries them.
+      syncedAt: failed.isEmpty && !authFailed ? syncTime : null,
+      failedCollections: List.unmodifiable(failed),
+      authFailed: authFailed,
+    );
     } finally {
       _isSyncing = false;
     }

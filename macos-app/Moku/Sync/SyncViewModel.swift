@@ -78,7 +78,7 @@ final class SyncViewModel {
         errorMessage = nil
     }
 
-    func syncNow(modelContext: ModelContext, lastSyncAt: Date?) async -> Date? {
+    func syncNow(modelContext: ModelContext, lastSyncAt: Date?) async -> SyncResult? {
         guard pbClient.isAuthenticated else {
             errorMessage = "Not authenticated"
             return nil
@@ -94,9 +94,17 @@ final class SyncViewModel {
         }
         syncEngine = engine
         do {
-            let syncTime = try await engine.syncAll(lastSyncAt: lastSyncAt)
-            status = .connected
-            return syncTime
+            let result = try await engine.syncAll(lastSyncAt: lastSyncAt)
+            if result.authFailed {
+                status = .error
+                errorMessage = "Authentication expired"
+            } else if !result.failedCollections.isEmpty {
+                status = .error
+                errorMessage = "Sync partially failed: \(result.failedCollections.joined(separator: ", "))"
+            } else if !result.skippedAlreadyRunning {
+                status = .connected
+            }
+            return result
         } catch {
             status = .error
             errorMessage = error.localizedDescription

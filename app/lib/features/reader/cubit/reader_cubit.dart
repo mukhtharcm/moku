@@ -6,12 +6,14 @@ import 'package:uuid/uuid.dart';
 import '../../../core/database/database.dart' as db;
 import '../../../core/models/models.dart';
 import '../../../core/services/book_service.dart';
+import '../../../core/sync/auto_sync_service.dart';
 import '../../../core/theme/app_theme.dart';
 import 'reader_state.dart';
 
 class ReaderCubit extends Cubit<ReaderState> {
   final db.AppDatabase _database;
   final BookService _bookService;
+  final AutoSyncService? _autoSync;
   static const _uuid = Uuid();
 
   String? _currentSessionId;
@@ -22,8 +24,10 @@ class ReaderCubit extends Cubit<ReaderState> {
     required db.AppDatabase database,
     required BookService bookService,
     required Book book,
+    AutoSyncService? autoSync,
   })  : _database = database,
         _bookService = bookService,
+        _autoSync = autoSync,
         super(ReaderState(book: book));
 
   db.AppDatabase get database => _database;
@@ -121,6 +125,9 @@ class ReaderCubit extends Cubit<ReaderState> {
     );
     _currentSessionId = null;
     _sessionStartedAt = null;
+    // Flush immediately so the reader session lands on the server without
+    // waiting for the next periodic tick.
+    _autoSync?.flush();
   }
 
   Future<void> goToChapter(int chapterIndex) async {
@@ -291,6 +298,10 @@ class ReaderCubit extends Cubit<ReaderState> {
         updatedAt: Value(now),
       ),
     );
+    // Progress updates come as often as every page turn. Use the throttled
+    // progress bump (min 3 min interval, flushed on close/pause) rather
+    // than the general 30s-debounce bump to avoid a sync storm.
+    _autoSync?.bumpProgress();
   }
 
   Future<void> addBookmark(String title) async {
@@ -304,6 +315,7 @@ class ReaderCubit extends Cubit<ReaderState> {
         createdAt: now,
       ),
     );
+    _autoSync?.bump();
   }
 
   // --- Highlight methods ---
@@ -331,11 +343,13 @@ class ReaderCubit extends Cubit<ReaderState> {
         updatedAt: now,
       ),
     );
+    _autoSync?.bump();
     await loadHighlightsForChapter();
   }
 
   Future<void> deleteHighlight(String id) async {
     await _database.deleteHighlight(id);
+    _autoSync?.bump();
     await loadHighlightsForChapter();
   }
 
@@ -357,12 +371,15 @@ class ReaderCubit extends Cubit<ReaderState> {
         updatedAt: Value(DateTime.now()),
       ),
     );
+    _autoSync?.bump();
     await loadHighlightsForChapter();
   }
 
   @override
   Future<void> close() {
     _bookService.closeBook(state.book.filePath, state.book.format);
+    // Ensure the reader's last progress hits the server.
+    _autoSync?.flush();
     return super.close();
   }
 }

@@ -9,19 +9,23 @@ import '../../../core/database/database.dart' as db;
 import '../../../core/models/models.dart';
 import '../../../core/services/book_service.dart';
 import '../../../core/services/path_resolver.dart';
+import '../../../core/sync/auto_sync_service.dart';
 import 'library_state.dart';
 
 class LibraryCubit extends Cubit<LibraryState> {
   final db.AppDatabase _database;
   final BookService _bookService;
+  final AutoSyncService? _autoSync;
   StreamSubscription? _booksSubscription;
   bool _isImporting = false;
 
   LibraryCubit({
     required db.AppDatabase database,
     required BookService bookService,
+    AutoSyncService? autoSync,
   })  : _database = database,
         _bookService = bookService,
+        _autoSync = autoSync,
         super(const LibraryState());
 
   void loadBooks() {
@@ -101,6 +105,7 @@ class LibraryCubit extends Cubit<LibraryState> {
       createdAt: book.createdAt,
       updatedAt: book.updatedAt,
     ));
+    _autoSync?.bump();
   }
 
   /// Deletes the book record from the database AND removes its associated
@@ -112,6 +117,7 @@ class LibraryCubit extends Cubit<LibraryState> {
 
     // Delete from database first
     await _database.deleteBook(bookId);
+    _autoSync?.bump();
 
     // Clean up files from disk (best-effort — never throw on failure)
     if (bookRecord != null) {

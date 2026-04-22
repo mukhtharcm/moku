@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
-import '../../../core/sync/auth_service.dart';
+import '../../../core/sync/sync_bootstrap.dart';
 import '../../../core/sync/sync_config.dart';
-import '../../../core/sync/sync_engine.dart';
-import '../../../core/database/database.dart';
 class SyncSettingsScreen extends StatefulWidget {
   const SyncSettingsScreen({super.key});
 
@@ -21,40 +19,13 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  late final AuthService _authService;
-  SyncEngine? _syncEngine;
+  SyncBootstrap get _bootstrap => context.read<SyncBootstrap>();
 
   @override
   void initState() {
     super.initState();
-    _authService = AuthService();
     final config = context.read<SyncConfigCubit>().state.config;
     _urlController.text = config.serverUrl;
-    if (config.serverUrl.isNotEmpty) {
-      _initAuth(config.serverUrl);
-    }
-  }
-
-  Future<void> _initAuth(String serverUrl) async {
-    await _authService.init(serverUrl);
-    if (!mounted) return;
-    if (_authService.isAuthenticated) {
-      context.read<SyncConfigCubit>().setAuthenticated(true);
-      _initSyncEngine();
-    }
-  }
-
-  void _initSyncEngine() {
-    if (_authService.pb != null) {
-      final db = context.read<AppDatabase>();
-      _syncEngine = SyncEngine(
-        pb: _authService.pb!,
-        db: db,
-        onError: (collection, message) {
-          context.read<SyncConfigCubit>().reportSyncError(collection, message);
-        },
-      );
-    }
   }
 
   @override
@@ -71,14 +42,14 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await context.read<SyncConfigCubit>().setServerUrl(url);
-      await _authService.init(url);
+      final cubit = context.read<SyncConfigCubit>();
+      await cubit.setServerUrl(url);
+      await cubit.setEnabled(true);
+      // Rebuild the shared auth + engine against the new URL.
+      await _bootstrap.onServerUrlChanged(url);
       if (!mounted) return;
-      await context.read<SyncConfigCubit>().setEnabled(true);
-      if (!mounted) return;
-      if (_authService.isAuthenticated) {
-        context.read<SyncConfigCubit>().setAuthenticated(true);
-        _initSyncEngine();
+      if (_bootstrap.auth.isAuthenticated) {
+        cubit.setAuthenticated(true);
       }
       setState(() {
         _errorMessage = null;
@@ -104,13 +75,13 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
 
     try {
       if (_isRegisterMode) {
-        await _authService.register(email, password);
+        await _bootstrap.auth.register(email, password);
       } else {
-        await _authService.login(email, password);
+        await _bootstrap.auth.login(email, password);
       }
       if (!mounted) return;
-      context.read<SyncConfigCubit>().setAuthenticated(true);
-      _initSyncEngine();
+      // Build engine + attach auto-sync; kick off an immediate sync.
+      _bootstrap.onAuthenticated();
       setState(() => _isLoading = false);
     } catch (e) {
       setState(() {
@@ -123,30 +94,45 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
   }
 
   Future<void> _syncNow() async {
-    if (_syncEngine == null) return;
-
     final cubit = context.read<SyncConfigCubit>();
     cubit.setStatus(SyncStatus.syncing);
 
     try {
-      final syncTime = await _syncEngine!.syncAll(
-        lastSyncAt: cubit.state.config.lastSyncAt,
-      );
-      if (syncTime != null) {
-        await cubit.updateLastSyncAt(syncTime);
+      // AutoSyncService owns the shared engine; it handles single-flight,
+      // backoff, and advances lastSyncAt only on full success.
+      final result = await _bootstrap.autoSyncService.syncNow();
+      if (!mounted) return;
+      if (result == null || result.skippedAlreadyRunning) {
+        // Another sync was in-flight; it will update status on completion.
+        return;
+      }
+      if (result.authFailed) {
+        cubit.setStatus(SyncStatus.error,
+            errorMessage: 'Authentication expired. Please log in again.');
+        cubit.setAuthenticated(false);
+        return;
+      }
+      if (result.failedCollections.isEmpty && result.syncedAt != null) {
         cubit.setStatus(SyncStatus.connected);
+      } else {
+        cubit.setStatus(
+          SyncStatus.error,
+          errorMessage:
+              'Sync partially failed: ${result.failedCollections.join(', ')}',
+        );
       }
     } catch (e) {
+      if (!mounted) return;
       cubit.setStatus(SyncStatus.error, errorMessage: 'Sync failed: $e');
     }
   }
 
   Future<void> _logout() async {
-    await _authService.logout();
+    await _bootstrap.onLogout();
     if (!mounted) return;
-    context.read<SyncConfigCubit>().setAuthenticated(false);
-    context.read<SyncConfigCubit>().setStatus(SyncStatus.disconnected);
-    _syncEngine = null;
+    final cubit = context.read<SyncConfigCubit>();
+    cubit.setAuthenticated(false);
+    cubit.setStatus(SyncStatus.disconnected);
     _emailController.clear();
     _passwordController.clear();
   }
@@ -350,7 +336,22 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Sync', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
+            const SizedBox(height: 4),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Automatic sync'),
+              subtitle: const Text(
+                'Sync in the background on startup, foreground, '
+                'and after changes.',
+              ),
+              value: state.config.autoSyncEnabled,
+              onChanged: (v) {
+                final cubit = context.read<SyncConfigCubit>();
+                cubit.setAutoSyncEnabled(v);
+                _bootstrap.autoSyncService.setAutoSyncEnabled(v);
+              },
+            ),
+            const SizedBox(height: 4),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(

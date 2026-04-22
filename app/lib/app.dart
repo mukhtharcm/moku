@@ -5,6 +5,8 @@ import 'core/database/database.dart';
 import 'core/services/book_service.dart';
 import 'core/services/epub_service.dart';
 import 'core/services/opds_catalog_service.dart';
+import 'core/sync/auto_sync_service.dart';
+import 'core/sync/sync_bootstrap.dart';
 import 'core/sync/sync_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_cubit.dart';
@@ -20,6 +22,9 @@ class MokuApp extends StatelessWidget {
   final EpubService epubService;
   final OpdsCatalogService opdsCatalogService;
   final bool showOnboarding;
+  final SyncConfigCubit syncConfigCubit;
+  final AutoSyncService autoSyncService;
+  final SyncBootstrap syncBootstrap;
 
   const MokuApp({
     super.key,
@@ -28,6 +33,9 @@ class MokuApp extends StatelessWidget {
     required this.epubService,
     required this.opdsCatalogService,
     this.showOnboarding = false,
+    required this.syncConfigCubit,
+    required this.autoSyncService,
+    required this.syncBootstrap,
   });
 
   @override
@@ -38,18 +46,24 @@ class MokuApp extends StatelessWidget {
         RepositoryProvider.value(value: bookService),
         RepositoryProvider.value(value: epubService),
         RepositoryProvider.value(value: opdsCatalogService),
+        RepositoryProvider.value(value: autoSyncService),
+        RepositoryProvider.value(value: syncBootstrap),
       ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider(create: (_) => ThemeCubit()..loadTheme()),
           BlocProvider(
-            create: (ctx) =>
-                LibraryCubit(database: database, bookService: bookService)
-                  ..loadBooks(),
+            create: (ctx) => LibraryCubit(
+              database: database,
+              bookService: bookService,
+              autoSync: autoSyncService,
+            )..loadBooks(),
           ),
           BlocProvider(
-            create: (_) =>
-                CollectionsCubit(database: database)..loadCollections(),
+            create: (_) => CollectionsCubit(
+              database: database,
+              autoSync: autoSyncService,
+            )..loadCollections(),
           ),
           BlocProvider(
             create: (_) => SearchCubit(
@@ -58,7 +72,7 @@ class MokuApp extends StatelessWidget {
               database: database,
             )..loadCatalogs(),
           ),
-          BlocProvider(create: (_) => SyncConfigCubit()..loadConfig()),
+          BlocProvider.value(value: syncConfigCubit),
         ],
         child: BlocBuilder<ThemeCubit, ThemeState>(
           builder: (context, themeState) {

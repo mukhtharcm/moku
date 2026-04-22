@@ -4,8 +4,13 @@ import SwiftData
 @main
 struct MokuApp: App {
     let modelContainer: ModelContainer
+    @State private var syncVM: SyncViewModel
+    @State private var autoSync: AutoSyncCoordinator
+    @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("syncServerURL") private var syncServerURL = ""
 
     init() {
+        let container: ModelContainer
         do {
             let schema = Schema([
                 MokuBook.self,
@@ -21,16 +26,45 @@ struct MokuApp: App {
                 schema: schema,
                 isStoredInMemoryOnly: false
             )
-            modelContainer = try ModelContainer(for: schema, configurations: [config])
-            try repairLegacyBooks(in: ModelContext(modelContainer))
+            container = try ModelContainer(for: schema, configurations: [config])
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
+        }
+        modelContainer = container
+
+        // App-scope sync stack — must be built at launch so auto-sync
+        // doesn't require opening Settings first.
+        let vm = SyncViewModel()
+        let serverURL = UserDefaults.standard.string(forKey: "syncServerURL") ?? ""
+        vm.initialize(serverURL: serverURL)
+        _syncVM = State(initialValue: vm)
+        _autoSync = State(initialValue: AutoSyncCoordinator(modelContainer: container))
+
+        do {
+            try Self.repairLegacyBooks(in: ModelContext(container))
+        } catch {
+            print("repairLegacyBooks failed: \(error)")
         }
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(syncVM)
+                .environment(autoSync)
+                .task {
+                    // Attach once on first appearance. Idempotent while attached.
+                    if syncVM.pbClient.isAuthenticated {
+                        autoSync.attach(syncVM: syncVM)
+                    }
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    switch phase {
+                    case .active: autoSync.onForeground()
+                    case .background, .inactive: autoSync.onBackground()
+                    @unknown default: break
+                    }
+                }
         }
         .modelContainer(modelContainer)
         .commands {
@@ -41,6 +75,8 @@ struct MokuApp: App {
         WindowGroup("Reader", id: "reader", for: String.self) { $bookId in
             if let bookId {
                 ReaderWindowView(bookId: bookId)
+                    .environment(syncVM)
+                    .environment(autoSync)
             }
         }
         .modelContainer(modelContainer)
@@ -50,10 +86,12 @@ struct MokuApp: App {
         Settings {
             SettingsView()
                 .modelContainer(modelContainer)
+                .environment(syncVM)
+                .environment(autoSync)
         }
     }
 
-    private func repairLegacyBooks(in context: ModelContext) throws {
+    private static func repairLegacyBooks(in context: ModelContext) throws {
         let descriptor = FetchDescriptor<MokuBook>()
         let books = try context.fetch(descriptor)
 

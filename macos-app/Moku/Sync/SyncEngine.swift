@@ -2,6 +2,24 @@ import Foundation
 import SwiftData
 import CryptoKit
 
+/// Outcome of a sync run. Mirrors the Flutter `SyncResult`.
+struct SyncResult {
+    /// Non-nil only when every collection synced successfully; this is what
+    /// callers persist as `lastSyncAt` so partial failures get retried.
+    let syncedAt: Date?
+    let failedCollections: [String]
+    let authFailed: Bool
+    let skippedAlreadyRunning: Bool
+
+    var isFullSuccess: Bool {
+        syncedAt != nil && failedCollections.isEmpty && !authFailed
+    }
+
+    static let alreadyRunning = SyncResult(
+        syncedAt: nil, failedCollections: [], authFailed: false,
+        skippedAlreadyRunning: true)
+}
+
 /// Bidirectional PocketBase sync engine for the macOS app.
 /// Follows the same protocol as the Flutter sync engine:
 /// Books → ReadingProgress → Bookmarks → Highlights → Collections → CollectionBooks
@@ -19,36 +37,60 @@ final class SyncEngine {
         self.modelContext = modelContext
     }
 
-    /// Run a full bidirectional sync. Returns the sync timestamp.
-    /// Returns existing sync time if already syncing.
-    func syncAll(lastSyncAt: Date? = nil) async throws -> Date? {
+    /// Run a full bidirectional sync. Returns a [SyncResult] describing the
+    /// outcome. `syncedAt` is only set when every collection succeeded so the
+    /// cursor advances only on full success.
+    func syncAll(lastSyncAt: Date? = nil) async throws -> SyncResult {
         guard !isSyncing else {
             print("[SyncEngine] Sync already in progress, skipping")
-            return nil
+            return .alreadyRunning
         }
         isSyncing = true
         defer { isSyncing = false }
 
         self.lastSyncAt = lastSyncAt
         let syncTime = Date()
+        var failed: [String] = []
+        var authFailed = false
 
         // Refresh auth token before sync
         do {
             try await pb.refreshAuth()
         } catch {
             print("[SyncEngine] Auth refresh failed: \(error)")
+            if !pb.isAuthenticated {
+                authFailed = true
+                return SyncResult(syncedAt: nil, failedCollections: [],
+                                  authFailed: true,
+                                  skippedAlreadyRunning: false)
+            }
         }
 
-        do { try await syncBooks() } catch { print("[SyncEngine] Book sync failed: \(error)") }
-        do { try await syncReadingProgress() } catch { print("[SyncEngine] Reading progress sync failed: \(error)") }
-        do { try await syncBookmarks() } catch { print("[SyncEngine] Bookmark sync failed: \(error)") }
-        do { try await syncHighlights() } catch { print("[SyncEngine] Highlight sync failed: \(error)") }
-        do { try await syncCollections() } catch { print("[SyncEngine] Collection sync failed: \(error)") }
-        do { try await syncCollectionBooks() } catch { print("[SyncEngine] Collection books sync failed: \(error)") }
-        do { try await syncReadingSessions() } catch { print("[SyncEngine] Reading session sync failed: \(error)") }
-        do { try await syncReadingGoals() } catch { print("[SyncEngine] Reading goal sync failed: \(error)") }
+        func run(_ name: String, _ op: () async throws -> Void) async {
+            do { try await op() } catch {
+                print("[SyncEngine] \(name) sync failed: \(error)")
+                failed.append(name)
+                onError?(name, "\(error)")
+            }
+        }
 
-        return syncTime
+        await run("books", syncBooks)
+        await run("reading_progress", syncReadingProgress)
+        await run("bookmarks", syncBookmarks)
+        await run("highlights", syncHighlights)
+        await run("collections", syncCollections)
+        await run("collection_books", syncCollectionBooks)
+        await run("reading_sessions", syncReadingSessions)
+        await run("reading_goals", syncReadingGoals)
+
+        // Advance cursor only on full success.
+        let resolvedSyncedAt = failed.isEmpty ? syncTime : nil
+        return SyncResult(
+            syncedAt: resolvedSyncedAt,
+            failedCollections: failed,
+            authFailed: authFailed,
+            skippedAlreadyRunning: false
+        )
     }
 
     // MARK: - Books
