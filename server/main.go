@@ -34,7 +34,7 @@ func main() {
 func bindRoutes(app *pocketbase.PocketBase) {
 	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
 		// Health check
-		e.Router.GET("/api/health", func(e *core.RequestEvent) error {
+		e.Router.GET("/api/moku/health", func(e *core.RequestEvent) error {
 			return e.JSON(http.StatusOK, map[string]any{
 				"status":  "ok",
 				"service": "moku-server",

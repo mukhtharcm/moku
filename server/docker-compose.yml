@@ -14,7 +14,7 @@ services:
       - PB_SUPERUSER_EMAIL=${PB_SUPERUSER_EMAIL:-admin@example.com}
       - PB_SUPERUSER_PASSWORD=${PB_SUPERUSER_PASSWORD:-changeme}
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8090/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8090/api/moku/health"]
       interval: 30s
       timeout: 5s
       retries: 3
