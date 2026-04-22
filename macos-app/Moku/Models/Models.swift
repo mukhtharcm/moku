@@ -127,6 +127,7 @@ final class MokuBook {
         self.bookmarks = []
         self.highlights = []
         self.collections = []
+        self.readingSessions = []
     }
 }
 

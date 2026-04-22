@@ -113,6 +113,12 @@ final class ReaderViewModel {
         }
     }
 
+    func beginSession() {
+        sessionId = UUID().uuidString
+        sessionStartedAt = Date()
+        sessionStartChapter = currentChapter
+    }
+
     func restartSession(modelContext: ModelContext) {
         finalizeSession(modelContext: modelContext)
         beginSession()
