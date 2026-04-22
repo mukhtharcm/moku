@@ -47,6 +47,8 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Book>> getAllBooks() => select(books).get();
   Stream<List<Book>> watchAllBooks() => select(books).watch();
 
+  /// Fetch a single book by its local ID, including file and cover paths.
+  /// Use this before deleting a book so you can clean up files on disk.
   Future<Book?> getBookById(String id) =>
       (select(books)..where((b) => b.id.equals(id))).getSingleOrNull();
 
@@ -207,13 +209,6 @@ class AppDatabase extends _$AppDatabase {
   Future<ReadingGoal?> getGoalForYear(int year) =>
       (select(readingGoals)..where((g) => g.year.equals(year)))
           .getSingleOrNull();
-
-  /// Returns the first goal for a year. Since year is unique, this is safe.
-  Future<ReadingGoal?> getGoalForYearSafe(int year) async {
-    final goals =
-        await (select(readingGoals)..where((g) => g.year.equals(year))).get();
-    return goals.firstOrNull;
-  }
 
   Future<int> upsertGoal(ReadingGoalsCompanion goal) =>
       into(readingGoals).insertOnConflictUpdate(goal);

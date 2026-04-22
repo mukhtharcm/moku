@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:drift/drift.dart';
@@ -29,7 +30,7 @@ class LibraryCubit extends Cubit<LibraryState> {
     _booksSubscription = _database.watchAllBooks().listen(
       (dbBooks) async {
         final books = dbBooks.map(_mapDbBookToModel).toList();
-        
+
         // Load reading progress for all books
         final progressMap = <String, double>{};
         for (final book in dbBooks) {
@@ -102,8 +103,35 @@ class LibraryCubit extends Cubit<LibraryState> {
     ));
   }
 
+  /// Deletes the book record from the database AND removes its associated
+  /// files (epub/pdf/etc. and cover image) from disk to prevent orphan
+  /// storage accumulation.
   Future<void> deleteBook(String bookId) async {
+    // Fetch file paths before deleting the DB record
+    final bookRecord = await _database.getBookById(bookId);
+
+    // Delete from database first
     await _database.deleteBook(bookId);
+
+    // Clean up files from disk (best-effort — never throw on failure)
+    if (bookRecord != null) {
+      await _deleteFileIfExists(PathResolver.resolve(bookRecord.filePath));
+      if (bookRecord.coverPath != null) {
+        await _deleteFileIfExists(
+            PathResolver.resolve(bookRecord.coverPath!));
+      }
+    }
+  }
+
+  /// Deletes a file from disk, silently ignoring errors (file already
+  /// deleted, permission denied, etc.).
+  Future<void> _deleteFileIfExists(String path) async {
+    try {
+      final file = File(path);
+      if (await file.exists()) await file.delete();
+    } catch (_) {
+      // Best-effort: never crash the delete flow over a file cleanup failure
+    }
   }
 
   void setSearchQuery(String query) {
