@@ -27,6 +27,8 @@ final class SyncEngine {
         try await syncHighlights()
         try await syncCollections()
         try await syncCollectionBooks()
+        try await syncReadingSessions()
+        try await syncReadingGoals()
 
         return syncTime
     }
@@ -509,6 +511,147 @@ final class SyncEngine {
                 localCol.books.append(localBook)
                 try? modelContext.save()
             }
+        }
+    }
+
+    // MARK: - Reading Sessions
+
+    private func syncReadingSessions() async throws {
+        try await pushReadingSessions()
+        try await pullReadingSessions()
+    }
+
+    private func pushReadingSessions() async throws {
+        guard let userId = pb.userId else { return }
+        let sessions = try modelContext.fetch(FetchDescriptor<ReadingSession>())
+
+        for session in sessions where session.remoteId == nil {
+            guard let bookRemoteId = session.book?.remoteId else { continue }
+            do {
+                var body: [String: Any] = [
+                    "book": bookRemoteId,
+                    "user": userId,
+                    "book_title": session.bookTitle,
+                    "started_at": isoString(session.startedAt),
+                    "duration_seconds": session.durationSeconds,
+                    "start_chapter": session.startChapter,
+                    "end_chapter": session.endChapter,
+                ]
+                if let endedAt = session.endedAt {
+                    body["ended_at"] = isoString(endedAt)
+                }
+                let record = try await pb.create(collection: "reading_sessions", body: body)
+                session.remoteId = record["id"] as? String
+                try? modelContext.save()
+            } catch {
+                // Skip
+            }
+        }
+    }
+
+    private func pullReadingSessions() async throws {
+        let records = try await fetchRecords("reading_sessions")
+        for record in records {
+            let remoteId = record["id"] as? String ?? ""
+            // Skip if already imported by remoteId
+            let descriptor = FetchDescriptor<ReadingSession>(
+                predicate: #Predicate { $0.remoteId == remoteId }
+            )
+            if (try? modelContext.fetch(descriptor).first) != nil { continue }
+
+            let bookRemoteId = record["book"] as? String ?? ""
+            let localBook = findBookByRemoteId(bookRemoteId)
+            let startedAt = (record["started_at"] as? String).flatMap { parseDate($0) } ?? Date()
+
+            // Duplicate guard: skip if a session for same book started within ±60 s
+            if let localBook {
+                let bookId = localBook.id
+                let windowStart = startedAt.addingTimeInterval(-60)
+                let windowEnd = startedAt.addingTimeInterval(60)
+                let dupDescriptor = FetchDescriptor<ReadingSession>(
+                    predicate: #Predicate { s in
+                        s.book?.id == bookId && s.startedAt >= windowStart && s.startedAt <= windowEnd
+                    }
+                )
+                if (try? modelContext.fetch(dupDescriptor).first) != nil { continue }
+            }
+
+            let endedAt = (record["ended_at"] as? String).flatMap { parseDate($0) }
+            let session = ReadingSession(
+                id: "rs_\(String(remoteId.prefix(11)))",
+                book: localBook,
+                bookTitle: localBook?.title ?? (record["book_title"] as? String ?? ""),
+                startedAt: startedAt,
+                endedAt: endedAt,
+                durationSeconds: record["duration_seconds"] as? Int ?? 0,
+                startChapter: record["start_chapter"] as? Int ?? 0,
+                endChapter: record["end_chapter"] as? Int ?? 0,
+                remoteId: remoteId
+            )
+            modelContext.insert(session)
+            try? modelContext.save()
+        }
+    }
+
+    // MARK: - Reading Goals
+
+    private func syncReadingGoals() async throws {
+        try await pushReadingGoals()
+        try await pullReadingGoals()
+    }
+
+    private func pushReadingGoals() async throws {
+        guard let userId = pb.userId else { return }
+        let goals = try modelContext.fetch(FetchDescriptor<ReadingGoal>())
+
+        // Push new goals
+        for goal in goals where goal.remoteId == nil {
+            do {
+                let record = try await pb.create(collection: "reading_goals", body: [
+                    "user": userId,
+                    "year": goal.year,
+                    "books_goal": goal.booksGoal,
+                    "minutes_per_day_goal": goal.minutesPerDayGoal,
+                ] as [String: Any])
+                goal.remoteId = record["id"] as? String
+                try? modelContext.save()
+            } catch {
+                // Skip
+            }
+        }
+
+        // Push updates for existing goals (always push — goals are small)
+        for goal in goals where goal.remoteId != nil {
+            do {
+                _ = try await pb.update(collection: "reading_goals", id: goal.remoteId!, body: [
+                    "year": goal.year,
+                    "books_goal": goal.booksGoal,
+                    "minutes_per_day_goal": goal.minutesPerDayGoal,
+                ] as [String: Any])
+            } catch {
+                // Skip
+            }
+        }
+    }
+
+    private func pullReadingGoals() async throws {
+        let records = try await fetchRecords("reading_goals")
+        for record in records {
+            let remoteId = record["id"] as? String ?? ""
+            let descriptor = FetchDescriptor<ReadingGoal>(
+                predicate: #Predicate { $0.remoteId == remoteId }
+            )
+            if (try? modelContext.fetch(descriptor).first) != nil { continue }
+
+            let goal = ReadingGoal(
+                id: "rg_\(String(remoteId.prefix(11)))",
+                year: record["year"] as? Int ?? Calendar.current.component(.year, from: Date()),
+                booksGoal: record["books_goal"] as? Int ?? 12,
+                minutesPerDayGoal: record["minutes_per_day_goal"] as? Int ?? 30,
+                remoteId: remoteId
+            )
+            modelContext.insert(goal)
+            try? modelContext.save()
         }
     }
 

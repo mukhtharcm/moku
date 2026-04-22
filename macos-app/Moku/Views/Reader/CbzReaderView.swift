@@ -77,7 +77,16 @@ struct CbzReaderView: View {
             viewModel.loadBook()
             loadCurrentPage()
         }
-        .onDisappear { viewModel.saveProgress(modelContext: modelContext) }
+        .onDisappear {
+            viewModel.finalizeSession(modelContext: modelContext)
+            viewModel.saveProgress(modelContext: modelContext)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in
+            viewModel.finalizeSession(modelContext: modelContext)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            viewModel.beginSession()
+        }
         .onChange(of: viewModel.currentChapter) { _, _ in loadCurrentPage() }
         .navigationTitle(viewModel.book.title)
         .onKeyPress(.leftArrow) { previousPage(); return .handled }

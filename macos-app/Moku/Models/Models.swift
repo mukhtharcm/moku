@@ -73,6 +73,9 @@ final class MokuBook {
     @Relationship(inverse: \BookCollection.books)
     var collections: [BookCollection]
 
+    @Relationship(deleteRule: .cascade, inverse: \ReadingSession.book)
+    var readingSessions: [ReadingSession]
+
     var bookFormat: BookFormat {
         get {
             if let format, let parsed = BookFormat(rawValue: format) {
@@ -258,5 +261,63 @@ final class BookCollection {
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+}
+
+@Model
+final class ReadingSession {
+    @Attribute(.unique) var id: String
+    var book: MokuBook?
+    var bookTitle: String
+    var startedAt: Date
+    var endedAt: Date?
+    var durationSeconds: Int
+    var startChapter: Int
+    var endChapter: Int
+    var remoteId: String?
+
+    init(
+        id: String = UUID().uuidString,
+        book: MokuBook? = nil,
+        bookTitle: String = "",
+        startedAt: Date = Date(),
+        endedAt: Date? = nil,
+        durationSeconds: Int = 0,
+        startChapter: Int = 0,
+        endChapter: Int = 0,
+        remoteId: String? = nil
+    ) {
+        self.id = id
+        self.book = book
+        self.bookTitle = bookTitle
+        self.startedAt = startedAt
+        self.endedAt = endedAt
+        self.durationSeconds = durationSeconds
+        self.startChapter = startChapter
+        self.endChapter = endChapter
+        self.remoteId = remoteId
+    }
+}
+
+@Model
+final class ReadingGoal {
+    @Attribute(.unique) var id: String
+    var year: Int
+    var booksGoal: Int
+    var minutesPerDayGoal: Int
+    var remoteId: String?
+
+    init(
+        id: String = UUID().uuidString,
+        year: Int = Calendar.current.component(.year, from: Date()),
+        booksGoal: Int = 12,
+        minutesPerDayGoal: Int = 30,
+        remoteId: String? = nil
+    ) {
+        self.id = id
+        self.year = year
+        self.booksGoal = booksGoal
+        self.minutesPerDayGoal = minutesPerDayGoal
+        self.remoteId = remoteId
     }
 }

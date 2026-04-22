@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:drift/drift.dart' hide Column;
+import 'package:uuid/uuid.dart';
 
 import '../../../core/database/database.dart' as db;
 import '../../../core/formats/cbz/cbz_parser.dart';
@@ -18,7 +19,8 @@ class CbzReaderScreen extends StatefulWidget {
   State<CbzReaderScreen> createState() => _CbzReaderScreenState();
 }
 
-class _CbzReaderScreenState extends State<CbzReaderScreen> {
+class _CbzReaderScreenState extends State<CbzReaderScreen>
+    with WidgetsBindingObserver {
   late PageController _pageController;
   int _currentPage = 0;
   int _totalPages = 0;
@@ -28,12 +30,27 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
 
   late final db.AppDatabase _database;
 
+  // Session tracking
+  String? _sessionId;
+  DateTime? _sessionStartedAt;
+  int _sessionStartPage = 0;
+
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
     _database = context.read<db.AppDatabase>();
+    WidgetsBinding.instance.addObserver(this);
     _loadComic();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _finalizeSession();
+    } else if (state == AppLifecycleState.resumed) {
+      _restartSession();
+    }
   }
 
   Future<void> _loadComic() async {
@@ -55,8 +72,22 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
       });
     }
 
+    // Start reading session now that we know the page
+    _beginSession();
+
     // Pre-load first few pages
     _preloadPages(_currentPage);
+  }
+
+  void _beginSession() {
+    _sessionId = const Uuid().v4();
+    _sessionStartedAt = DateTime.now();
+    _sessionStartPage = _currentPage;
+  }
+
+  void _restartSession() {
+    _finalizeSession();
+    _beginSession();
   }
 
   Future<void> _preloadPages(int centerPage) async {
@@ -88,10 +119,38 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _finalizeSession();
     _saveProgress();
     CbzParser.clearCache(widget.book.filePath);
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _finalizeSession() async {
+    final sessionId = _sessionId;
+    final startedAt = _sessionStartedAt;
+    if (sessionId == null || startedAt == null) return;
+
+    final endedAt = DateTime.now();
+    final duration = endedAt.difference(startedAt).inSeconds;
+    if (duration < 30) return;
+
+    await _database.insertSession(
+      db.ReadingSessionsCompanion.insert(
+        id: sessionId,
+        bookId: widget.book.id,
+        bookTitle: widget.book.title,
+        startedAt: startedAt,
+        endedAt: Value(endedAt),
+        durationSeconds: Value(duration),
+        startChapter: Value(_sessionStartPage),
+        endChapter: Value(_currentPage),
+      ),
+    );
+
+    _sessionId = null;
+    _sessionStartedAt = null;
   }
 
   Widget _buildPage(int index) {

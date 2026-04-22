@@ -60,9 +60,12 @@ class _ReaderView extends StatefulWidget {
 }
 
 class _ReaderViewState extends State<_ReaderView>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late WebViewController _webController;
   bool _webViewReady = false;
+
+  // Store cubit reference to safely call from lifecycle callbacks
+  late ReaderCubit _cubit;
 
   // Selection state for highlight toolbar
   String? _selectedText;
@@ -91,6 +94,7 @@ class _ReaderViewState extends State<_ReaderView>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     // Zen hint fade controller (1 s fade‑out)
     _zenHintController = AnimationController(
@@ -135,10 +139,27 @@ class _ReaderViewState extends State<_ReaderView>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _cubit = context.read<ReaderCubit>();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _cubit.finalizeSession();
+    } else if (state == AppLifecycleState.resumed) {
+      _cubit.restartSession();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _zenHintTimer?.cancel();
     _zenHintController.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    _cubit.finalizeSession();
     super.dispose();
   }
 

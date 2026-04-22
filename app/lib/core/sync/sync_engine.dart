@@ -30,6 +30,8 @@ class SyncEngine {
     await _syncHighlights();
     await _syncCollections();
     await _syncCollectionBooks();
+    await _syncReadingSessions();
+    await _syncReadingGoals();
 
     return syncTime;
   }
@@ -644,6 +646,167 @@ class SyncEngine {
       } catch (e) {
         // Skip on error
       }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reading Sessions
+  // ---------------------------------------------------------------------------
+
+  Future<void> _syncReadingSessions() async {
+    await _pushReadingSessions();
+    await _pullReadingSessions();
+  }
+
+  Future<void> _pushReadingSessions() async {
+    final record = pb.authStore.record;
+    if (record == null) return;
+    final userId = record.id;
+    final sessions = await db.getAllSessions();
+
+    for (final session in sessions.where((s) => s.remoteId == null)) {
+      final bookRemoteId = await _getBookRemoteId(session.bookId);
+      if (bookRemoteId == null) continue;
+
+      try {
+        final body = <String, dynamic>{
+          'book': bookRemoteId,
+          'user': userId,
+          'book_title': session.bookTitle,
+          'started_at': session.startedAt.toUtc().toIso8601String(),
+          'duration_seconds': session.durationSeconds,
+          'start_chapter': session.startChapter,
+          'end_chapter': session.endChapter,
+        };
+        if (session.endedAt != null) {
+          body['ended_at'] = session.endedAt!.toUtc().toIso8601String();
+        }
+        final remoteRecord =
+            await pb.collection('reading_sessions').create(body: body);
+        await (db.update(db.readingSessions)
+              ..where((s) => s.id.equals(session.id)))
+            .write(ReadingSessionsCompanion(
+                remoteId: Value(remoteRecord.id)));
+      } catch (e) {
+        // Skip on error
+      }
+    }
+  }
+
+  Future<void> _pullReadingSessions() async {
+    final records = await _fetchRemoteRecords('reading_sessions');
+    for (final record in records) {
+      // Skip if already imported by remoteId
+      final existing = await (db.select(db.readingSessions)
+            ..where((s) => s.remoteId.equals(record.id)))
+          .getSingleOrNull();
+      if (existing != null) continue;
+
+      final localBookId =
+          await _findLocalBookIdByRemoteId(record.getStringValue('book'));
+      if (localBookId == null) continue;
+
+      final startedAt =
+          DateTime.tryParse(record.getStringValue('started_at')) ??
+              DateTime.now();
+
+      // Duplicate guard: skip if a session for same book started within ±60 s
+      final windowStart = startedAt.subtract(const Duration(seconds: 60));
+      final windowEnd = startedAt.add(const Duration(seconds: 60));
+      final duplicate = await (db.select(db.readingSessions)
+            ..where((s) =>
+                s.bookId.equals(localBookId) &
+                s.startedAt.isBetweenValues(windowStart, windowEnd)))
+          .getSingleOrNull();
+      if (duplicate != null) continue;
+
+      final book = await db.getBookById(localBookId);
+      final endedAtStr = record.getStringValue('ended_at');
+      final endedAt = endedAtStr.isNotEmpty
+          ? DateTime.tryParse(endedAtStr)
+          : null;
+
+      await db.insertSession(ReadingSessionsCompanion.insert(
+        id: 'rs_${record.id.substring(0, 11)}',
+        bookId: localBookId,
+        bookTitle: book?.title ?? record.getStringValue('book_title'),
+        startedAt: startedAt,
+        endedAt: Value(endedAt),
+        durationSeconds: Value(record.getIntValue('duration_seconds')),
+        startChapter: Value(record.getIntValue('start_chapter')),
+        endChapter: Value(record.getIntValue('end_chapter')),
+        remoteId: Value(record.id),
+      ));
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reading Goals
+  // ---------------------------------------------------------------------------
+
+  Future<void> _syncReadingGoals() async {
+    await _pushReadingGoals();
+    await _pullReadingGoals();
+  }
+
+  Future<void> _pushReadingGoals() async {
+    final record = pb.authStore.record;
+    if (record == null) return;
+    final userId = record.id;
+    final goals = await db.select(db.readingGoals).get();
+
+    // Push new goals
+    for (final goal in goals.where((g) => g.remoteId == null)) {
+      try {
+        final remoteRecord = await pb.collection('reading_goals').create(
+          body: {
+            'user': userId,
+            'year': goal.year,
+            'books_goal': goal.booksGoal,
+            'minutes_per_day_goal': goal.minutesPerDayGoal,
+          },
+        );
+        await (db.update(db.readingGoals)
+              ..where((g) => g.id.equals(goal.id)))
+            .write(ReadingGoalsCompanion(
+                remoteId: Value(remoteRecord.id)));
+      } catch (e) {
+        // Skip on error
+      }
+    }
+
+    // Push updates for existing goals (always push — goals are small)
+    for (final goal in goals.where((g) => g.remoteId != null)) {
+      try {
+        await pb.collection('reading_goals').update(
+          goal.remoteId!,
+          body: {
+            'year': goal.year,
+            'books_goal': goal.booksGoal,
+            'minutes_per_day_goal': goal.minutesPerDayGoal,
+          },
+        );
+      } catch (e) {
+        // Skip on error
+      }
+    }
+  }
+
+  Future<void> _pullReadingGoals() async {
+    final records = await _fetchRemoteRecords('reading_goals');
+    for (final record in records) {
+      final existing = await (db.select(db.readingGoals)
+            ..where((g) => g.remoteId.equals(record.id)))
+          .getSingleOrNull();
+      if (existing != null) continue;
+
+      await db.upsertGoal(ReadingGoalsCompanion.insert(
+        id: 'rg_${record.id.substring(0, 11)}',
+        year: record.getIntValue('year'),
+        booksGoal: Value(record.getIntValue('books_goal')),
+        minutesPerDayGoal: Value(record.getIntValue('minutes_per_day_goal')),
+        remoteId: Value(record.id),
+      ));
     }
   }
 

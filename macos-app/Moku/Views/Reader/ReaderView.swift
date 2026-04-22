@@ -63,7 +63,16 @@ struct ReaderView: View {
             }
         }
         .onAppear { viewModel.loadBook() }
-        .onDisappear { viewModel.saveProgress(modelContext: modelContext) }
+        .onDisappear {
+            viewModel.finalizeSession(modelContext: modelContext)
+            viewModel.saveProgress(modelContext: modelContext)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in
+            viewModel.finalizeSession(modelContext: modelContext)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            viewModel.beginSession()
+        }
         .navigationTitle(viewModel.book.title)
         .sheet(isPresented: $showTOC) { tocSheet }
         .sheet(isPresented: $showSettings) { settingsSheet }

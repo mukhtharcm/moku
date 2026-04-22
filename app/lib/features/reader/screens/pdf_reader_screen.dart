@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/database/database.dart' as db;
 import '../../../core/models/book.dart';
@@ -17,18 +18,34 @@ class PdfReaderScreen extends StatefulWidget {
   State<PdfReaderScreen> createState() => _PdfReaderScreenState();
 }
 
-class _PdfReaderScreenState extends State<PdfReaderScreen> {
+class _PdfReaderScreenState extends State<PdfReaderScreen>
+    with WidgetsBindingObserver {
   late PdfViewerController _controller;
   bool _showControls = true;
   int _currentPage = 1;
   int _totalPages = 0;
   bool _darkMode = false;
 
+  // Session tracking
+  String? _sessionId;
+  DateTime? _sessionStartedAt;
+  int _sessionStartPage = 0;
+
   @override
   void initState() {
     super.initState();
     _controller = PdfViewerController();
+    WidgetsBinding.instance.addObserver(this);
     _loadProgress();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _finalizeSession();
+    } else if (state == AppLifecycleState.resumed) {
+      _restartSession();
+    }
   }
 
   Future<void> _loadProgress() async {
@@ -39,12 +56,26 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _controller.goToPage(pageNumber: progress.currentChapter + 1);
       });
+      _currentPage = progress.currentChapter + 1;
     }
 
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _darkMode = (prefs.getInt('reader_theme') ?? 0) == 1;
     });
+
+    _beginSession();
+  }
+
+  void _beginSession() {
+    _sessionId = const Uuid().v4();
+    _sessionStartedAt = DateTime.now();
+    _sessionStartPage = _currentPage - 1;
+  }
+
+  void _restartSession() {
+    _finalizeSession();
+    _beginSession();
   }
 
   Future<void> _saveProgress() async {
@@ -68,8 +99,36 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _finalizeSession();
     _saveProgress();
     super.dispose();
+  }
+
+  Future<void> _finalizeSession() async {
+    final sessionId = _sessionId;
+    final startedAt = _sessionStartedAt;
+    if (sessionId == null || startedAt == null) return;
+
+    final endedAt = DateTime.now();
+    final duration = endedAt.difference(startedAt).inSeconds;
+    if (duration < 30) return;
+    final database = context.read<db.AppDatabase>();
+    await database.insertSession(
+      db.ReadingSessionsCompanion.insert(
+        id: sessionId,
+        bookId: widget.book.id,
+        bookTitle: widget.book.title,
+        startedAt: startedAt,
+        endedAt: Value(endedAt),
+        durationSeconds: Value(duration),
+        startChapter: Value(_sessionStartPage),
+        endChapter: Value(_currentPage - 1),
+      ),
+    );
+
+    _sessionId = null;
+    _sessionStartedAt = null;
   }
 
   @override

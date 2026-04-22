@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'features/library/screens/library_screen.dart';
 import 'features/search/screens/search_screen.dart';
 import 'features/collections/screens/collections_screen.dart';
+import 'features/stats/stats_page.dart';
 import 'features/settings/screens/settings_screen.dart';
 
 class AppShell extends StatefulWidget {
@@ -19,6 +20,7 @@ class _AppShellState extends State<AppShell> {
     LibraryScreen(),
     SearchScreen(),
     CollectionsScreen(),
+    StatsPage(),
     SettingsScreen(),
   ];
 
@@ -53,6 +55,11 @@ class _AppShellState extends State<AppShell> {
             icon: Icon(Icons.collections_bookmark_outlined),
             selectedIcon: Icon(Icons.collections_bookmark_rounded),
             label: 'Shelves',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.bar_chart_outlined),
+            selectedIcon: Icon(Icons.bar_chart_rounded),
+            label: 'Stats',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

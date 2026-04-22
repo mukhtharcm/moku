@@ -15,6 +15,10 @@ final class ReaderViewModel {
     var showControls = true
     var isZenMode = false
 
+    private var sessionId: String = UUID().uuidString
+    private var sessionStartedAt: Date = Date()
+    private var sessionStartChapter: Int = 0
+
     // Reader settings
     var fontSize: Double = 18.0
     var lineHeight: Double = 1.6
@@ -102,10 +106,42 @@ final class ReaderViewModel {
         do {
             chapters = try bookService.getChapters(book: book)
             isLoading = false
+            beginSession()
         } catch {
             errorMessage = "Failed to load book: \(error.localizedDescription)"
             isLoading = false
         }
+    }
+
+    func restartSession(modelContext: ModelContext) {
+        finalizeSession(modelContext: modelContext)
+        beginSession()
+    }
+
+    func finalizeSession(modelContext: ModelContext) {
+        guard !sessionId.isEmpty else { return }
+        let endedAt = Date()
+        let duration = Int(endedAt.timeIntervalSince(sessionStartedAt))
+        guard duration >= 30 else {
+            sessionId = ""
+            sessionStartedAt = Date.distantPast
+            return
+        }
+        let session = ReadingSession(
+            id: sessionId,
+            book: book,
+            bookTitle: book.title,
+            startedAt: sessionStartedAt,
+            endedAt: endedAt,
+            durationSeconds: duration,
+            startChapter: sessionStartChapter,
+            endChapter: currentChapter
+        )
+        modelContext.insert(session)
+        try? modelContext.save()
+        sessionId = ""
+        sessionStartedAt = Date.distantPast
+        sessionStartChapter = 0
     }
 
     func getChapterHTML() -> String? {

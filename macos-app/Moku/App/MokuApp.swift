@@ -13,6 +13,8 @@ struct MokuApp: App {
                 BookmarkItem.self,
                 Highlight.self,
                 BookCollection.self,
+                ReadingSession.self,
+                ReadingGoal.self,
             ])
             let config = ModelConfiguration(
                 "MokuDatabase",

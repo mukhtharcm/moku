@@ -14,6 +14,10 @@ class ReaderCubit extends Cubit<ReaderState> {
   final BookService _bookService;
   static const _uuid = Uuid();
 
+  String? _currentSessionId;
+  DateTime? _sessionStartedAt;
+  int _sessionStartChapter = 0;
+
   ReaderCubit({
     required db.AppDatabase database,
     required BookService bookService,
@@ -73,12 +77,50 @@ class ReaderCubit extends Cubit<ReaderState> {
       ));
 
       await loadHighlightsForChapter();
+      _beginSession();
     } catch (e) {
       emit(state.copyWith(
         status: ReaderStatus.error,
         errorMessage: 'Failed to load book: $e',
       ));
     }
+  }
+
+  void _beginSession() {
+    _currentSessionId = _uuid.v4();
+    _sessionStartedAt = DateTime.now();
+    _sessionStartChapter = state.currentChapter;
+  }
+
+  /// Called when the app returns to the foreground mid-reading.
+  Future<void> restartSession() async {
+    await finalizeSession();
+    _beginSession();
+  }
+
+  Future<void> finalizeSession() async {
+    final sessionId = _currentSessionId;
+    final startedAt = _sessionStartedAt;
+    if (sessionId == null || startedAt == null) return;
+
+    final endedAt = DateTime.now();
+    final duration = endedAt.difference(startedAt).inSeconds;
+    if (duration < 30) return; // Ignore very short sessions
+
+    await _database.insertSession(
+      db.ReadingSessionsCompanion.insert(
+        id: sessionId,
+        bookId: state.book.id,
+        bookTitle: state.book.title,
+        startedAt: startedAt,
+        endedAt: Value(endedAt),
+        durationSeconds: Value(duration),
+        startChapter: Value(_sessionStartChapter),
+        endChapter: Value(state.currentChapter),
+      ),
+    );
+    _currentSessionId = null;
+    _sessionStartedAt = null;
   }
 
   Future<void> goToChapter(int chapterIndex) async {

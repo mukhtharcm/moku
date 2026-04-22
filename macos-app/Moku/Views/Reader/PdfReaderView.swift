@@ -45,7 +45,16 @@ struct PdfReaderView: View {
             }
         }
         .onAppear { loadPdf() }
-        .onDisappear { viewModel.saveProgress(modelContext: modelContext) }
+        .onDisappear {
+            viewModel.finalizeSession(modelContext: modelContext)
+            viewModel.saveProgress(modelContext: modelContext)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willResignActiveNotification)) { _ in
+            viewModel.finalizeSession(modelContext: modelContext)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            viewModel.beginSession()
+        }
         .navigationTitle(viewModel.book.title)
         .onTapGesture {
             withAnimation(.easeInOut(duration: 0.25)) {

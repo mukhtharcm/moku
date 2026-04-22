@@ -13,13 +13,15 @@ part 'database.g.dart';
     Highlights,
     BookCollections,
     CollectionBooks,
+    ReadingSessions,
+    ReadingGoals,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -29,6 +31,10 @@ class AppDatabase extends _$AppDatabase {
         await customStatement(
           "ALTER TABLE books ADD COLUMN format TEXT NOT NULL DEFAULT 'epub'",
         );
+      }
+      if (from < 3) {
+        await migrator.createTable(readingSessions);
+        await migrator.createTable(readingGoals);
       }
     },
   );
@@ -178,4 +184,37 @@ class AppDatabase extends _$AppDatabase {
                   cb.bookId.equals(bookId),
             ))
           .go();
+
+  // --- Reading session queries ---
+  Future<List<ReadingSession>> getAllSessions() =>
+      (select(readingSessions)
+        ..orderBy([(s) => OrderingTerm.desc(s.startedAt)]))
+          .get();
+
+  Future<List<ReadingSession>> getSessionsForBook(String bookId) =>
+      (select(readingSessions)
+        ..where((s) => s.bookId.equals(bookId))
+        ..orderBy([(s) => OrderingTerm.desc(s.startedAt)]))
+          .get();
+
+  Future<int> insertSession(ReadingSessionsCompanion session) =>
+      into(readingSessions).insert(session);
+
+  Future<bool> updateSession(ReadingSessionsCompanion session) =>
+      update(readingSessions).replace(session);
+
+  // --- Reading goal queries ---
+  Future<ReadingGoal?> getGoalForYear(int year) =>
+      (select(readingGoals)..where((g) => g.year.equals(year)))
+          .getSingleOrNull();
+
+  /// Returns the first goal for a year. Since year is unique, this is safe.
+  Future<ReadingGoal?> getGoalForYearSafe(int year) async {
+    final goals =
+        await (select(readingGoals)..where((g) => g.year.equals(year))).get();
+    return goals.firstOrNull;
+  }
+
+  Future<int> upsertGoal(ReadingGoalsCompanion goal) =>
+      into(readingGoals).insertOnConflictUpdate(goal);
 }

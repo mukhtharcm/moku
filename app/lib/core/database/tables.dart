@@ -93,3 +93,31 @@ class CollectionBooks extends Table {
   @override
   Set<Column> get primaryKey => {collectionId, bookId};
 }
+
+@DataClassName('ReadingSession')
+class ReadingSessions extends Table {
+  TextColumn get id => text()();
+  TextColumn get bookId => text().references(Books, #id, onDelete: KeyAction.cascade)();
+  TextColumn get bookTitle => text()();
+  DateTimeColumn get startedAt => dateTime()();
+  DateTimeColumn get endedAt => dateTime().nullable()();
+  IntColumn get durationSeconds => integer().withDefault(const Constant(0))();
+  IntColumn get startChapter => integer().withDefault(const Constant(0))();
+  IntColumn get endChapter => integer().withDefault(const Constant(0))();
+  TextColumn get remoteId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('ReadingGoal')
+class ReadingGoals extends Table {
+  TextColumn get id => text()();
+  IntColumn get year => integer().unique()();
+  IntColumn get booksGoal => integer().withDefault(const Constant(12))();
+  IntColumn get minutesPerDayGoal => integer().withDefault(const Constant(30))();
+  TextColumn get remoteId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

@@ -29,6 +29,7 @@ enum SidebarTab: String, CaseIterable, Identifiable {
     case library = "Library"
     case shelves = "Shelves"
     case search = "Discover"
+    case stats = "Stats"
     case settings = "Settings"
 
     var id: String { rawValue }
@@ -38,6 +39,7 @@ enum SidebarTab: String, CaseIterable, Identifiable {
         case .library: "books.vertical"
         case .shelves: "square.stack"
         case .search: "magnifyingglass"
+        case .stats: "chart.bar.fill"
         case .settings: "gearshape"
         }
     }
@@ -90,6 +92,8 @@ struct DetailPane: View {
                     CollectionsView()
                 case .search:
                     SearchView()
+                case .stats:
+                    StatsView()
                 case .settings:
                     SettingsDetailView()
                 }
