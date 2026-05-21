@@ -97,11 +97,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: colorScheme.errorContainer.withValues(alpha: 0.3),
+                        color: colorScheme.errorContainer.withValues(
+                          alpha: 0.3,
+                        ),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.error_outline_rounded,
-                          size: 40, color: colorScheme.error),
+                      child: Icon(
+                        Icons.error_outline_rounded,
+                        size: 40,
+                        color: colorScheme.error,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     Text(
@@ -134,10 +139,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           }
 
           if (books.isEmpty && state.searchQuery.isNotEmpty) {
-            return _EmptyLibrary(
-              hasSearch: true,
-              onImport: () {},
-            );
+            return _EmptyLibrary(hasSearch: true, onImport: () {});
           }
 
           final currentlyReading = state.currentlyReading;
@@ -163,22 +165,25 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       children: [
                         Text(
                           'Library',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: colorScheme.primaryContainer
-                                .withValues(alpha: 0.5),
+                            color: colorScheme.primaryContainer.withValues(
+                              alpha: 0.5,
+                            ),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
                             '${books.length}',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
                                   color: colorScheme.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -188,7 +193,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         PopupMenuButton<LibrarySortMode>(
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: colorScheme.surfaceContainerHighest
                                   .withValues(alpha: 0.4),
@@ -197,15 +204,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.sort_rounded,
-                                    size: 14,
-                                    color: colorScheme.onSurfaceVariant),
+                                Icon(
+                                  Icons.sort_rounded,
+                                  size: 14,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   _sortLabel(state.sortMode),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelSmall
+                                  style: Theme.of(context).textTheme.labelSmall
                                       ?.copyWith(
                                         color: colorScheme.onSurfaceVariant,
                                       ),
@@ -223,8 +230,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   Text(_sortLabel(m)),
                                   if (m == state.sortMode) ...[
                                     const Spacer(),
-                                    Icon(Icons.check_rounded,
-                                        size: 16, color: colorScheme.primary),
+                                    Icon(
+                                      Icons.check_rounded,
+                                      size: 16,
+                                      color: colorScheme.primary,
+                                    ),
                                   ],
                                 ],
                               ),
@@ -241,79 +251,79 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
                   sliver: SliverGrid(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final book = books[index];
-                        return BookGridItem(
-                          book: book,
-                          progress: state.progressMap[book.id],
-                          onTap: () => _openReader(context, book),
-                          onLongPress: () =>
-                              _showBookOptions(context, book),
-                        );
-                      },
-                      childCount: books.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final book = books[index];
+                      return BookGridItem(
+                        book: book,
+                        progress: state.progressMap[book.id],
+                        onTap: () => _openReader(context, book),
+                        onLongPress: () => _showBookOptions(context, book),
+                      );
+                    }, childCount: books.length),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      childAspectRatio: 0.52,
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 18,
-                    ),
+                          crossAxisCount: 3,
+                          childAspectRatio: 0.52,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 18,
+                        ),
                   ),
                 )
               else
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(8, 8, 8, 100),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final book = books[index];
-                        final progress = state.progressMap[book.id];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          child: ListTile(
-                            leading: SizedBox(
-                              width: 42,
-                              height: 62,
-                              child: BookCoverWidget(
-                                  book: book,
-                                  borderRadius: 6,
-                                  showShadow: false),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final book = books[index];
+                      final progress = state.progressMap[book.id];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        child: ListTile(
+                          leading: SizedBox(
+                            width: 42,
+                            height: 62,
+                            child: BookCoverWidget(
+                              book: book,
+                              borderRadius: 6,
+                              showShadow: false,
                             ),
-                            title: Text(book.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
-                            subtitle: Text(book.author,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.7),
-                                )),
-                            trailing: progress != null && progress > 0.01
-                                ? SizedBox(
-                                    width: 36,
-                                    height: 36,
-                                    child: CircularProgressIndicator(
-                                      value: progress,
-                                      strokeWidth: 2.5,
-                                      backgroundColor: colorScheme
-                                          .surfaceContainerHighest
-                                          .withValues(alpha: 0.5),
-                                    ),
-                                  )
-                                : null,
-                            onTap: () => _openReader(context, book),
-                            onLongPress: () =>
-                                _showBookOptions(context, book),
                           ),
-                        );
-                      },
-                      childCount: books.length,
-                    ),
+                          title: Text(
+                            book.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            book.author,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.7,
+                              ),
+                            ),
+                          ),
+                          trailing: progress != null && progress > 0.01
+                              ? SizedBox(
+                                  width: 36,
+                                  height: 36,
+                                  child: CircularProgressIndicator(
+                                    value: progress,
+                                    strokeWidth: 2.5,
+                                    backgroundColor: colorScheme
+                                        .surfaceContainerHighest
+                                        .withValues(alpha: 0.5),
+                                  ),
+                                )
+                              : null,
+                          onTap: () => _openReader(context, book),
+                          onLongPress: () => _showBookOptions(context, book),
+                        ),
+                      );
+                    }, childCount: books.length),
                   ),
                 ),
             ],
@@ -343,11 +353,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   void _openReader(BuildContext context, Book book) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ReaderScreen(book: book),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => ReaderScreen(book: book)));
   }
 
   void _showBookOptions(BuildContext context, Book book) {
@@ -365,10 +373,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurfaceVariant
-                      .withValues(alpha: 0.3),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -381,11 +388,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 },
               ),
               ListTile(
-                leading: Icon(Icons.delete_outline_rounded,
-                    color: Theme.of(context).colorScheme.error),
-                title: Text('Delete',
-                    style: TextStyle(
-                        color: Theme.of(context).colorScheme.error)),
+                leading: Icon(
+                  Icons.delete_outline_rounded,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
+                  'Delete',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _confirmDelete(context, book);
@@ -418,35 +428,38 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurfaceVariant
-                        .withValues(alpha: 0.3),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-              Text(book.title,
-                  style: Theme.of(context).textTheme.headlineSmall),
+              Text(
+                book.title,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
               const SizedBox(height: 8),
-              Text(book.author,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      )),
+              Text(
+                book.author,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
               if (book.description != null) ...[
                 const SizedBox(height: 16),
-                Text(book.description!,
-                    style: Theme.of(context).textTheme.bodyMedium),
+                Text(
+                  book.description!,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ],
               const SizedBox(height: 16),
               _InfoRow('Chapters', '${book.totalChapters}'),
               if (book.publisher != null)
                 _InfoRow('Publisher', book.publisher!),
-              if (book.language != null)
-                _InfoRow('Language', book.language!),
-              if (book.isbn != null)
-                _InfoRow('ISBN', book.isbn!),
+              if (book.language != null) _InfoRow('Language', book.language!),
+              if (book.isbn != null) _InfoRow('ISBN', book.isbn!),
             ],
           ),
         ),
@@ -499,8 +512,8 @@ class _InfoRow extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           Expanded(
@@ -529,17 +542,22 @@ class _EmptyLibrary extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.search_off_rounded,
-                  size: 56, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+              Icon(
+                Icons.search_off_rounded,
+                size: 56,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+              ),
               const SizedBox(height: 16),
-              Text('No books found',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'No books found',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 4),
               Text(
                 'Try a different search term',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -569,8 +587,9 @@ class _EmptyLibrary extends StatelessWidget {
                         width: 60,
                         height: 85,
                         decoration: BoxDecoration(
-                          color: colorScheme.primaryContainer
-                              .withValues(alpha: 0.5),
+                          color: colorScheme.primaryContainer.withValues(
+                            alpha: 0.5,
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
@@ -585,8 +604,9 @@ class _EmptyLibrary extends StatelessWidget {
                         width: 60,
                         height: 85,
                         decoration: BoxDecoration(
-                          color: colorScheme.tertiaryContainer
-                              .withValues(alpha: 0.6),
+                          color: colorScheme.tertiaryContainer.withValues(
+                            alpha: 0.6,
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
@@ -615,23 +635,23 @@ class _EmptyLibrary extends StatelessWidget {
             const SizedBox(height: 28),
             Text(
               'Your library awaits',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
-              'Import your first EPUB to start reading',
+              'Import your first book to start reading',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+                color: colorScheme.onSurfaceVariant,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 28),
             FilledButton.icon(
               onPressed: onImport,
               icon: const Icon(Icons.file_open_rounded),
-              label: const Text('Import EPUB'),
+              label: const Text('Import books'),
             ),
           ],
         ),
@@ -662,14 +682,17 @@ class _ContinueReadingSection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
           child: Row(
             children: [
-              Icon(Icons.play_circle_outline_rounded,
-                  size: 20, color: colorScheme.primary),
+              Icon(
+                Icons.play_circle_outline_rounded,
+                size: 20,
+                color: colorScheme.primary,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Continue Reading',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ],
           ),
@@ -697,22 +720,17 @@ class _ContinueReadingSection extends StatelessWidget {
                           SizedBox(
                             width: 72,
                             height: 112,
-                            child: BookCoverWidget(
-                                book: book, borderRadius: 8),
+                            child: BookCoverWidget(book: book, borderRadius: 8),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              mainAxisAlignment:
-                                  MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
                                   book.title,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall
+                                  style: Theme.of(context).textTheme.titleSmall
                                       ?.copyWith(
                                         fontWeight: FontWeight.w600,
                                         height: 1.3,
@@ -723,12 +741,9 @@ class _ContinueReadingSection extends StatelessWidget {
                                 const SizedBox(height: 4),
                                 Text(
                                   book.author,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
+                                  style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
-                                        color: colorScheme
-                                            .onSurfaceVariant
+                                        color: colorScheme.onSurfaceVariant
                                             .withValues(alpha: 0.7),
                                       ),
                                   maxLines: 1,
@@ -737,8 +752,7 @@ class _ContinueReadingSection extends StatelessWidget {
                                 const SizedBox(height: 14),
                                 // Progress bar
                                 ClipRRect(
-                                  borderRadius:
-                                      BorderRadius.circular(6),
+                                  borderRadius: BorderRadius.circular(6),
                                   child: LinearProgressIndicator(
                                     value: progress,
                                     minHeight: 5,
@@ -750,12 +764,9 @@ class _ContinueReadingSection extends StatelessWidget {
                                 const SizedBox(height: 6),
                                 Text(
                                   '${(progress * 100).toInt()}% read',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
+                                  style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
-                                        color: colorScheme
-                                            .onSurfaceVariant
+                                        color: colorScheme.onSurfaceVariant
                                             .withValues(alpha: 0.6),
                                         fontSize: 11,
                                       ),

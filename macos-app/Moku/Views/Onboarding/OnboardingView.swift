@@ -106,7 +106,7 @@ private struct WelcomePage: View {
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 8)
 
-            Text("Import EPUBs, track your progress, and\nread distraction-free on your Mac.")
+            Text("Import EPUB, PDF, TXT, CBZ, and HTML books,\ntrack your progress, and read distraction-free on your Mac.")
                 .font(.system(size: 14))
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -155,7 +155,7 @@ private struct ImportPage: View {
                 .tracking(-0.3)
                 .padding(.bottom, 10)
 
-            Text("Add EPUB files from your Mac.\nYour books stay local — fully offline.")
+            Text("Add EPUB, PDF, TXT, CBZ, and HTML files from your Mac.\nYour library stays local, fully offline.")
                 .font(.system(size: 14))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -165,7 +165,7 @@ private struct ImportPage: View {
 
             VStack(spacing: 12) {
                 Button(action: onImport) {
-                    Label("Import an EPUB", systemImage: "plus.circle.fill")
+                    Label("Import books", systemImage: "plus.circle.fill")
                         .font(.system(size: 14, weight: .semibold))
                         .frame(maxWidth: 220)
                         .padding(.vertical, 4)
