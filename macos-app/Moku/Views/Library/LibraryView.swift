@@ -275,7 +275,7 @@ struct LibraryView: View {
                 Text("Your Library Awaits")
                     .font(.system(size: 24, weight: .bold, design: .serif))
                     .tracking(-0.3)
-                Text("Import books to start reading")
+                Text("Import books or comics to start reading")
                     .font(.system(size: 14))
                     .foregroundStyle(.secondary)
             }

@@ -641,7 +641,7 @@ class _EmptyLibrary extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Import your first book to start reading',
+              'Import your first book or comic to start reading',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
