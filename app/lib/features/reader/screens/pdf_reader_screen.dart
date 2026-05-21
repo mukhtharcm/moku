@@ -21,6 +21,7 @@ class PdfReaderScreen extends StatefulWidget {
 class _PdfReaderScreenState extends State<PdfReaderScreen>
     with WidgetsBindingObserver {
   late PdfViewerController _controller;
+  late final db.AppDatabase _database;
   bool _showControls = true;
   int _currentPage = 1;
   int _totalPages = 0;
@@ -35,6 +36,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
   void initState() {
     super.initState();
     _controller = PdfViewerController();
+    _database = context.read<db.AppDatabase>();
     WidgetsBinding.instance.addObserver(this);
     _loadProgress();
   }
@@ -49,17 +51,21 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
   }
 
   Future<void> _loadProgress() async {
-    final database = context.read<db.AppDatabase>();
-    final progress = await database.getProgressForBook(widget.book.id);
+    final progress = await _database.getProgressForBook(widget.book.id);
+    if (!mounted) return;
+
     if (progress != null && progress.currentChapter > 0) {
       // currentChapter stores the page number for PDFs
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         _controller.goToPage(pageNumber: progress.currentChapter + 1);
       });
       _currentPage = progress.currentChapter + 1;
     }
 
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+
     setState(() {
       _darkMode = (prefs.getInt('reader_theme') ?? 0) == 1;
     });
@@ -79,12 +85,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
   }
 
   Future<void> _saveProgress() async {
-    if (!mounted) return;
-    final database = context.read<db.AppDatabase>();
     final overall = _totalPages > 0 ? _currentPage / _totalPages : 0.0;
     final now = DateTime.now();
 
-    await database.upsertProgress(
+    await _database.upsertProgress(
       db.ReadingProgressesCompanion(
         id: Value(widget.book.id),
         bookId: Value(widget.book.id),
@@ -112,9 +116,13 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
 
     final endedAt = DateTime.now();
     final duration = endedAt.difference(startedAt).inSeconds;
+
+    _sessionId = null;
+    _sessionStartedAt = null;
+
     if (duration < 30) return;
-    final database = context.read<db.AppDatabase>();
-    await database.insertSession(
+
+    await _database.insertSession(
       db.ReadingSessionsCompanion.insert(
         id: sessionId,
         bookId: widget.book.id,
@@ -126,9 +134,6 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
         endChapter: Value(_currentPage - 1),
       ),
     );
-
-    _sessionId = null;
-    _sessionStartedAt = null;
   }
 
   @override
@@ -148,10 +153,12 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
             params: PdfViewerParams(
               backgroundColor: bgColor,
               onPageChanged: (pageNumber) {
+                if (!mounted) return;
                 setState(() => _currentPage = pageNumber ?? 1);
                 _saveProgress();
               },
               onViewerReady: (document, controller) {
+                if (!mounted) return;
                 setState(() {
                   _totalPages = document.pages.length;
                   _currentPage = controller.pageNumber ?? 1;
@@ -191,7 +198,9 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
                 ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8.0, vertical: 4.0),
+                    horizontal: 8.0,
+                    vertical: 4.0,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
@@ -255,7 +264,8 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
                         data: SliderThemeData(
                           trackHeight: 2,
                           thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 6),
+                            enabledThumbRadius: 6,
+                          ),
                           activeTrackColor: theme.colorScheme.primary,
                           inactiveTrackColor: fgColor.withValues(alpha: 0.2),
                           thumbColor: theme.colorScheme.primary,

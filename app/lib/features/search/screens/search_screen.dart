@@ -26,8 +26,6 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -57,25 +55,28 @@ class _SearchScreenState extends State<SearchScreen> {
                 final selected = state.selectedCatalog;
                 return DropdownButtonFormField<String>(
                   initialValue: selected?.id,
+                  isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Catalog',
                     prefixIcon: Icon(Icons.public),
                   ),
+                  selectedItemBuilder: (context) => state.catalogs
+                      .map(
+                        (catalog) => Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            catalog.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
                   items: state.catalogs
                       .map(
                         (catalog) => DropdownMenuItem(
                           value: catalog.id,
-                          child: Row(
-                            children: [
-                              Expanded(child: Text(catalog.title)),
-                              if (catalog.isCustom)
-                                Text(
-                                  'Custom',
-                                  style: Theme.of(context).textTheme.labelSmall
-                                      ?.copyWith(color: colorScheme.primary),
-                                ),
-                            ],
-                          ),
+                          child: CatalogDropdownItem(catalog: catalog),
                         ),
                       )
                       .toList(),
@@ -326,6 +327,35 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class CatalogDropdownItem extends StatelessWidget {
+  final CatalogSource catalog;
+
+  const CatalogDropdownItem({super.key, required this.catalog});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(catalog.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        if (catalog.isCustom)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Custom',
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: colorScheme.primary),
+            ),
+          ),
+      ],
     );
   }
 }

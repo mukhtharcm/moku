@@ -26,3 +26,6 @@ app/.dart_tool/
 .idea/
 *.iml
 .vscode/settings.json
+
+# Local test artifacts / emulator captures
+.sidemesh/
