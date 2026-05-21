@@ -651,7 +651,7 @@ class _EmptyLibrary extends StatelessWidget {
             FilledButton.icon(
               onPressed: onImport,
               icon: const Icon(Icons.file_open_rounded),
-              label: const Text('Import books'),
+              label: const Text('Import files'),
             ),
           ],
         ),

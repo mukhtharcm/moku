@@ -128,7 +128,7 @@ struct LibraryView: View {
                 Image(systemName: "plus")
                     .font(.system(size: 13, weight: .medium))
             }
-            .help("Import books (⌘O)")
+            .help("Import files (⌘O)")
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 14)
@@ -281,7 +281,7 @@ struct LibraryView: View {
             }
 
             Button { viewModel.importBook() } label: {
-                Label("Import books", systemImage: "plus.circle.fill")
+                Label("Import files", systemImage: "plus.circle.fill")
                     .font(.system(size: 14, weight: .semibold))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)

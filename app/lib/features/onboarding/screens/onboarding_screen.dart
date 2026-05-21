@@ -231,7 +231,7 @@ class _WelcomePage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Import EPUB, PDF, TXT, CBZ, and HTML books,\ntrack progress, and read distraction-free.',
+              'Import EPUB, PDF, TXT, CBZ, and HTML files,\ntrack progress, and read distraction-free.',
               style: GoogleFonts.inter(
                 fontSize: 15,
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
@@ -306,7 +306,7 @@ class _ImportPage extends StatelessWidget {
             const SizedBox(height: 12),
 
             Text(
-              'Add EPUB, PDF, TXT, CBZ, and HTML files from your device.\nYour library stays on your phone, fully offline.',
+              'Add EPUB, PDF, TXT, CBZ, and HTML files from your device.\nYour library stays on your device, fully offline.',
               style: GoogleFonts.inter(
                 fontSize: 15,
                 color: colorScheme.onSurfaceVariant,
@@ -325,7 +325,7 @@ class _ImportPage extends StatelessWidget {
                 onPressed: onImport,
                 icon: const Icon(Icons.add_rounded, size: 22),
                 label: Text(
-                  'Import books',
+                  'Import files',
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
