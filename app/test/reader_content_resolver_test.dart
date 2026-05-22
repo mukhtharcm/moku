@@ -47,6 +47,13 @@ void main() {
       );
     });
 
+    test('extracts xml:lang from xhtml content', () {
+      const html =
+          '<html xml:lang="fa" dir="rtl"><body><p>سلام</p></body></html>';
+
+      expect(ReaderContentResolver.extractLanguageTagFromHtml(html), 'fa');
+    });
+
     test('override wins over metadata', () {
       final profile = ReaderContentResolver.resolve(
         directionOverride: ReaderDirectionOverride.ltr,

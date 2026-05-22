@@ -70,7 +70,7 @@ class ReaderContentResolver {
 
   static String? extractLanguageTagFromHtml(String html) {
     final htmlMatch = RegExp(
-      r"""<html\b[^>]*\blang\s*=\s*["']([^"']+)["']""",
+      r"""<html\b[^>]*\b(?:xml:)?lang\s*=\s*["']([^"']+)["']""",
       caseSensitive: false,
     ).firstMatch(html);
     if (htmlMatch != null) {
@@ -78,7 +78,7 @@ class ReaderContentResolver {
     }
 
     final bodyMatch = RegExp(
-      r"""<body\b[^>]*\blang\s*=\s*["']([^"']+)["']""",
+      r"""<body\b[^>]*\b(?:xml:)?lang\s*=\s*["']([^"']+)["']""",
       caseSensitive: false,
     ).firstMatch(html);
     return normalizeLanguageTag(bodyMatch?.group(1));
