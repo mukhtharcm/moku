@@ -23,6 +23,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
     with WidgetsBindingObserver {
   late PdfViewerController _controller;
   late final db.AppDatabase _database;
+  late final AutoSyncService _autoSync;
   bool _showControls = true;
   int _currentPage = 1;
   int _totalPages = 0;
@@ -38,6 +39,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
     super.initState();
     _controller = PdfViewerController();
     _database = context.read<db.AppDatabase>();
+    _autoSync = context.read<AutoSyncService>();
     WidgetsBinding.instance.addObserver(this);
     _loadProgress();
   }
@@ -102,7 +104,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
     );
     // Frequent per-page call — use throttled progress bump.
     try {
-      context.read<AutoSyncService>().bumpProgress();
+      _autoSync.bumpProgress();
     } catch (_) {}
   }
 
@@ -142,7 +144,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
 
     // Flush on reader close / pause so session lands promptly.
     try {
-      context.read<AutoSyncService>().flush();
+      _autoSync.flush();
     } catch (_) {}
   }
 
