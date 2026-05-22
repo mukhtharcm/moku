@@ -113,7 +113,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      state.errorMessage ?? l10n.libraryErrorFallback,
+                      l10n.libraryErrorFallback,
                       style: Theme.of(context).textTheme.bodyLarge,
                       textAlign: TextAlign.center,
                     ),

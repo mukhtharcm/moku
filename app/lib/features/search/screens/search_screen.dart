@@ -8,6 +8,7 @@ import '../../../core/models/book_localizations.dart';
 import '../../../core/models/book.dart';
 import '../../../core/services/opds_catalog_service.dart';
 import '../../../l10n/l10n.dart';
+import '../catalog_error_localizations.dart';
 import '../cubit/search_cubit.dart';
 import '../cubit/search_state.dart';
 
@@ -70,7 +71,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         (catalog) => Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            catalog.title,
+                            catalogTitleLabel(context, catalog),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -101,9 +102,9 @@ class _SearchScreenState extends State<SearchScreen> {
                   previous.selectedCatalogId != current.selectedCatalogId ||
                   previous.query != current.query,
               builder: (context, state) {
-                final hintCatalog =
-                    state.selectedCatalog?.title ??
-                    l10n.searchGenericCatalogName;
+                final hintCatalog = state.selectedCatalog == null
+                    ? l10n.searchGenericCatalogName
+                    : catalogTitleLabel(context, state.selectedCatalog!);
                 return TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
@@ -134,9 +135,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
                 if (state.status == SearchStatus.initial) {
                   return _EmptyPrompt(
-                    catalogTitle:
-                        state.selectedCatalog?.title ??
-                        l10n.searchPromptGenericCatalogName,
+                    catalogTitle: state.selectedCatalog == null
+                        ? l10n.searchPromptGenericCatalogName
+                        : catalogTitleLabel(context, state.selectedCatalog!),
                   );
                 }
 
@@ -148,7 +149,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     state.results.isEmpty) {
                   final errorText = state.selectedCatalog == null
                       ? l10n.searchNoCatalogSelected
-                      : (state.errorMessage ?? l10n.searchErrorFallback);
+                      : catalogErrorCodeMessage(context, state.errorCode);
 
                   return Center(
                     child: Padding(
@@ -183,7 +184,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         final bookTitle = bookTitleLabel(context, book.title);
                         try {
                           await cubit.downloadBook(book);
-                          if (!mounted) return;
+                          if (!context.mounted) return;
                           messenger.showSnackBar(
                             SnackBar(
                               content: Text(
@@ -192,12 +193,10 @@ class _SearchScreenState extends State<SearchScreen> {
                             ),
                           );
                         } catch (error) {
-                          if (!mounted) return;
+                          if (!context.mounted) return;
                           messenger.showSnackBar(
                             SnackBar(
-                              content: Text(
-                                l10n.searchDownloadFailed(error: '$error'),
-                              ),
+                              content: Text(catalogErrorMessage(context, error)),
                             ),
                           );
                         }
@@ -251,7 +250,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               ? Icons.link
                               : Icons.auto_awesome_outlined,
                         ),
-                        title: Text(catalog.title),
+                        title: Text(catalogTitleLabel(context, catalog)),
                         subtitle: Text(catalog.url),
                         trailing: catalog.isCustom
                             ? IconButton(
@@ -301,8 +300,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _showAddCatalogDialog(BuildContext context) async {
     final titleController = TextEditingController();
-    final urlController = TextEditingController(text: 'https://');
+    final urlController = TextEditingController();
     final l10n = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
 
     await showDialog<void>(
       context: context,
@@ -340,15 +340,13 @@ class _SearchScreenState extends State<SearchScreen> {
                   title: titleController.text,
                   url: urlController.text,
                 );
-                if (!ctx.mounted) return;
+                if (!context.mounted || !ctx.mounted) return;
                 Navigator.pop(ctx);
               } catch (error) {
-                if (!ctx.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
+                if (!context.mounted || !ctx.mounted) return;
+                messenger.showSnackBar(
                   SnackBar(
-                    content: Text(
-                      l10n.searchCouldNotAddCatalog(error: '$error'),
-                    ),
+                    content: Text(catalogErrorMessage(context, error)),
                   ),
                 );
               }
@@ -374,7 +372,11 @@ class CatalogDropdownItem extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(catalog.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        Text(
+          catalogTitleLabel(context, catalog),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         if (catalog.isCustom)
           Padding(
             padding: const EdgeInsets.only(top: 4),
@@ -448,6 +450,7 @@ class _SearchResultCard extends StatelessWidget {
     final l10n = context.l10n;
     final title = bookTitleLabel(context, book.title);
     final author = bookAuthorLabel(context, book.author);
+    final catalogTitle = catalogBookTitleLabel(context, book);
     final preferredFormatLabel = _bookFormatLabel(
       context,
       book.preferredAcquisition.format,
@@ -515,7 +518,7 @@ class _SearchResultCard extends StatelessWidget {
                         spacing: 6,
                         runSpacing: 6,
                         children: [
-                          _MetaChip(label: book.catalogTitle),
+                          _MetaChip(label: catalogTitle),
                           _MetaChip(
                             label: _catalogFormatSummary(context, book),
                           ),

@@ -154,10 +154,10 @@ class SearchCubit extends Cubit<SearchState> {
     try {
       final results = await _catalogService.searchBooks(catalog, query);
       emit(state.copyWith(status: SearchStatus.loaded, results: results));
-    } catch (e) {
-      emit(
-        state.copyWith(status: SearchStatus.error, errorMessage: e.toString()),
-      );
+    } on CatalogException catch (e) {
+      emit(state.copyWith(status: SearchStatus.error, errorCode: e.code));
+    } catch (_) {
+      emit(state.copyWith(status: SearchStatus.error, clearError: true));
     }
   }
 

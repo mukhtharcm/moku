@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
-import '../../../l10n/l10n.dart';
 import '../../../core/sync/sync_bootstrap.dart';
 import '../../../core/sync/sync_config.dart';
+import '../../../core/sync/sync_localizations.dart';
+import '../../../l10n/l10n.dart';
 
 class SyncSettingsScreen extends StatefulWidget {
   const SyncSettingsScreen({super.key});
@@ -60,7 +61,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = l10n.syncFailedToConnect(error: '$e');
+        _errorMessage = l10n.syncFailedToConnectGeneric;
         _isLoading = false;
       });
     }
@@ -90,8 +91,8 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
     } catch (e) {
       setState(() {
         _errorMessage = _isRegisterMode
-            ? l10n.syncRegistrationFailed(error: '$e')
-            : l10n.syncLoginFailed(error: '$e');
+            ? l10n.syncRegistrationFailedGeneric
+            : l10n.syncLoginFailedGeneric;
         _isLoading = false;
       });
     }
@@ -122,16 +123,16 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
         cubit.setStatus(
           SyncStatus.error,
           errorMessage: l10n.syncPartialFailure(
-            collections: result.failedCollections.join(', '),
+            collections: syncCollectionsSummary(
+              context,
+              result.failedCollections,
+            ),
           ),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-      cubit.setStatus(
-        SyncStatus.error,
-        errorMessage: l10n.syncFailed(error: '$e'),
-      );
+      cubit.setStatus(SyncStatus.error, errorMessage: l10n.syncFailedGeneric);
     }
   }
 
@@ -471,14 +472,14 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                e.collection,
+                                syncCollectionLabel(context, e.collection),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Theme.of(context).colorScheme.error,
                                 ),
                               ),
                               Text(
-                                e.message,
+                                context.l10n.syncErrorLogGenericMessage,
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                               Text(

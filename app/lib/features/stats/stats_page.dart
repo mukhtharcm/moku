@@ -37,13 +37,7 @@ class _StatsView extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (state.status == StatsStatus.error) {
-            return Center(
-              child: Text(
-                state.errorMessage != null && state.errorMessage!.isNotEmpty
-                    ? l10n.statsLoadFailed(error: state.errorMessage!)
-                    : l10n.statsErrorFallback,
-              ),
-            );
+            return Center(child: Text(l10n.statsErrorFallback));
           }
           return RefreshIndicator(
             onRefresh: () => context.read<StatsCubit>().load(),

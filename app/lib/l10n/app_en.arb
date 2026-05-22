@@ -68,6 +68,8 @@
     }
   },
   "searchTitle": "Discover",
+  "searchCatalogOpenLibraryTitle": "Open Library",
+  "searchCatalogProjectGutenbergTitle": "Project Gutenberg",
   "searchManageCatalogs": "Manage catalogs",
   "searchCatalogLabel": "Catalog",
   "searchGenericCatalogName": "catalog",
@@ -86,6 +88,16 @@
   },
   "searchInitialPromptBody": "Find downloadable books and add them straight to your library.",
   "searchErrorFallback": "Something went wrong.",
+  "searchErrorInvalidCatalogInput": "Enter a valid catalog name and URL.",
+  "searchErrorDuplicateCatalog": "That catalog has already been added.",
+  "searchErrorDownloadRedirected": "The download redirected too many times.",
+  "searchErrorDownloadFailed": "The download failed.",
+  "searchErrorCatalogNotSearchable": "This catalog does not provide a searchable OPDS feed.",
+  "searchErrorSearchFailed": "The catalog search failed.",
+  "searchErrorCatalogLoadFailed": "Could not load that catalog.",
+  "searchErrorCatalogMissingSearchLink": "This catalog does not expose a usable search link.",
+  "searchErrorCatalogSearchDescriptionFailed": "Could not load the catalog search description.",
+  "searchErrorCatalogSearchTemplateMissing": "Could not find a usable search template for this catalog.",
   "searchEmptyResults": "No downloadable books found",
   "searchNoCatalogSelected": "Choose a catalog to start searching",
   "searchBookAdded": "{title} added to your library",
@@ -142,6 +154,19 @@
   "@settingsVersion": {
     "placeholders": {
       "version": {}
+    }
+  },
+  "settingsVersionValue": "{version}",
+  "@settingsVersionValue": {
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "settingsVersionValueWithBuild": "{version} ({build})",
+  "@settingsVersionValueWithBuild": {
+    "placeholders": {
+      "version": {},
+      "build": {}
     }
   },
   "settingsVersionUnavailable": "Version unavailable",
@@ -210,6 +235,20 @@
       "error": {}
     }
   },
+  "syncFailedToConnectGeneric": "Failed to connect to the server.",
+  "syncRegistrationFailedGeneric": "Registration failed. Please try again.",
+  "syncLoginFailedGeneric": "Login failed. Please check your credentials and try again.",
+  "syncFailedGeneric": "Sync failed. Please try again.",
+  "syncErrorLogGenericMessage": "This data could not be synced.",
+  "syncCollectionBooks": "Books",
+  "syncCollectionReadingProgress": "Reading progress",
+  "syncCollectionBookmarks": "Bookmarks",
+  "syncCollectionHighlights": "Highlights",
+  "syncCollectionShelves": "Shelves",
+  "syncCollectionShelfBooks": "Shelf books",
+  "syncCollectionReadingSessions": "Reading sessions",
+  "syncCollectionReadingGoals": "Reading goals",
+  "syncCollectionUnknown": "Other data",
   "collectionsTitle": "Shelves",
   "collectionsEmptyTitle": "No shelves yet",
   "collectionsEmptyBody": "Organize your books into collections",
@@ -264,6 +303,12 @@
   "readerNoHighlightsYet": "No highlights yet",
   "readerNoHighlightsHint": "Select text while reading to highlight it",
   "readerNoBookmarksYet": "No bookmarks yet",
+  "readerQuotedSelection": "\"{text}\"",
+  "@readerQuotedSelection": {
+    "placeholders": {
+      "text": {}
+    }
+  },
   "readerChapterLabel": "Chapter {chapterNumber}",
   "@readerChapterLabel": {
     "placeholders": {

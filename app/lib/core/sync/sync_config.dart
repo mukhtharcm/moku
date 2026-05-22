@@ -164,7 +164,7 @@ class SyncConfigCubit extends Cubit<SyncConfigState> {
     ].take(50).toList();
     emit(state.copyWith(
       status: SyncStatus.error,
-      errorMessage: message,
+      errorMessage: null,
       recentErrors: errors,
     ));
   }

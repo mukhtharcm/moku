@@ -5,6 +5,15 @@ import 'package:xml/xml.dart';
 
 import 'epub_document.dart';
 
+enum EpubParseErrorCode { missingContainer, missingRootfile, missingFile }
+
+class EpubParseException implements Exception {
+  final EpubParseErrorCode code;
+  final String? path;
+
+  const EpubParseException(this.code, {this.path});
+}
+
 /// Parses EPUB files (both EPUB 2 and EPUB 3) from raw ZIP bytes.
 class EpubParser {
   /// Parse an EPUB from raw bytes.
@@ -52,14 +61,16 @@ class EpubParser {
   static String _findOpfPath(Archive archive) {
     final containerFile = archive.files.firstWhere(
       (f) => f.name == 'META-INF/container.xml',
-      orElse: () => throw FormatException('No META-INF/container.xml found'),
+      orElse: () => throw const EpubParseException(
+        EpubParseErrorCode.missingContainer,
+      ),
     );
     final xml = String.fromCharCodes(containerFile.content as List<int>);
     final doc = XmlDocument.parse(xml);
     final rootfile = doc.findAllElements('rootfile').firstOrNull;
     final path = rootfile?.getAttribute('full-path');
     if (path == null || path.isEmpty) {
-      throw const FormatException('No rootfile full-path in container.xml');
+      throw const EpubParseException(EpubParseErrorCode.missingRootfile);
     }
     return path;
   }
@@ -72,7 +83,7 @@ class EpubParser {
     XmlDocument opfDoc,
     Map<String, ManifestItem> manifestById,
   ) {
-    String title = 'Unknown Title';
+    String title = '';
     final authors = <String>[];
     String? description;
     String? publisher;
@@ -158,7 +169,7 @@ class EpubParser {
 
     return EpubMetadata(
       title: title,
-      authors: authors.isEmpty ? ['Unknown Author'] : authors,
+      authors: authors,
       description: description,
       publisher: publisher,
       language: language,
@@ -387,7 +398,10 @@ class EpubParser {
   static String _readTextFile(Archive archive, String path) {
     final file = archive.files.firstWhere(
       (f) => f.name == path,
-      orElse: () => throw FormatException('File not found in EPUB: $path'),
+      orElse: () => throw EpubParseException(
+        EpubParseErrorCode.missingFile,
+        path: path,
+      ),
     );
     return String.fromCharCodes(file.content as List<int>);
   }

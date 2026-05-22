@@ -300,7 +300,7 @@ class _ReaderViewState extends State<_ReaderView>
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Text(
-                  '"$text"',
+                  readerQuotedSelection(context, text),
                   style: const TextStyle(fontStyle: FontStyle.italic),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
@@ -367,7 +367,7 @@ class _ReaderViewState extends State<_ReaderView>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '"$text"',
+              readerQuotedSelection(context, text),
               style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 13),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
@@ -949,9 +949,7 @@ window.addEventListener('load', function() {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  state.errorMessage != null && state.errorMessage!.isNotEmpty
-                      ? l10n.readerLoadFailed(error: state.errorMessage!)
-                      : l10n.readerUnknownError,
+                  l10n.readerUnknownError,
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -1487,10 +1485,7 @@ class _ReaderSettingsSheet extends StatelessWidget {
                 Row(
                   children: [
                     IconButton.outlined(
-                      icon: const Text(
-                        'A-',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
+                      icon: const Icon(Icons.remove),
                       onPressed: () => cubit.setFontSize(state.fontSize - 1),
                     ),
                     const SizedBox(width: 8),
@@ -1500,10 +1495,7 @@ class _ReaderSettingsSheet extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     IconButton.outlined(
-                      icon: const Text(
-                        'A+',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
+                      icon: const Icon(Icons.add),
                       onPressed: () => cubit.setFontSize(state.fontSize + 1),
                     ),
                     const SizedBox(width: 12),
@@ -1603,13 +1595,10 @@ class _ReaderSettingsSheet extends StatelessWidget {
                                   color: theme.textColor,
                                   size: 20,
                                 )
-                              : Text(
-                                  'Aa',
-                                  style: TextStyle(
-                                    color: theme.textColor,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                              : Icon(
+                                  Icons.text_fields,
+                                  color: theme.textColor,
+                                  size: 18,
                                 ),
                         ),
                       ),

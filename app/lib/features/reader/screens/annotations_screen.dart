@@ -246,7 +246,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '"${highlight.selectedText}"',
+              readerQuotedSelection(context, highlight.selectedText),
               style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 13),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
@@ -333,7 +333,7 @@ class _HighlightTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '"${highlight.selectedText}"',
+                    readerQuotedSelection(context, highlight.selectedText),
                     style: const TextStyle(fontStyle: FontStyle.italic),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,

@@ -187,18 +187,27 @@ class SettingsScreen extends StatelessWidget {
                     l10n.appTitle,
                     style: GoogleFonts.literata(fontWeight: FontWeight.w600),
                   ),
-                  subtitle: FutureBuilder<String?>(
-                    future: AppVersionService.displayVersion,
+                  subtitle: FutureBuilder<AppVersionInfo?>(
+                    future: AppVersionService.versionInfo,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return Text(l10n.settingsVersionLoading);
                       }
 
-                      final version = snapshot.data;
+                      final versionInfo = snapshot.data;
                       return Text(
-                        version == null
+                        versionInfo == null
                             ? l10n.settingsVersionUnavailable
-                            : l10n.settingsVersion(version: version),
+                            : l10n.settingsVersion(
+                                version: versionInfo.buildNumber == null
+                                    ? l10n.settingsVersionValue(
+                                        version: versionInfo.version,
+                                      )
+                                    : l10n.settingsVersionValueWithBuild(
+                                        version: versionInfo.version,
+                                        build: versionInfo.buildNumber!,
+                                      ),
+                              ),
                       );
                     },
                   ),

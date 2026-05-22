@@ -56,7 +56,6 @@ class LibraryCubit extends Cubit<LibraryState> {
         emit(
           state.copyWith(
             status: LibraryStatus.error,
-            errorMessage: error.toString(),
           ),
         );
       },
@@ -79,8 +78,8 @@ class LibraryCubit extends Cubit<LibraryState> {
         if (file.path == null) continue;
         await _importSingleBook(file.path!);
       }
-    } catch (e) {
-      emit(state.copyWith(status: LibraryStatus.error, errorMessage: '$e'));
+    } catch (_) {
+      emit(state.copyWith(status: LibraryStatus.error));
     } finally {
       _isImporting = false;
     }

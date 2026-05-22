@@ -10,7 +10,7 @@ class SearchState extends Equatable {
   final String? selectedCatalogId;
   final List<String> downloadingBookIds;
   final String query;
-  final String? errorMessage;
+  final CatalogErrorCode? errorCode;
 
   const SearchState({
     this.status = SearchStatus.initial,
@@ -19,7 +19,7 @@ class SearchState extends Equatable {
     this.selectedCatalogId,
     this.downloadingBookIds = const [],
     this.query = '',
-    this.errorMessage,
+    this.errorCode,
   });
 
   CatalogSource? get selectedCatalog {
@@ -37,7 +37,7 @@ class SearchState extends Equatable {
     String? selectedCatalogId,
     List<String>? downloadingBookIds,
     String? query,
-    String? errorMessage,
+    CatalogErrorCode? errorCode,
     bool clearError = false,
   }) {
     return SearchState(
@@ -47,7 +47,7 @@ class SearchState extends Equatable {
       selectedCatalogId: selectedCatalogId ?? this.selectedCatalogId,
       downloadingBookIds: downloadingBookIds ?? this.downloadingBookIds,
       query: query ?? this.query,
-      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      errorCode: clearError ? null : (errorCode ?? this.errorCode),
     );
   }
 
@@ -59,7 +59,7 @@ class SearchState extends Equatable {
     selectedCatalogId,
     downloadingBookIds,
     query,
-    errorMessage,
+    errorCode,
   ];
 }
 

@@ -28,3 +28,7 @@ String readerFontFamilyLabel(BuildContext context, ReaderFontFamily family) {
     ReaderFontFamily.mono => l10n.readerFontFamilyMonospace,
   };
 }
+
+String readerQuotedSelection(BuildContext context, String text) {
+  return context.l10n.readerQuotedSelection(text: text);
+}

@@ -339,14 +339,10 @@ class AutoSyncService with WidgetsBindingObserver {
         'failure #$_consecutiveFailures — backoff ${delay.inMinutes}m',
         name: 'AutoSync');
 
-    final failedList = result?.failedCollections.join(', ') ?? 'unknown';
-    configCubit.setStatus(
-      SyncStatus.error,
-      errorMessage: message ??
-          (result?.authFailed == true
-              ? 'Authentication expired'
-              : 'Sync failed for $failedList'),
-    );
+    if (message != null) {
+      developer.log('failure detail: $message', name: 'AutoSync');
+    }
+    configCubit.setStatus(SyncStatus.error);
 
     _backoffTimer?.cancel();
     _backoffTimer = Timer(delay, () {

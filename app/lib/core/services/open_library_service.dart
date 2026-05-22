@@ -1,6 +1,15 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+enum OpenLibraryErrorCode { searchFailed, detailsFailed }
+
+class OpenLibraryException implements Exception {
+  final OpenLibraryErrorCode code;
+  final int? statusCode;
+
+  const OpenLibraryException(this.code, {this.statusCode});
+}
+
 class OpenLibraryService {
   static const _baseUrl = 'https://openlibrary.org';
   static const _coversUrl = 'https://covers.openlibrary.org';
@@ -27,7 +36,10 @@ class OpenLibraryService {
 
     final response = await _client.get(uri);
     if (response.statusCode != 200) {
-      throw Exception('Failed to search books: ${response.statusCode}');
+      throw OpenLibraryException(
+        OpenLibraryErrorCode.searchFailed,
+        statusCode: response.statusCode,
+      );
     }
 
     final data = json.decode(response.body);
@@ -41,7 +53,10 @@ class OpenLibraryService {
     final uri = Uri.parse('$_baseUrl$key.json');
     final response = await _client.get(uri);
     if (response.statusCode != 200) {
-      throw Exception('Failed to get book details: ${response.statusCode}');
+      throw OpenLibraryException(
+        OpenLibraryErrorCode.detailsFailed,
+        statusCode: response.statusCode,
+      );
     }
     return json.decode(response.body);
   }

@@ -28,8 +28,8 @@ class StatsCubit extends Cubit<StatsState> {
           dailyMinutes: computed.dailyMinutes,
         ),
       );
-    } catch (e) {
-      emit(state.copyWith(status: StatsStatus.error, errorMessage: '$e'));
+    } catch (_) {
+      emit(state.copyWith(status: StatsStatus.error));
     }
   }
 

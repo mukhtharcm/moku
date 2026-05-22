@@ -430,6 +430,18 @@ abstract class AppLocalizations {
   /// **'Discover'**
   String get searchTitle;
 
+  /// No description provided for @searchCatalogOpenLibraryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Library'**
+  String get searchCatalogOpenLibraryTitle;
+
+  /// No description provided for @searchCatalogProjectGutenbergTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Project Gutenberg'**
+  String get searchCatalogProjectGutenbergTitle;
+
   /// No description provided for @searchManageCatalogs.
   ///
   /// In en, this message translates to:
@@ -477,6 +489,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Something went wrong.'**
   String get searchErrorFallback;
+
+  /// No description provided for @searchErrorInvalidCatalogInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid catalog name and URL.'**
+  String get searchErrorInvalidCatalogInput;
+
+  /// No description provided for @searchErrorDuplicateCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'That catalog has already been added.'**
+  String get searchErrorDuplicateCatalog;
+
+  /// No description provided for @searchErrorDownloadRedirected.
+  ///
+  /// In en, this message translates to:
+  /// **'The download redirected too many times.'**
+  String get searchErrorDownloadRedirected;
+
+  /// No description provided for @searchErrorDownloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The download failed.'**
+  String get searchErrorDownloadFailed;
+
+  /// No description provided for @searchErrorCatalogNotSearchable.
+  ///
+  /// In en, this message translates to:
+  /// **'This catalog does not provide a searchable OPDS feed.'**
+  String get searchErrorCatalogNotSearchable;
+
+  /// No description provided for @searchErrorSearchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The catalog search failed.'**
+  String get searchErrorSearchFailed;
+
+  /// No description provided for @searchErrorCatalogLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load that catalog.'**
+  String get searchErrorCatalogLoadFailed;
+
+  /// No description provided for @searchErrorCatalogMissingSearchLink.
+  ///
+  /// In en, this message translates to:
+  /// **'This catalog does not expose a usable search link.'**
+  String get searchErrorCatalogMissingSearchLink;
+
+  /// No description provided for @searchErrorCatalogSearchDescriptionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the catalog search description.'**
+  String get searchErrorCatalogSearchDescriptionFailed;
+
+  /// No description provided for @searchErrorCatalogSearchTemplateMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not find a usable search template for this catalog.'**
+  String get searchErrorCatalogSearchTemplateMissing;
 
   /// No description provided for @searchEmptyResults.
   ///
@@ -675,6 +747,21 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Version {version}'**
   String settingsVersion({required Object version});
+
+  /// No description provided for @settingsVersionValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{version}'**
+  String settingsVersionValue({required Object version});
+
+  /// No description provided for @settingsVersionValueWithBuild.
+  ///
+  /// In en, this message translates to:
+  /// **'{version} ({build})'**
+  String settingsVersionValueWithBuild({
+    required Object version,
+    required Object build,
+  });
 
   /// No description provided for @settingsVersionUnavailable.
   ///
@@ -892,6 +979,90 @@ abstract class AppLocalizations {
   /// **'Sync failed: {error}'**
   String syncFailed({required Object error});
 
+  /// No description provided for @syncFailedToConnectGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to connect to the server.'**
+  String get syncFailedToConnectGeneric;
+
+  /// No description provided for @syncRegistrationFailedGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration failed. Please try again.'**
+  String get syncRegistrationFailedGeneric;
+
+  /// No description provided for @syncLoginFailedGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Login failed. Please check your credentials and try again.'**
+  String get syncLoginFailedGeneric;
+
+  /// No description provided for @syncFailedGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed. Please try again.'**
+  String get syncFailedGeneric;
+
+  /// No description provided for @syncErrorLogGenericMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This data could not be synced.'**
+  String get syncErrorLogGenericMessage;
+
+  /// No description provided for @syncCollectionBooks.
+  ///
+  /// In en, this message translates to:
+  /// **'Books'**
+  String get syncCollectionBooks;
+
+  /// No description provided for @syncCollectionReadingProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading progress'**
+  String get syncCollectionReadingProgress;
+
+  /// No description provided for @syncCollectionBookmarks.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmarks'**
+  String get syncCollectionBookmarks;
+
+  /// No description provided for @syncCollectionHighlights.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlights'**
+  String get syncCollectionHighlights;
+
+  /// No description provided for @syncCollectionShelves.
+  ///
+  /// In en, this message translates to:
+  /// **'Shelves'**
+  String get syncCollectionShelves;
+
+  /// No description provided for @syncCollectionShelfBooks.
+  ///
+  /// In en, this message translates to:
+  /// **'Shelf books'**
+  String get syncCollectionShelfBooks;
+
+  /// No description provided for @syncCollectionReadingSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading sessions'**
+  String get syncCollectionReadingSessions;
+
+  /// No description provided for @syncCollectionReadingGoals.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading goals'**
+  String get syncCollectionReadingGoals;
+
+  /// No description provided for @syncCollectionUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Other data'**
+  String get syncCollectionUnknown;
+
   /// No description provided for @collectionsTitle.
   ///
   /// In en, this message translates to:
@@ -1038,6 +1209,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No bookmarks yet'**
   String get readerNoBookmarksYet;
+
+  /// No description provided for @readerQuotedSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{text}\"'**
+  String readerQuotedSelection({required Object text});
 
   /// No description provided for @readerChapterLabel.
   ///

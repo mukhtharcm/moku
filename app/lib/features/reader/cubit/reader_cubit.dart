@@ -92,8 +92,8 @@ class ReaderCubit extends Cubit<ReaderState> {
 
       await loadHighlightsForChapter();
       _beginSession();
-    } catch (e) {
-      emit(state.copyWith(status: ReaderStatus.error, errorMessage: '$e'));
+    } catch (_) {
+      emit(state.copyWith(status: ReaderStatus.error));
     }
   }
 
@@ -163,8 +163,8 @@ class ReaderCubit extends Cubit<ReaderState> {
 
       await _saveProgress();
       await loadHighlightsForChapter();
-    } catch (e) {
-      emit(state.copyWith(errorMessage: '$e'));
+    } catch (_) {
+      emit(state.copyWith(status: ReaderStatus.error));
     }
   }
 
@@ -199,8 +199,8 @@ class ReaderCubit extends Cubit<ReaderState> {
         // Same chapter — just signal to scroll to highlight
         emit(state.copyWith(pendingHighlightText: selectedText));
       }
-    } catch (e) {
-      emit(state.copyWith(errorMessage: '$e'));
+    } catch (_) {
+      emit(state.copyWith(status: ReaderStatus.error));
     }
   }
 

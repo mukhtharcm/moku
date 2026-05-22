@@ -1,5 +1,11 @@
 import 'package:equatable/equatable.dart';
 
+class UnsupportedBookFormat implements Exception {
+  final String extension;
+
+  const UnsupportedBookFormat(this.extension);
+}
+
 /// Supported book formats in Moku.
 enum BookFormat {
   epub,
@@ -17,7 +23,7 @@ enum BookFormat {
       'txt' || 'text' => BookFormat.txt,
       'cbz' => BookFormat.cbz,
       'html' || 'htm' || 'xhtml' => BookFormat.html,
-      _ => throw UnsupportedError('Unsupported format: $ext'),
+      _ => throw UnsupportedBookFormat(ext),
     };
   }
 

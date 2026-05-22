@@ -186,6 +186,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchTitle => 'Discover';
 
   @override
+  String get searchCatalogOpenLibraryTitle => 'Open Library';
+
+  @override
+  String get searchCatalogProjectGutenbergTitle => 'Project Gutenberg';
+
+  @override
   String get searchManageCatalogs => 'Manage catalogs';
 
   @override
@@ -213,6 +219,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchErrorFallback => 'Something went wrong.';
+
+  @override
+  String get searchErrorInvalidCatalogInput =>
+      'Enter a valid catalog name and URL.';
+
+  @override
+  String get searchErrorDuplicateCatalog =>
+      'That catalog has already been added.';
+
+  @override
+  String get searchErrorDownloadRedirected =>
+      'The download redirected too many times.';
+
+  @override
+  String get searchErrorDownloadFailed => 'The download failed.';
+
+  @override
+  String get searchErrorCatalogNotSearchable =>
+      'This catalog does not provide a searchable OPDS feed.';
+
+  @override
+  String get searchErrorSearchFailed => 'The catalog search failed.';
+
+  @override
+  String get searchErrorCatalogLoadFailed => 'Could not load that catalog.';
+
+  @override
+  String get searchErrorCatalogMissingSearchLink =>
+      'This catalog does not expose a usable search link.';
+
+  @override
+  String get searchErrorCatalogSearchDescriptionFailed =>
+      'Could not load the catalog search description.';
+
+  @override
+  String get searchErrorCatalogSearchTemplateMissing =>
+      'Could not find a usable search template for this catalog.';
 
   @override
   String get searchEmptyResults => 'No downloadable books found';
@@ -323,6 +366,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String settingsVersion({required Object version}) {
     return 'Version $version';
+  }
+
+  @override
+  String settingsVersionValue({required Object version}) {
+    return '$version';
+  }
+
+  @override
+  String settingsVersionValueWithBuild({
+    required Object version,
+    required Object build,
+  }) {
+    return '$version ($build)';
   }
 
   @override
@@ -447,6 +503,50 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get syncFailedToConnectGeneric => 'Failed to connect to the server.';
+
+  @override
+  String get syncRegistrationFailedGeneric =>
+      'Registration failed. Please try again.';
+
+  @override
+  String get syncLoginFailedGeneric =>
+      'Login failed. Please check your credentials and try again.';
+
+  @override
+  String get syncFailedGeneric => 'Sync failed. Please try again.';
+
+  @override
+  String get syncErrorLogGenericMessage => 'This data could not be synced.';
+
+  @override
+  String get syncCollectionBooks => 'Books';
+
+  @override
+  String get syncCollectionReadingProgress => 'Reading progress';
+
+  @override
+  String get syncCollectionBookmarks => 'Bookmarks';
+
+  @override
+  String get syncCollectionHighlights => 'Highlights';
+
+  @override
+  String get syncCollectionShelves => 'Shelves';
+
+  @override
+  String get syncCollectionShelfBooks => 'Shelf books';
+
+  @override
+  String get syncCollectionReadingSessions => 'Reading sessions';
+
+  @override
+  String get syncCollectionReadingGoals => 'Reading goals';
+
+  @override
+  String get syncCollectionUnknown => 'Other data';
+
+  @override
   String get collectionsTitle => 'Shelves';
 
   @override
@@ -532,6 +632,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readerNoBookmarksYet => 'No bookmarks yet';
+
+  @override
+  String readerQuotedSelection({required Object text}) {
+    return '\"$text\"';
+  }
 
   @override
   String readerChapterLabel({required int chapterNumber}) {
