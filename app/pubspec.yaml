@@ -56,6 +56,7 @@ dependencies:
   url_launcher: ^6.3.2
   xml: ^6.6.1
   pdfrx: ^1.0.97
+  package_info_plus: ^9.0.1
 
 dev_dependencies:
   flutter_test:

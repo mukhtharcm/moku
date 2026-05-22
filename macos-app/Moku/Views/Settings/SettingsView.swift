@@ -47,7 +47,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Moku")
                         .font(.system(size: 20, weight: .bold, design: .serif))
-                    Text("Version 1.1.0 • Your cozy reading companion")
+                    Text("\(AppVersion.displayString) • Your cozy reading companion")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }

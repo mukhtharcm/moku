@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/database/database.dart';
+import '../../../core/services/app_version_service.dart';
 import '../../../core/sync/sync_config.dart';
 import '../../../core/theme/theme_cubit.dart';
 import 'sync_settings_screen.dart';
@@ -48,20 +49,26 @@ class SettingsScreen extends StatelessWidget {
                           title: const Text('System'),
                           subtitle: const Text('Follow device theme'),
                           value: ThemeMode.system,
-                          secondary: Icon(Icons.brightness_auto_rounded,
-                              color: colorScheme.onSurfaceVariant),
+                          secondary: Icon(
+                            Icons.brightness_auto_rounded,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
                         RadioListTile<ThemeMode>(
                           title: const Text('Light'),
                           value: ThemeMode.light,
-                          secondary: Icon(Icons.light_mode_rounded,
-                              color: colorScheme.onSurfaceVariant),
+                          secondary: Icon(
+                            Icons.light_mode_rounded,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
                         RadioListTile<ThemeMode>(
                           title: const Text('Dark'),
                           value: ThemeMode.dark,
-                          secondary: Icon(Icons.dark_mode_rounded,
-                              color: colorScheme.onSurfaceVariant),
+                          secondary: Icon(
+                            Icons.dark_mode_rounded,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ),
@@ -78,7 +85,9 @@ class SettingsScreen extends StatelessWidget {
               builder: (context, state) {
                 return SwitchListTile(
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 4),
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
                   secondary: Icon(
                     state.powerSaver
                         ? Icons.battery_saver_rounded
@@ -88,11 +97,9 @@ class SettingsScreen extends StatelessWidget {
                         : colorScheme.onSurfaceVariant,
                   ),
                   title: const Text('Power Saver'),
-                  subtitle: const Text(
-                      'Reduce animations & scroll updates'),
+                  subtitle: const Text('Reduce animations & scroll updates'),
                   value: state.powerSaver,
-                  onChanged: (v) =>
-                      context.read<ThemeCubit>().setPowerSaver(v),
+                  onChanged: (v) => context.read<ThemeCubit>().setPowerSaver(v),
                 );
               },
             ),
@@ -106,15 +113,18 @@ class SettingsScreen extends StatelessWidget {
                 final isConnected = state.isAuthenticated;
                 return ListTile(
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 6),
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   leading: Container(
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
                       color: isConnected
                           ? Colors.green.withValues(alpha: 0.1)
-                          : colorScheme.surfaceContainerHighest
-                              .withValues(alpha: 0.5),
+                          : colorScheme.surfaceContainerHighest.withValues(
+                              alpha: 0.5,
+                            ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -132,16 +142,18 @@ class SettingsScreen extends StatelessWidget {
                     isConnected
                         ? 'Connected'
                         : state.config.serverUrl.isNotEmpty
-                            ? 'Not logged in'
-                            : 'Not configured',
+                        ? 'Not logged in'
+                        : 'Not configured',
                     style: TextStyle(
                       color: isConnected
                           ? Colors.green
                           : colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  trailing: Icon(Icons.chevron_right_rounded,
-                      color: colorScheme.onSurfaceVariant),
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -165,23 +177,32 @@ class SettingsScreen extends StatelessWidget {
             child: Column(
               children: [
                 ListTile(
-                  leading: Icon(Icons.auto_stories_rounded,
-                      color: colorScheme.primary),
-                  title: Text('Moku',
-                      style: GoogleFonts.literata(
-                        fontWeight: FontWeight.w600,
-                      )),
-                  subtitle: const Text('Version 1.0.0'),
+                  leading: Icon(
+                    Icons.auto_stories_rounded,
+                    color: colorScheme.primary,
+                  ),
+                  title: Text(
+                    'Moku',
+                    style: GoogleFonts.literata(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: FutureBuilder<String>(
+                    future: AppVersionService.displayVersion,
+                    builder: (context, snapshot) {
+                      return Text(snapshot.data ?? 'Version...');
+                    },
+                  ),
                 ),
                 Divider(
-                    height: 1,
-                    indent: 16,
-                    endIndent: 16,
-                    color:
-                        colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                  height: 1,
+                  indent: 16,
+                  endIndent: 16,
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                ),
                 ListTile(
-                  leading: Icon(Icons.code_rounded,
-                      color: colorScheme.onSurfaceVariant),
+                  leading: Icon(
+                    Icons.code_rounded,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                   title: const Text('Open Source'),
                   subtitle: const Text('Flutter + PocketBase'),
                 ),
@@ -207,10 +228,10 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title.toUpperCase(),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
-            ),
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+        ),
       ),
     );
   }
