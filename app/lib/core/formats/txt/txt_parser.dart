@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 
+import '../../models/reader_content_profile.dart';
+import '../../services/reader_content_resolver.dart';
 import '../../services/book_service.dart';
 
 /// Metadata extracted from a plain-text file.
@@ -75,6 +77,28 @@ class TxtParser {
 
     final chapter = chapters[chapterIndex];
     return _textToHtml(chapter.content);
+  }
+
+  static Future<ReaderContentProfile> getContentProfile(
+    String filePath,
+    int chapterIndex, {
+    required String? bookLanguageTag,
+    required ReaderDirectionOverride directionOverride,
+  }) async {
+    final chapters = await _loadChapters(filePath);
+    final safeChapterIndex = chapterIndex.clamp(
+      0,
+      chapters.isEmpty ? 0 : chapters.length - 1,
+    );
+    final chapterContent = chapters.isEmpty
+        ? ''
+        : chapters[safeChapterIndex].content;
+
+    return ReaderContentResolver.resolve(
+      directionOverride: directionOverride,
+      bookLanguageTag: bookLanguageTag,
+      textSample: chapterContent,
+    );
   }
 
   static void clearCache(String filePath) => _cache.remove(filePath);

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/localization/bidi_text.dart';
 import '../../../core/models/book_localizations.dart';
 import '../../../core/models/book.dart';
 import '../../../core/services/opds_catalog_service.dart';
@@ -188,7 +189,9 @@ class _SearchScreenState extends State<SearchScreen> {
                           messenger.showSnackBar(
                             SnackBar(
                               content: Text(
-                                l10n.searchBookAdded(title: bookTitle),
+                                l10n.searchBookAdded(
+                                  title: bidiWrappedText(context, bookTitle),
+                                ),
                               ),
                             ),
                           );

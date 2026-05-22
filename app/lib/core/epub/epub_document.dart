@@ -7,6 +7,7 @@ class EpubDocument {
   final List<ManifestItem> manifest;
   final List<SpineEntry> spine;
   final List<TocEntry> tableOfContents;
+  final String? pageProgressionDirection;
 
   /// All resources keyed by their manifest href (relative to OPF directory).
   final Map<String, EpubResource> resources;
@@ -19,6 +20,7 @@ class EpubDocument {
     required this.manifest,
     required this.spine,
     required this.tableOfContents,
+    required this.pageProgressionDirection,
     required this.resources,
     required this.opfDirectory,
   });

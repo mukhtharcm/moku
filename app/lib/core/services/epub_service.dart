@@ -108,6 +108,20 @@ class EpubService {
     return cached.contentServer.getChapterContent(chapterIndex);
   }
 
+  Future<ReaderContentProfile> getChapterContentProfile(
+    String filePath,
+    int chapterIndex, {
+    required String? bookLanguageTag,
+    required ReaderDirectionOverride directionOverride,
+  }) async {
+    final cached = await _openBook(filePath);
+    return cached.contentServer.getChapterContentProfile(
+      chapterIndex,
+      bookLanguageTag: bookLanguageTag,
+      directionOverride: directionOverride,
+    );
+  }
+
   // --- Cover extraction ---
 
   Future<String?> _extractCover(

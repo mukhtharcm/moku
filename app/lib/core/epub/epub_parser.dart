@@ -49,6 +49,7 @@ class EpubParser {
       manifest: manifest,
       spine: spine,
       tableOfContents: toc,
+      pageProgressionDirection: _parsePageProgressionDirection(opfDoc),
       resources: resources,
       opfDirectory: opfDir,
     );
@@ -235,6 +236,19 @@ class EpubParser {
       ));
     }
     return entries;
+  }
+
+  static String? _parsePageProgressionDirection(XmlDocument opfDoc) {
+    final spineEl = opfDoc.findAllElements('spine').firstOrNull;
+    final raw = spineEl?.getAttribute('page-progression-direction')?.trim();
+    if (raw == null || raw.isEmpty) return null;
+
+    final normalized = raw.toLowerCase();
+    return switch (normalized) {
+      'rtl' => 'rtl',
+      'ltr' => 'ltr',
+      _ => null,
+    };
   }
 
   // -----------------------------------------------------------------------

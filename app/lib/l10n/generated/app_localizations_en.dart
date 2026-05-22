@@ -699,6 +699,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerTypography => 'Typography';
 
   @override
+  String get readerReadingDirection => 'Reading direction';
+
+  @override
+  String get readerDirectionAuto => 'Auto';
+
+  @override
+  String get readerDirectionLeftToRight => 'Left to right';
+
+  @override
+  String get readerDirectionRightToLeft => 'Right to left';
+
+  @override
   String get readerTheme => 'Theme';
 
   @override

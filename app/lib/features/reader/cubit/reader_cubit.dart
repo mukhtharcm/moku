@@ -15,6 +15,7 @@ class ReaderCubit extends Cubit<ReaderState> {
   final BookService _bookService;
   final AutoSyncService? _autoSync;
   static const _uuid = Uuid();
+  static const _readerDirectionOverridePrefix = 'reader_direction_override_';
 
   String? _currentSessionId;
   DateTime? _sessionStartedAt;
@@ -43,6 +44,9 @@ class ReaderCubit extends Cubit<ReaderState> {
       final margin = prefs.getDouble('reader_margin') ?? 24.0;
       final themeIndex = prefs.getInt('reader_theme') ?? 0;
       final fontFamilyIndex = prefs.getInt('reader_font_family') ?? 0;
+      final directionOverride = _parseDirectionOverride(
+        prefs.getString('$_readerDirectionOverridePrefix${state.book.id}'),
+      );
 
       // Get spine items (reading order)
       final chapters = await _bookService.getChapters(
@@ -60,6 +64,12 @@ class ReaderCubit extends Cubit<ReaderState> {
 
       // Load content (only for WebView-based formats)
       String content = '';
+      ReaderContentProfile contentProfile = const ReaderContentProfile(
+        languageTag: null,
+        textDirection: ContentTextDirection.ltr,
+        pageProgressionDirection: ContentTextDirection.ltr,
+        directionSource: ReaderDirectionSource.fallback,
+      );
       if (state.book.format == BookFormat.epub ||
           state.book.format == BookFormat.txt ||
           state.book.format == BookFormat.html) {
@@ -67,6 +77,13 @@ class ReaderCubit extends Cubit<ReaderState> {
           state.book.filePath,
           state.book.format,
           safeStartChapter,
+        );
+        contentProfile = await _bookService.getReaderContentProfile(
+          state.book.filePath,
+          state.book.format,
+          safeStartChapter,
+          bookLanguageTag: state.book.language,
+          directionOverride: directionOverride,
         );
       }
 
@@ -84,6 +101,8 @@ class ReaderCubit extends Cubit<ReaderState> {
                 0,
                 ReaderFontFamily.values.length - 1,
               )],
+          directionOverride: directionOverride,
+          contentProfile: contentProfile,
           readerTheme: ReaderTheme
               .values[themeIndex.clamp(0, ReaderTheme.values.length - 1)],
           scrollProgress: progress?.chapterProgress ?? 0.0,
@@ -142,6 +161,7 @@ class ReaderCubit extends Cubit<ReaderState> {
 
     try {
       String content = '';
+      var contentProfile = state.contentProfile;
       if (state.book.format == BookFormat.epub ||
           state.book.format == BookFormat.txt ||
           state.book.format == BookFormat.html) {
@@ -150,12 +170,20 @@ class ReaderCubit extends Cubit<ReaderState> {
           state.book.format,
           chapterIndex,
         );
+        contentProfile = await _bookService.getReaderContentProfile(
+          state.book.filePath,
+          state.book.format,
+          chapterIndex,
+          bookLanguageTag: state.book.language,
+          directionOverride: state.directionOverride,
+        );
       }
 
       emit(
         state.copyWith(
           currentChapter: chapterIndex,
           currentContent: content,
+          contentProfile: contentProfile,
           scrollProgress: 0.0,
           showToc: false,
         ),
@@ -175,6 +203,7 @@ class ReaderCubit extends Cubit<ReaderState> {
     try {
       if (chapterIndex != state.currentChapter) {
         String content = '';
+        var contentProfile = state.contentProfile;
         if (state.book.format == BookFormat.epub ||
             state.book.format == BookFormat.txt ||
             state.book.format == BookFormat.html) {
@@ -183,11 +212,19 @@ class ReaderCubit extends Cubit<ReaderState> {
             state.book.format,
             chapterIndex,
           );
+          contentProfile = await _bookService.getReaderContentProfile(
+            state.book.filePath,
+            state.book.format,
+            chapterIndex,
+            bookLanguageTag: state.book.language,
+            directionOverride: state.directionOverride,
+          );
         }
         emit(
           state.copyWith(
             currentChapter: chapterIndex,
             currentContent: content,
+            contentProfile: contentProfile,
             scrollProgress: 0.0,
             showToc: false,
             pendingHighlightText: selectedText,
@@ -280,6 +317,36 @@ class ReaderCubit extends Cubit<ReaderState> {
       ReaderFontFamily.values.indexOf(family),
     );
     emit(state.copyWith(fontFamily: family));
+  }
+
+  Future<void> setDirectionOverride(ReaderDirectionOverride direction) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      '$_readerDirectionOverridePrefix${state.book.id}',
+      direction.name,
+    );
+
+    if (state.book.format != BookFormat.epub &&
+        state.book.format != BookFormat.txt &&
+        state.book.format != BookFormat.html) {
+      emit(state.copyWith(directionOverride: direction));
+      return;
+    }
+
+    final contentProfile = await _bookService.getReaderContentProfile(
+      state.book.filePath,
+      state.book.format,
+      state.currentChapter,
+      bookLanguageTag: state.book.language,
+      directionOverride: direction,
+    );
+
+    emit(
+      state.copyWith(
+        directionOverride: direction,
+        contentProfile: contentProfile,
+      ),
+    );
   }
 
   Future<void> setReaderTheme(ReaderTheme theme) async {
@@ -392,5 +459,12 @@ class ReaderCubit extends Cubit<ReaderState> {
     // Ensure the reader's last progress hits the server.
     _autoSync?.flush();
     return super.close();
+  }
+
+  ReaderDirectionOverride _parseDirectionOverride(String? raw) {
+    return ReaderDirectionOverride.values.firstWhere(
+      (value) => value.name == raw,
+      orElse: () => ReaderDirectionOverride.auto,
+    );
   }
 }

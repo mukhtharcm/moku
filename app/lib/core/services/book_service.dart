@@ -8,6 +8,7 @@ import '../formats/cbz/cbz_parser.dart';
 import '../formats/html/html_parser.dart';
 import '../formats/pdf/pdf_parser.dart';
 import '../models/models.dart';
+import 'reader_content_resolver.dart';
 import 'epub_service.dart';
 import 'path_resolver.dart';
 
@@ -60,6 +61,42 @@ class BookService {
       BookFormat.txt => TxtParser.getChapterContent(filePath, chapterIndex),
       BookFormat.html => HtmlParser.getChapterContent(filePath, chapterIndex),
       _ => '', // PDF and CBZ don't use HTML content
+    };
+  }
+
+  Future<ReaderContentProfile> getReaderContentProfile(
+    String filePath,
+    BookFormat format,
+    int chapterIndex, {
+    required String? bookLanguageTag,
+    required ReaderDirectionOverride directionOverride,
+  }) async {
+    return switch (format) {
+      BookFormat.epub => _epubService.getChapterContentProfile(
+        filePath,
+        chapterIndex,
+        bookLanguageTag: bookLanguageTag,
+        directionOverride: directionOverride,
+      ),
+      BookFormat.txt => TxtParser.getContentProfile(
+        filePath,
+        chapterIndex,
+        bookLanguageTag: bookLanguageTag,
+        directionOverride: directionOverride,
+      ),
+      BookFormat.html => HtmlParser.getContentProfile(
+        filePath,
+        chapterIndex,
+        bookLanguageTag: bookLanguageTag,
+        directionOverride: directionOverride,
+      ),
+      _ => Future.value(
+        ReaderContentResolver.resolve(
+          directionOverride: directionOverride,
+          bookLanguageTag: bookLanguageTag,
+          textSample: null,
+        ),
+      ),
     };
   }
 
@@ -182,6 +219,7 @@ class BookService {
       id: bookId,
       title: meta.title,
       author: meta.author,
+      language: meta.languageTag,
       filePath: PathResolver.toRelative(destPath),
       format: BookFormat.html,
       totalChapters: meta.chapterCount,

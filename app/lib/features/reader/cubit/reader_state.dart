@@ -8,13 +8,23 @@ enum ReaderStatus { initial, loading, loaded, error }
 
 /// Available font families for the reader
 enum ReaderFontFamily {
-  system('-apple-system, system-ui, sans-serif'),
-  serif('Georgia, "Times New Roman", serif'),
-  sansSerif('"Helvetica Neue", Helvetica, Arial, sans-serif'),
-  mono('"SF Mono", Menlo, monospace');
+  system,
+  serif,
+  sansSerif,
+  mono;
 
-  final String cssFontFamily;
-  const ReaderFontFamily(this.cssFontFamily);
+  String cssFontFamilyFor(ContentTextDirection direction) {
+    return switch ((this, direction)) {
+      (ReaderFontFamily.system, _) =>
+        '-apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+      (ReaderFontFamily.serif, ContentTextDirection.rtl) => 'serif',
+      (ReaderFontFamily.serif, _) => 'Georgia, "Times New Roman", serif',
+      (ReaderFontFamily.sansSerif, ContentTextDirection.rtl) => 'sans-serif',
+      (ReaderFontFamily.sansSerif, _) =>
+        '"Helvetica Neue", Helvetica, Arial, sans-serif',
+      (ReaderFontFamily.mono, _) => '"SF Mono", Menlo, monospace',
+    };
+  }
 }
 
 class ReaderState extends Equatable {
@@ -37,6 +47,8 @@ class ReaderState extends Equatable {
   final int currentPage;
   final int totalPages;
   final String? pendingHighlightText;
+  final ReaderDirectionOverride directionOverride;
+  final ReaderContentProfile contentProfile;
 
   const ReaderState({
     this.status = ReaderStatus.initial,
@@ -58,6 +70,13 @@ class ReaderState extends Equatable {
     this.currentPage = 0,
     this.totalPages = 1,
     this.pendingHighlightText,
+    this.directionOverride = ReaderDirectionOverride.auto,
+    this.contentProfile = const ReaderContentProfile(
+      languageTag: null,
+      textDirection: ContentTextDirection.ltr,
+      pageProgressionDirection: ContentTextDirection.ltr,
+      directionSource: ReaderDirectionSource.fallback,
+    ),
   });
 
   ReaderState copyWith({
@@ -80,6 +99,8 @@ class ReaderState extends Equatable {
     int? currentPage,
     int? totalPages,
     String? pendingHighlightText,
+    ReaderDirectionOverride? directionOverride,
+    ReaderContentProfile? contentProfile,
     bool clearPendingHighlight = false,
   }) {
     return ReaderState(
@@ -101,6 +122,8 @@ class ReaderState extends Equatable {
       zenMode: zenMode ?? this.zenMode,
       currentPage: currentPage ?? this.currentPage,
       totalPages: totalPages ?? this.totalPages,
+      directionOverride: directionOverride ?? this.directionOverride,
+      contentProfile: contentProfile ?? this.contentProfile,
       pendingHighlightText: clearPendingHighlight
           ? null
           : (pendingHighlightText ?? this.pendingHighlightText),
@@ -109,6 +132,8 @@ class ReaderState extends Equatable {
 
   bool get hasNextChapter => currentChapter < chapters.length - 1;
   bool get hasPreviousChapter => currentChapter > 0;
+  bool get isContentRtl => contentProfile.isRtl;
+  String? get contentLanguageTag => contentProfile.languageTag;
 
   @override
   List<Object?> get props => [
@@ -130,6 +155,8 @@ class ReaderState extends Equatable {
     zenMode,
     currentPage,
     totalPages,
+    directionOverride,
+    contentProfile,
     pendingHighlightText,
   ];
 }

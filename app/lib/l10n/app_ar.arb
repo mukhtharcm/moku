@@ -1,0 +1,423 @@
+{
+  "@@locale": "ar",
+  "appTitle": "موكو",
+  "formatHtml": "HTML",
+  "formatPdf": "PDF",
+  "bookUnknownTitle": "بدون عنوان",
+  "formatEpub": "EPUB",
+  "formatText": "نص",
+  "navLibrary": "مكتبة",
+  "navStats": "إحصاءات",
+  "navShelves": "رفوف",
+  "navSettings": "إعدادات",
+  "commonCancel": "إلغاء",
+  "navDiscover": "استكشاف",
+  "commonRemove": "إزالة",
+  "commonAdd": "إضافة",
+  "commonDelete": "حذف",
+  "commonCreate": "إنشاء",
+  "commonTryAgain": "حاول ثانية",
+  "commonSave": "حفظ",
+  "commonCopy": "نسخ",
+  "onboardingSkip": "تخطي",
+  "commonClear": "مسح",
+  "commonImportFiles": "استيراد الملفات",
+  "onboardingWelcomeTitle": "مرحبا بكم في موكو",
+  "onboardingGetStarted": "ابدأ",
+  "onboardingSyncTitle": "المزامنة عبر الأجهزة",
+  "formatComicCbz": "قصص مصورة (CBZ)",
+  "onboardingWelcomeBody": "قم باستيراد ملفات EPUB، وPDF، وTXT، وCBZ، وHTML، وتتبع التقدم، وقراءة خالية من التشتيت.",
+  "bookUnknownAuthor": "مؤلف غير معروف",
+  "onboardingImportTitle": "استيراد كتبك",
+  "onboardingStartReading": "ابدأ القراءة",
+  "onboardingImportBody": "أضف ملفات EPUB، وPDF، وTXT، وCBZ، وHTML من جهازك.\nتبقى مكتبتك على جهازك، دون اتصال بالإنترنت بشكل كامل.",
+  "librarySectionTitle": "مكتبة",
+  "libraryErrorFallback": "حدث خطأ ما",
+  "onboardingImportLater": "سأفعل هذا لاحقًا",
+  "onboardingWelcomeSubtitle": "رفيقك المريح في القراءة",
+  "librarySortRecent": "مؤخرًا",
+  "libraryFabImport": "استيراد",
+  "librarySortAuthor": "مؤلف",
+  "librarySortTitle": "عنوان",
+  "libraryInfoChapters": "فصول",
+  "libraryInfoPublisher": "الناشر",
+  "libraryInfoLanguage": "لغة",
+  "libraryInfoIsbn": "رقم ISBN",
+  "libraryEmptySearchBody": "حاول استخدام مصطلح بحث مختلف",
+  "onboardingSyncServerBody": "هل تريد مزامنة الكتب والتقدم عبر الأجهزة؟\nقم بتوصيل خادم PocketBase الخاص بك في الإعدادات.",
+  "librarySearchHint": "ابحث في مكتبتك...",
+  "libraryContinueReading": "مواصلة القراءة",
+  "onboardingSyncOfflineBody": "يعمل Moku بشكل كامل بدون اتصال بالإنترنت - لا حاجة إلى حساب.",
+  "searchTitle": "استكشاف",
+  "searchCatalogOpenLibraryTitle": "Open Library",
+  "libraryDeleteBookMessage": "هل تريد إزالة \"{title}\" من مكتبتك؟",
+  "libraryBookInfo": "معلومات الكتاب",
+  "libraryProgressRead": "{progress}% قراءة",
+  "searchCatalogProjectGutenbergTitle": "Project Gutenberg",
+  "searchGenericCatalogName": "كتالوج",
+  "searchPromptGenericCatalogName": "كتالوج",
+  "libraryDeleteBookTitle": "حذف الكتاب",
+  "searchManageCatalogs": "إدارة الكتالوجات",
+  "searchCatalogLabel": "كتالوج",
+  "libraryEmptySearchTitle": "لم يتم العثور على كتب",
+  "libraryEmptyTitle": "مكتبتك في انتظارك",
+  "libraryEmptyBody": "قم باستيراد كتابك الأول أو كتابك الهزلي لبدء القراءة",
+  "searchErrorFallback": "حدث خطأ ما.",
+  "searchErrorInvalidCatalogInput": "أدخل اسمًا صالحًا للكتالوج وعنوان URL.",
+  "searchErrorDownloadRedirected": "تمت إعادة توجيه التنزيل عدة مرات.",
+  "searchErrorDuplicateCatalog": "تمت إضافة هذا الكتالوج بالفعل.",
+  "searchHint": "بحث {catalogTitle}...",
+  "searchInitialPromptTitle": "بحث {catalogTitle}",
+  "searchErrorDownloadFailed": "فشل التنزيل.",
+  "searchInitialPromptBody": "ابحث عن الكتب القابلة للتنزيل وأضفها مباشرة إلى مكتبتك.",
+  "searchErrorCatalogSearchTemplateMissing": "تعذر العثور على قالب بحث قابل للاستخدام لهذا الكتالوج.",
+  "searchErrorSearchFailed": "فشل البحث في الكتالوج.",
+  "searchErrorCatalogLoadFailed": "تعذر تحميل هذا الكتالوج.",
+  "searchErrorCatalogNotSearchable": "لا يوفر هذا الكتالوج موجز OPDS قابلاً للبحث.",
+  "searchErrorCatalogMissingSearchLink": "لا يعرض هذا الكتالوج رابط بحث قابل للاستخدام.",
+  "searchCatalogsTitle": "الكتالوجات",
+  "searchEmptyResults": "لم يتم العثور على كتب قابلة للتحميل",
+  "searchErrorCatalogSearchDescriptionFailed": "تعذر تحميل وصف البحث في الكتالوج.",
+  "searchNoCatalogSelected": "اختر كتالوجًا لبدء البحث",
+  "searchBookAdded": "تمت إضافة {title} إلى مكتبتك",
+  "searchDownloadFailed": "فشل التنزيل: {error}",
+  "searchCatalogsBody": "الكتالوجات المدمجة جاهزة للاستخدام. يمكنك أيضًا إضافة كتالوجات OPDS الخاصة بك.",
+  "searchCatalogTypeCustom": "مخصص",
+  "searchNoCustomCatalogs": "لا توجد كتالوجات مخصصة حتى الآن.",
+  "searchAddCustomCatalog": "إضافة كتالوج مخصص",
+  "searchCatalogNameLabel": "اسم الكتالوج",
+  "searchRemoveCatalog": "إزالة الكتالوج",
+  "searchAddCustomCatalogTitle": "إضافة كتالوج مخصص",
+  "settingsSectionBattery": "بطارية",
+  "settingsTitle": "إعدادات",
+  "searchDownloading": "جارٍ التنزيل...",
+  "settingsSectionAppearance": "مظهر",
+  "settingsThemeSystem": "نظام",
+  "settingsSectionSync": "مزامنة",
+  "settingsSectionAbout": "عن",
+  "settingsThemeLight": "فاتح",
+  "settingsPowerSaverTitle": "موفر الطاقة",
+  "settingsThemeDark": "مظلم",
+  "settingsSyncConnected": "متصل",
+  "settingsSyncNotLoggedIn": "لم يتم تسجيل الدخول",
+  "settingsSyncNotConfigured": "لم يتم تكوينه",
+  "searchCouldNotAddCatalog": "لا يمكن إضافة الكتالوج: {error}",
+  "settingsPowerSaverSubtitle": "تقليل الرسوم المتحركة وتحديثات التمرير",
+  "settingsVersion": "الإصدار {version}",
+  "searchCatalogUrlLabel": "عنوان URL للكتالوج",
+  "searchDownloadFormat": "تحميل {formatName}",
+  "searchOpenSourcePage": "صفحة مفتوحة المصدر",
+  "settingsSyncServerTitle": "خادم المزامنة",
+  "settingsThemeSystemSubtitle": "اتبع موضوع الجهاز",
+  "settingsOpenSourceTitle": "مفتوح المصدر",
+  "syncStatusConnecting": "جارٍ الاتصال...",
+  "syncStatusDisconnected": "غير متصل",
+  "syncStatusSyncing": "جارٍ المزامنة...",
+  "settingsVersionValue": "{version}",
+  "settingsVersionValueWithBuild": "{version} ({build})",
+  "syncStatusConnected": "متصل",
+  "syncServerSectionTitle": "الخادم",
+  "syncNeverSynced": "لم تتم مزامنتها مطلقًا",
+  "syncStatusError": "خطأ",
+  "settingsOpenSourceSubtitle": "Flutter + PocketBase",
+  "settingsVersionLoading": "جارٍ تحميل النسخة...",
+  "syncSettingsTitle": "إعدادات المزامنة",
+  "syncConnect": "اتصال",
+  "syncCreateAccount": "إنشاء حساب",
+  "syncLogin": "تسجيل الدخول",
+  "syncHaveAccountLogin": "هل لديك حساب؟ تسجيل الدخول",
+  "syncServerUrlLabel": "عنوان URL للخادم",
+  "syncNewRegister": "مستخدم جديد؟ أنشئ حسابًا",
+  "syncPasswordLabel": "كلمة المرور",
+  "syncRegister": "تسجيل",
+  "syncEmailLabel": "بريد إلكتروني",
+  "syncSectionTitle": "مزامنة",
+  "syncAccountTitle": "حساب",
+  "syncSyncNow": "مزامنة الآن",
+  "syncLogout": "تسجيل الخروج",
+  "settingsVersionUnavailable": "الإصدار غير متوفر",
+  "syncLastSynced": "آخر مزامنة: {value}",
+  "syncServerUrlHint": "https://your-server.com",
+  "syncAutoSyncTitle": "المزامنة التلقائية",
+  "syncFailedToConnect": "فشل الاتصال: {error}",
+  "syncRegistrationFailed": "فشل التسجيل: {error}",
+  "syncRegistrationFailedGeneric": "فشل التسجيل. يرجى المحاولة مرة أخرى.",
+  "syncLoginFailedGeneric": "فشل تسجيل الدخول. يرجى التحقق من بيانات الاعتماد الخاصة بك وحاول مرة أخرى.",
+  "syncFailedToConnectGeneric": "فشل الاتصال بالخادم.",
+  "syncPartialFailure": "فشلت المزامنة جزئيًا: {collections}",
+  "syncCollectionBooks": "كتب",
+  "syncFailed": "فشلت المزامنة: {error}",
+  "syncAuthExpired": "انتهت صلاحية المصادقة. الرجاء تسجيل الدخول مرة أخرى.",
+  "syncFailedGeneric": "فشلت المزامنة. يرجى المحاولة مرة أخرى.",
+  "syncCollectionHighlights": "أبرز",
+  "syncCollectionBookmarks": "الإشارات المرجعية",
+  "syncAutoSyncSubtitle": "المزامنة في الخلفية عند بدء التشغيل والمقدمة وبعد التغييرات.",
+  "syncLoginFailed": "فشل تسجيل الدخول: {error}",
+  "syncRecentErrors": "أخطاء المزامنة الأخيرة",
+  "syncCollectionShelves": "رفوف",
+  "collectionsTitle": "رفوف",
+  "collectionsEmptyTitle": "لا يوجد رفوف بعد",
+  "syncCollectionUnknown": "بيانات أخرى",
+  "syncCollectionReadingSessions": "جلسات القراءة",
+  "syncCollectionShelfBooks": "كتب الرف",
+  "syncCollectionReadingGoals": "أهداف القراءة",
+  "collectionsNameLabel": "اسم",
+  "collectionsDescriptionOptionalLabel": "الوصف (اختياري)",
+  "syncErrorLogGenericMessage": "لا يمكن مزامنة هذه البيانات.",
+  "collectionsCreateShelf": "إنشاء رف",
+  "collectionsNewShelfTitle": "رف جديد",
+  "syncCollectionReadingProgress": "تقدم القراءة",
+  "collectionsEmptyBody": "تنظيم كتبك في مجموعات",
+  "collectionDetailAddBooksTooltip": "إضافة كتب",
+  "collectionDetailAddBooks": "إضافة كتب",
+  "collectionDetailRemoveTitle": "إزالة من المجموعة",
+  "collectionDetailAddBooksTitle": "إضافة كتب",
+  "readerAnnotations": "التعليقات",
+  "collectionsDeleteShelfTitle": "حذف الرف",
+  "collectionsNameHint": "مثال: المفضلة، للقراءة لاحقًا...",
+  "collectionDetailEmptyTitle": "لا توجد كتب في هذه المجموعة",
+  "collectionDetailAddedBook": "تمت إضافة \"{title}\"",
+  "collectionDetailAllBooksAlreadyAdded": "جميع الكتب موجودة بالفعل في هذه المجموعة",
+  "collectionDetailRemoveMessage": "هل تريد إزالة \"{title}\" من \"{collectionName}\"؟",
+  "readerNoHighlightsHint": "حدد النص أثناء القراءة لتمييزه",
+  "readerNoBookmarksYet": "لا توجد إشارات مرجعية حتى الآن",
+  "readerBookmarksTab": "الإشارات المرجعية ({count})",
+  "readerNoHighlightsYet": "لا توجد تظليلات بعد",
+  "readerHighlightsTab": "التظليلات ({count})",
+  "readerAddNote": "أضف ملاحظة",
+  "readerEditNote": "تحرير الملاحظة",
+  "collectionsDeleteShelfMessage": "هل تريد حذف \"{name}\"؟ لن تتم إزالة كتبك من المكتبة.",
+  "readerHighlight": "تظليل",
+  "readerCopiedToClipboard": "تم النسخ إلى الحافظة",
+  "readerDeleteHighlightTitle": "حذف التمييز",
+  "readerNoteHint": "أدخل ملاحظتك...",
+  "readerErrorTitle": "خطأ القارئ",
+  "readerHighlightWithNote": "تسليط الضوء مع ملاحظة",
+  "readerTableOfContents": "جدول المحتويات",
+  "readerZenMode": "وضع زين",
+  "readerSettings": "إعدادات",
+  "readerDeleteHighlightMessage": "هل أنت متأكد أنك تريد حذف هذا التمييز؟",
+  "readerBookmark": "إشارة مرجعية",
+  "readerReadingDirection": "اتجاه القراءة",
+  "readerTypography": "الطباعة",
+  "readerChapterLabel": "الفصل {chapterNumber}",
+  "readerQuotedSelection": "\"{text}\"",
+  "readerDirectionAuto": "آلي",
+  "readerDirectionLeftToRight": "من اليسار إلى اليمين",
+  "readerContents": "محتويات",
+  "readerTheme": "سمة",
+  "readerFontFamilySystem": "نظام",
+  "readerFontFamilySerif": "Serif",
+  "readerFontFamilySansSerif": "Sans Serif",
+  "readerFontFamilyMonospace": "مونوسبيس",
+  "statsErrorFallback": "خطأ",
+  "readerUnknownError": "حدث خطأ ما أثناء فتح هذا الكتاب.",
+  "statsTotalTime": "الوقت الإجمالي",
+  "readerDirectionRightToLeft": "من اليمين إلى اليسار",
+  "readerLoadFailed": "فشل تحميل هذا الكتاب: {error}",
+  "readerExitZenMode": "الخروج من وضع زين",
+  "statsSessions": "الجلسات",
+  "readerPageOf": "صفحة {currentPage} من {totalPages}",
+  "statsLoadFailed": "فشل تحميل الإحصائيات: {error}",
+  "statsRecentSessions": "الجلسات الأخيرة",
+  "statsHeatmapLess": "أقل",
+  "statsHeatmapMore": "أكثر",
+  "statsCurrentStreak": "الخط الحالي",
+  "statsReadingActivity": "نشاط القراءة",
+  "statsBooksStartedThisYear": "الكتب التي بدأت هذا العام",
+  "statsHeatmapNoReading": "{date}: لا توجد قراءة",
+  "statsDurationHoursMinutes": "{hours}س {minutes}د",
+  "statsLongestStreak": "أطول خط",
+  "statsTitle": "إحصائيات القراءة",
+  "readerChapterProgress": "{chapterTitle} · {percent}%",
+  "statsDurationMinutes": "{minutes}م",
+  "statsHeatmapMinutes": "{date}: {minutes} دقيقة",
+  "@libraryDeleteBookMessage": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "@libraryProgressRead": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "@searchHint": {
+    "placeholders": {
+      "catalogTitle": {}
+    }
+  },
+  "@searchInitialPromptTitle": {
+    "placeholders": {
+      "catalogTitle": {}
+    }
+  },
+  "@searchBookAdded": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "@searchDownloadFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@searchCouldNotAddCatalog": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@searchDownloadFormat": {
+    "placeholders": {
+      "formatName": {}
+    }
+  },
+  "@settingsVersion": {
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "@settingsVersionValue": {
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "@settingsVersionValueWithBuild": {
+    "placeholders": {
+      "version": {},
+      "build": {}
+    }
+  },
+  "@syncLastSynced": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "@syncFailedToConnect": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@syncRegistrationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@syncLoginFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@syncPartialFailure": {
+    "placeholders": {
+      "collections": {}
+    }
+  },
+  "@syncFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@collectionsDeleteShelfMessage": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "@collectionDetailRemoveMessage": {
+    "placeholders": {
+      "title": {},
+      "collectionName": {}
+    }
+  },
+  "@collectionDetailAddedBook": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "@readerHighlightsTab": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@readerBookmarksTab": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@readerQuotedSelection": {
+    "placeholders": {
+      "text": {}
+    }
+  },
+  "@readerChapterLabel": {
+    "placeholders": {
+      "chapterNumber": {
+        "type": "int"
+      }
+    }
+  },
+  "@readerLoadFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@readerPageOf": {
+    "placeholders": {
+      "currentPage": {
+        "type": "int"
+      },
+      "totalPages": {
+        "type": "int"
+      }
+    }
+  },
+  "@readerChapterProgress": {
+    "placeholders": {
+      "chapterTitle": {},
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "@statsLoadFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "@statsHeatmapNoReading": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "@statsHeatmapMinutes": {
+    "placeholders": {
+      "date": {},
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@statsDurationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@statsDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  }
+}

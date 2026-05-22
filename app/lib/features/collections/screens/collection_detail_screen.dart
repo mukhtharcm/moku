@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/localization/bidi_text.dart';
 import '../../../core/database/database.dart' as db;
 import '../../../core/models/book_localizations.dart';
 import '../../../core/models/models.dart';
@@ -128,8 +129,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         title: Text(l10n.collectionDetailRemoveTitle),
         content: Text(
           l10n.collectionDetailRemoveMessage(
-            title: bookTitleLabel(context, book.title),
-            collectionName: widget.collection.name,
+            title: bidiWrappedText(context, bookTitleLabel(context, book.title)),
+            collectionName: bidiWrappedText(context, widget.collection.name),
           ),
         ),
         actions: [
@@ -237,7 +238,10 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                             SnackBar(
                               content: Text(
                                 l10n.collectionDetailAddedBook(
-                                  title: bookTitleLabel(context, dbBook.title),
+                                  title: bidiWrappedText(
+                                    context,
+                                    bookTitleLabel(context, dbBook.title),
+                                  ),
                                 ),
                               ),
                               duration: const Duration(seconds: 1),

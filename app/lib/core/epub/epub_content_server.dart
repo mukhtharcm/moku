@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'epub_document.dart';
+import '../models/reader_content_profile.dart';
+import '../services/reader_content_resolver.dart';
 
 enum EpubContentErrorCode { chapterNotFound, contentNotAvailable }
 
@@ -189,6 +191,34 @@ class EpubContentServer {
     buffer.write(bodyContent);
 
     return buffer.toString();
+  }
+
+  ReaderContentProfile getChapterContentProfile(
+    int chapterIndex, {
+    required String? bookLanguageTag,
+    required ReaderDirectionOverride directionOverride,
+  }) {
+    if (chapterIndex < 0 || chapterIndex >= chapters.length) {
+      throw const EpubContentException(EpubContentErrorCode.chapterNotFound);
+    }
+
+    final chapter = chapters[chapterIndex];
+    final html = _getHtmlContent(chapter.contentHref);
+
+    return ReaderContentResolver.resolve(
+      directionOverride: directionOverride,
+      explicitLanguageTag: html == null
+          ? null
+          : ReaderContentResolver.extractLanguageTagFromHtml(html),
+      explicitDir: html == null
+          ? null
+          : ReaderContentResolver.extractDirAttributeFromHtml(html),
+      bookLanguageTag: bookLanguageTag ?? document.metadata.language,
+      textSample: html,
+      pageProgressionDirection: ReaderContentResolver.directionFromDirAttribute(
+        document.pageProgressionDirection,
+      ),
+    );
   }
 
   /// Get the cover image bytes and media type, if available.

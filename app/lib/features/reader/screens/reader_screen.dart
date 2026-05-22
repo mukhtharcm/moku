@@ -10,6 +10,7 @@ import '../../../core/database/database.dart'
     hide Book, Bookmark, Highlight, BookCollection;
 import '../../../core/models/book.dart';
 import '../../../core/models/book_localizations.dart';
+import '../../../core/models/reader_content_profile.dart';
 import '../../../core/services/book_service.dart';
 import '../../../core/sync/auto_sync_service.dart';
 import '../../../core/theme/app_theme.dart';
@@ -87,6 +88,8 @@ class _ReaderViewState extends State<_ReaderView>
   double _lastLoadedMargin = 0;
   ReaderFontFamily? _lastLoadedFontFamily;
   ReaderTheme? _lastLoadedTheme;
+  ReaderDirectionOverride? _lastLoadedDirectionOverride;
+  ReaderContentProfile? _lastLoadedContentProfile;
 
   // Pagination start position: 'restore', 'first', 'last', 'fraction:X', 'fragment:id'
   String _pendingStartPosition = 'restore';
@@ -432,12 +435,19 @@ class _ReaderViewState extends State<_ReaderView>
   }) {
     final bgColor = _colorToHex(state.readerTheme.backgroundColor);
     final textColor = _colorToHex(state.readerTheme.textColor);
-    final fontFamily = state.fontFamily.cssFontFamily;
+    final fontFamily = state.fontFamily.cssFontFamilyFor(
+      state.contentProfile.textDirection,
+    );
     final fontSize = state.fontSize;
     final lineHeight = state.lineHeight;
     final hMargin = state.horizontalMargin.toInt();
     final colWidth = 'calc(100vw - ${2 * hMargin}px)';
     final colGap = '${2 * hMargin}px';
+    final contentDirection = state.isContentRtl ? 'rtl' : 'ltr';
+    final pageProgressionDirection = state.contentProfile.isPageProgressionRtl
+        ? 'rtl'
+        : 'ltr';
+    final languageTag = state.contentLanguageTag;
 
     // Build start position JS object
     String startPosJs;
@@ -454,7 +464,7 @@ class _ReaderViewState extends State<_ReaderView>
 
     return '''
 <!DOCTYPE html>
-<html>
+<html${languageTag == null ? '' : ' lang="$languageTag"'} dir="$contentDirection">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -490,6 +500,10 @@ class _ReaderViewState extends State<_ReaderView>
     -webkit-text-size-adjust: none;
     transition: transform 0.25s ease-out;
   }
+  #moku-chapter {
+    direction: $contentDirection;
+    text-align: start;
+  }
   h1, h2, h3, h4, h5, h6 {
     margin: 1em 0 0.5em 0;
     line-height: 1.3;
@@ -516,9 +530,9 @@ class _ReaderViewState extends State<_ReaderView>
   }
   a { color: inherit; text-decoration: underline; }
   blockquote {
-    border-left: 3px solid $textColor;
+    border-inline-start: 3px solid $textColor;
     opacity: 0.8;
-    padding-left: 16px;
+    padding-inline-start: 16px;
     margin: 1em 0;
     break-inside: avoid;
     page-break-inside: avoid;
@@ -554,12 +568,15 @@ class _ReaderViewState extends State<_ReaderView>
 <body>
 <div id="moku-viewport">
   <div id="moku-content">
+    <div id="moku-chapter">
 $content
+    </div>
   </div>
 </div>
 <script>
 // --- Start position ---
 window._mokuStartPosition = $startPosJs;
+window._mokuPageDirection = '$pageProgressionDirection';
 
 // --- Pagination Engine ---
 var mokuPagination = {
@@ -654,8 +671,13 @@ document.addEventListener('touchend', function(e) {
   var dx = e.changedTouches[0].clientX - _touchStartX;
   var dy = e.changedTouches[0].clientY - _touchStartY;
   if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-    if (dx < 0) mokuPagination.nextPage();
-    else mokuPagination.prevPage();
+    if (window._mokuPageDirection === 'rtl') {
+      if (dx < 0) mokuPagination.prevPage();
+      else mokuPagination.nextPage();
+    } else {
+      if (dx < 0) mokuPagination.nextPage();
+      else mokuPagination.prevPage();
+    }
   }
 }, { passive: true });
 
@@ -679,9 +701,18 @@ document.addEventListener('click', function(e) {
     _mokuTapTimer = setTimeout(function() {
       if (_mokuLastTap > 0) {
         _mokuLastTap = 0;
-        if (zone === 'left') mokuPagination.prevPage();
-        else if (zone === 'right') mokuPagination.nextPage();
-        else MokuBridge.postMessage('tap');
+        if (zone === 'center') {
+          MokuBridge.postMessage('tap');
+          return;
+        }
+
+        if (window._mokuPageDirection === 'rtl') {
+          if (zone === 'left') mokuPagination.nextPage();
+          else if (zone === 'right') mokuPagination.prevPage();
+        } else {
+          if (zone === 'left') mokuPagination.prevPage();
+          else if (zone === 'right') mokuPagination.nextPage();
+        }
       }
     }, 300);
   }
@@ -877,6 +908,8 @@ window.addEventListener('load', function() {
           prev.lineHeight != curr.lineHeight ||
           prev.horizontalMargin != curr.horizontalMargin ||
           prev.fontFamily != curr.fontFamily ||
+          prev.directionOverride != curr.directionOverride ||
+          prev.contentProfile != curr.contentProfile ||
           prev.highlights != curr.highlights ||
           prev.zenMode != curr.zenMode ||
           prev.pendingHighlightText != curr.pendingHighlightText,
@@ -892,7 +925,9 @@ window.addEventListener('load', function() {
             state.lineHeight != _lastLoadedLineHeight ||
             state.horizontalMargin != _lastLoadedMargin ||
             state.fontFamily != _lastLoadedFontFamily ||
-            state.readerTheme != _lastLoadedTheme;
+            state.readerTheme != _lastLoadedTheme ||
+            state.directionOverride != _lastLoadedDirectionOverride ||
+            state.contentProfile != _lastLoadedContentProfile;
 
         if (state.currentContent.isNotEmpty &&
             (contentChanged || settingsChanged)) {
@@ -902,6 +937,8 @@ window.addEventListener('load', function() {
           _lastLoadedMargin = state.horizontalMargin;
           _lastLoadedFontFamily = state.fontFamily;
           _lastLoadedTheme = state.readerTheme;
+          _lastLoadedDirectionOverride = state.directionOverride;
+          _lastLoadedContentProfile = state.contentProfile;
 
           if (contentChanged) {
             // Chapter changed — use pending start position
@@ -1474,6 +1511,42 @@ class _ReaderSettingsSheet extends StatelessWidget {
                           label: Text(readerFontFamilyLabel(context, family)),
                           selected: isActive,
                           onSelected: (_) => cubit.setFontFamily(family),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                Text(
+                  l10n.readerReadingDirection,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: ReaderDirectionOverride.values.map((direction) {
+                      final isActive = direction == state.directionOverride;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(
+                            switch (direction) {
+                              ReaderDirectionOverride.auto =>
+                                l10n.readerDirectionAuto,
+                              ReaderDirectionOverride.ltr =>
+                                l10n.readerDirectionLeftToRight,
+                              ReaderDirectionOverride.rtl =>
+                                l10n.readerDirectionRightToLeft,
+                            },
+                          ),
+                          selected: isActive,
+                          onSelected: (_) => cubit.setDirectionOverride(
+                            direction,
+                          ),
                         ),
                       );
                     }).toList(),

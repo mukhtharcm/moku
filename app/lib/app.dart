@@ -84,6 +84,21 @@ class MokuApp extends StatelessWidget {
               theme: MokuTheme.lightTheme(),
               darkTheme: MokuTheme.darkTheme(),
               themeMode: themeState.themeMode,
+              builder: (context, child) {
+                final themedChild = child ?? const SizedBox.shrink();
+                final direction = Directionality.maybeOf(context);
+                if (direction == null) {
+                  return themedChild;
+                }
+
+                return Theme(
+                  data: MokuTheme.adaptForTextDirection(
+                    Theme.of(context),
+                    direction,
+                  ),
+                  child: themedChild,
+                );
+              },
               home: showOnboarding
                   ? const OnboardingScreen()
                   : const AppShell(),
