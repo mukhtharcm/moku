@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/database/database.dart';
+import 'core/localization/app_locale_cubit.dart';
 import 'core/services/book_service.dart';
 import 'core/services/epub_service.dart';
 import 'core/services/opds_catalog_service.dart';
@@ -21,6 +22,8 @@ void main() async {
   final epubService = EpubService();
   final bookService = BookService(epubService: epubService);
   final opdsCatalogService = OpdsCatalogService();
+  final appLocaleCubit = AppLocaleCubit();
+  await appLocaleCubit.loadLocale();
 
   // ---- Sync stack -------------------------------------------------------
   // We construct these eagerly so auto-sync can run from launch without
@@ -49,6 +52,7 @@ void main() async {
       epubService: epubService,
       opdsCatalogService: opdsCatalogService,
       showOnboarding: needsOnboarding,
+      appLocaleCubit: appLocaleCubit,
       syncConfigCubit: syncConfigCubit,
       autoSyncService: autoSyncService,
       syncBootstrap: syncBootstrap,

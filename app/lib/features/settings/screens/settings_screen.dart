@@ -3,11 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/database/database.dart';
+import '../../../core/localization/app_locale_cubit.dart';
 import '../../../core/services/app_version_service.dart';
 import '../../../core/sync/sync_config.dart';
 import '../../../core/theme/theme_cubit.dart';
 import '../../../l10n/l10n.dart';
 import 'sync_settings_screen.dart';
+
+const _systemLocaleOption = '__system__';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -33,6 +36,66 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 8),
           _SectionHeader(l10n.settingsSectionAppearance),
           const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: BlocBuilder<AppLocaleCubit, AppLocaleState>(
+                builder: (context, state) {
+                  final selectedLocaleTag =
+                      state.localeTag ?? _systemLocaleOption;
+                  final localeOptions = <String>[
+                    _systemLocaleOption,
+                    ...AppLocalizations.supportedLocales
+                        .map(AppLocaleCubit.localeToTag)
+                        .whereType<String>(),
+                  ];
+                  return RadioGroup<String>(
+                    groupValue: selectedLocaleTag,
+                    onChanged: (selection) {
+                      if (selection == null) return;
+                      final localeCubit = context.read<AppLocaleCubit>();
+                      if (selection == _systemLocaleOption) {
+                        localeCubit.useSystemLocale();
+                      } else {
+                        localeCubit.setLocaleTag(selection);
+                      }
+                    },
+                    child: Column(
+                      children: [
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          leading: Icon(
+                            Icons.language_rounded,
+                            color: colorScheme.primary,
+                          ),
+                          title: Text(l10n.settingsLanguageTitle),
+                        ),
+                        ...localeOptions.map(
+                          (localeTag) => RadioListTile<String>(
+                            title: Text(_localeLabel(context, localeTag)),
+                            subtitle: localeTag == _systemLocaleOption
+                                ? Text(l10n.settingsLanguageSystemSubtitle)
+                                : null,
+                            value: localeTag,
+                            secondary: Icon(
+                              localeTag == _systemLocaleOption
+                                  ? Icons.settings_suggest_rounded
+                                  : Icons.translate_rounded,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           Card(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
@@ -255,4 +318,14 @@ class _SectionHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+String _localeLabel(BuildContext context, String localeTag) {
+  final l10n = context.l10n;
+  return switch (localeTag) {
+    _systemLocaleOption => l10n.settingsLanguageSystem,
+    'en' => l10n.settingsLanguageEnglish,
+    'ar' => l10n.settingsLanguageArabic,
+    _ => localeTag,
+  };
 }
