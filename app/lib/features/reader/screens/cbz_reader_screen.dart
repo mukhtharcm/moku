@@ -30,6 +30,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
   final Map<int, Uint8List> _imageCache = {};
 
   late final db.AppDatabase _database;
+  late final AutoSyncService _autoSync;
 
   // Session tracking
   String? _sessionId;
@@ -41,6 +42,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
     super.initState();
     _pageController = PageController();
     _database = context.read<db.AppDatabase>();
+    _autoSync = context.read<AutoSyncService>();
     WidgetsBinding.instance.addObserver(this);
     _loadComic();
   }
@@ -117,7 +119,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
       ),
     );
     try {
-      context.read<AutoSyncService>().bumpProgress();
+      _autoSync.bumpProgress();
     } catch (_) {}
   }
 
@@ -156,7 +158,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
     _sessionId = null;
     _sessionStartedAt = null;
     try {
-      context.read<AutoSyncService>().flush();
+      _autoSync.flush();
     } catch (_) {}
   }
 
@@ -166,10 +168,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
         minScale: 1.0,
         maxScale: 4.0,
         child: Center(
-          child: Image.memory(
-            _imageCache[index]!,
-            fit: BoxFit.contain,
-          ),
+          child: Image.memory(_imageCache[index]!, fit: BoxFit.contain),
         ),
       );
     }
@@ -184,10 +183,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
             minScale: 1.0,
             maxScale: 4.0,
             child: Center(
-              child: Image.memory(
-                snapshot.data!,
-                fit: BoxFit.contain,
-              ),
+              child: Image.memory(snapshot.data!, fit: BoxFit.contain),
             ),
           );
         }
@@ -250,7 +246,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                 ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8.0, vertical: 4.0),
+                    horizontal: 8.0,
+                    vertical: 4.0,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
@@ -304,7 +302,8 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                         data: SliderThemeData(
                           trackHeight: 2,
                           thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 6),
+                            enabledThumbRadius: 6,
+                          ),
                           activeTrackColor: theme.colorScheme.primary,
                           inactiveTrackColor: fgColor.withValues(alpha: 0.3),
                           thumbColor: theme.colorScheme.primary,
