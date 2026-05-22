@@ -69,9 +69,8 @@ class PdfParser {
   /// Generate chapter list — for PDFs, each "chapter" can represent a range
   /// of pages. We use simple page groups.
   static Future<List<ChapterInfo>> getChapters(String filePath) async {
-    final meta = await extractMetadata(filePath);
     // For PDF, we don't split into chapters — the reader handles pages natively
-    return [ChapterInfo(index: 0, title: '${meta.pageCount} pages')];
+    return [ChapterInfo(index: 0, title: '')];
   }
 
   /// Extract a PDF metadata field from the raw content.

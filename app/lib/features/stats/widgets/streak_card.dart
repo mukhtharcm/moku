@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
+
 class StreakCard extends StatelessWidget {
   final int currentStreak;
   final int longestStreak;
@@ -13,6 +15,7 @@ class StreakCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -22,7 +25,7 @@ class StreakCard extends StatelessWidget {
               icon: Icons.local_fire_department_rounded,
               iconColor: currentStreak > 0 ? Colors.orange : Colors.grey,
               value: '$currentStreak',
-              label: 'Current Streak',
+              label: l10n.statsCurrentStreak,
               theme: theme,
             ),
             const SizedBox(width: 16),
@@ -32,7 +35,7 @@ class StreakCard extends StatelessWidget {
               icon: Icons.emoji_events_rounded,
               iconColor: longestStreak > 0 ? Colors.amber : Colors.grey,
               value: '$longestStreak',
-              label: 'Longest Streak',
+              label: l10n.statsLongestStreak,
               theme: theme,
             ),
           ],

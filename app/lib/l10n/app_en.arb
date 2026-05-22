@@ -1,0 +1,419 @@
+{
+  "@@locale": "en",
+  "appTitle": "Moku",
+  "bookUnknownTitle": "Untitled",
+  "bookUnknownAuthor": "Unknown author",
+  "formatEpub": "EPUB",
+  "formatPdf": "PDF",
+  "formatText": "Text",
+  "formatComicCbz": "Comic (CBZ)",
+  "formatHtml": "HTML",
+  "navLibrary": "Library",
+  "navDiscover": "Discover",
+  "navShelves": "Shelves",
+  "navStats": "Stats",
+  "navSettings": "Settings",
+  "commonCancel": "Cancel",
+  "commonDelete": "Delete",
+  "commonCreate": "Create",
+  "commonAdd": "Add",
+  "commonRemove": "Remove",
+  "commonClear": "Clear",
+  "commonSave": "Save",
+  "commonCopy": "Copy",
+  "commonTryAgain": "Try Again",
+  "commonImportFiles": "Import files",
+  "onboardingSkip": "Skip",
+  "onboardingWelcomeTitle": "Welcome to Moku",
+  "onboardingWelcomeSubtitle": "Your cozy reading companion",
+  "onboardingWelcomeBody": "Import EPUB, PDF, TXT, CBZ, and HTML files,\ntrack progress, and read distraction-free.",
+  "onboardingGetStarted": "Get Started",
+  "onboardingImportTitle": "Import Your Books",
+  "onboardingImportBody": "Add EPUB, PDF, TXT, CBZ, and HTML files from your device.\nYour library stays on your device, fully offline.",
+  "onboardingImportLater": "I''ll do this later",
+  "onboardingSyncTitle": "Sync Across Devices",
+  "onboardingSyncOfflineBody": "Moku works fully offline - no account needed.",
+  "onboardingSyncServerBody": "Want to sync books and progress across devices?\nConnect your own PocketBase server in Settings.",
+  "onboardingStartReading": "Start Reading",
+  "librarySearchHint": "Search your library...",
+  "libraryErrorFallback": "Something went wrong",
+  "librarySectionTitle": "Library",
+  "libraryFabImport": "Import",
+  "librarySortRecent": "Recent",
+  "librarySortTitle": "Title",
+  "librarySortAuthor": "Author",
+  "libraryBookInfo": "Book Info",
+  "libraryInfoChapters": "Chapters",
+  "libraryInfoPublisher": "Publisher",
+  "libraryInfoLanguage": "Language",
+  "libraryInfoIsbn": "ISBN",
+  "libraryDeleteBookTitle": "Delete Book",
+  "libraryDeleteBookMessage": "Remove \"{title}\" from your library?",
+  "@libraryDeleteBookMessage": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "libraryEmptySearchTitle": "No books found",
+  "libraryEmptySearchBody": "Try a different search term",
+  "libraryEmptyTitle": "Your library awaits",
+  "libraryEmptyBody": "Import your first book or comic to start reading",
+  "libraryContinueReading": "Continue Reading",
+  "libraryProgressRead": "{progress}% read",
+  "@libraryProgressRead": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "searchTitle": "Discover",
+  "searchCatalogOpenLibraryTitle": "Open Library",
+  "searchCatalogProjectGutenbergTitle": "Project Gutenberg",
+  "searchManageCatalogs": "Manage catalogs",
+  "searchCatalogLabel": "Catalog",
+  "searchGenericCatalogName": "catalog",
+  "searchPromptGenericCatalogName": "a catalog",
+  "searchHint": "Search {catalogTitle}...",
+  "@searchHint": {
+    "placeholders": {
+      "catalogTitle": {}
+    }
+  },
+  "searchInitialPromptTitle": "Search {catalogTitle}",
+  "@searchInitialPromptTitle": {
+    "placeholders": {
+      "catalogTitle": {}
+    }
+  },
+  "searchInitialPromptBody": "Find downloadable books and add them straight to your library.",
+  "searchErrorFallback": "Something went wrong.",
+  "searchErrorInvalidCatalogInput": "Enter a valid catalog name and URL.",
+  "searchErrorDuplicateCatalog": "That catalog has already been added.",
+  "searchErrorDownloadRedirected": "The download redirected too many times.",
+  "searchErrorDownloadFailed": "The download failed.",
+  "searchErrorCatalogNotSearchable": "This catalog does not provide a searchable OPDS feed.",
+  "searchErrorSearchFailed": "The catalog search failed.",
+  "searchErrorCatalogLoadFailed": "Could not load that catalog.",
+  "searchErrorCatalogMissingSearchLink": "This catalog does not expose a usable search link.",
+  "searchErrorCatalogSearchDescriptionFailed": "Could not load the catalog search description.",
+  "searchErrorCatalogSearchTemplateMissing": "Could not find a usable search template for this catalog.",
+  "searchEmptyResults": "No downloadable books found",
+  "searchNoCatalogSelected": "Choose a catalog to start searching",
+  "searchBookAdded": "{title} added to your library",
+  "@searchBookAdded": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "searchDownloadFailed": "Download failed: {error}",
+  "@searchDownloadFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "searchCatalogsTitle": "Catalogs",
+  "searchCatalogsBody": "Built-ins are ready to use. Add your own OPDS catalogs too.",
+  "searchRemoveCatalog": "Remove catalog",
+  "searchNoCustomCatalogs": "No custom catalogs yet.",
+  "searchAddCustomCatalog": "Add Custom Catalog",
+  "searchAddCustomCatalogTitle": "Add Custom Catalog",
+  "searchCatalogNameLabel": "Catalog name",
+  "searchCatalogUrlLabel": "Catalog URL",
+  "searchCouldNotAddCatalog": "Could not add catalog: {error}",
+  "@searchCouldNotAddCatalog": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "searchCatalogTypeCustom": "Custom",
+  "searchOpenSourcePage": "Open source page",
+  "searchDownloading": "Downloading...",
+  "searchDownloadFormat": "Download {formatName}",
+  "@searchDownloadFormat": {
+    "placeholders": {
+      "formatName": {}
+    }
+  },
+  "settingsTitle": "Settings",
+  "settingsSectionAppearance": "Appearance",
+  "settingsSectionBattery": "Battery",
+  "settingsSectionSync": "Sync",
+  "settingsSectionAbout": "About",
+  "settingsThemeSystem": "System",
+  "settingsThemeSystemSubtitle": "Follow device theme",
+  "settingsThemeLight": "Light",
+  "settingsThemeDark": "Dark",
+  "settingsPowerSaverTitle": "Power Saver",
+  "settingsPowerSaverSubtitle": "Reduce animations and scroll updates",
+  "settingsSyncServerTitle": "Sync Server",
+  "settingsSyncConnected": "Connected",
+  "settingsSyncNotLoggedIn": "Not logged in",
+  "settingsSyncNotConfigured": "Not configured",
+  "settingsVersion": "Version {version}",
+  "@settingsVersion": {
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "settingsVersionValue": "{version}",
+  "@settingsVersionValue": {
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "settingsVersionValueWithBuild": "{version} ({build})",
+  "@settingsVersionValueWithBuild": {
+    "placeholders": {
+      "version": {},
+      "build": {}
+    }
+  },
+  "settingsVersionUnavailable": "Version unavailable",
+  "settingsVersionLoading": "Loading version...",
+  "settingsOpenSourceTitle": "Open Source",
+  "settingsOpenSourceSubtitle": "Flutter + PocketBase",
+  "syncSettingsTitle": "Sync Settings",
+  "syncStatusDisconnected": "Disconnected",
+  "syncStatusConnecting": "Connecting...",
+  "syncStatusConnected": "Connected",
+  "syncStatusSyncing": "Syncing...",
+  "syncStatusError": "Error",
+  "syncLastSynced": "Last synced: {value}",
+  "@syncLastSynced": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "syncNeverSynced": "Never synced",
+  "syncServerSectionTitle": "Server",
+  "syncServerUrlLabel": "Server URL",
+  "syncServerUrlHint": "https://your-server.com",
+  "syncConnect": "Connect",
+  "syncCreateAccount": "Create Account",
+  "syncLogin": "Login",
+  "syncHaveAccountLogin": "Have an account? Login",
+  "syncNewRegister": "New? Register",
+  "syncEmailLabel": "Email",
+  "syncPasswordLabel": "Password",
+  "syncRegister": "Register",
+  "syncSectionTitle": "Sync",
+  "syncAutoSyncTitle": "Automatic sync",
+  "syncAutoSyncSubtitle": "Sync in the background on startup, foreground, and after changes.",
+  "syncSyncNow": "Sync Now",
+  "syncAccountTitle": "Account",
+  "syncLogout": "Logout",
+  "syncRecentErrors": "Recent Sync Errors",
+  "syncFailedToConnect": "Failed to connect: {error}",
+  "@syncFailedToConnect": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "syncRegistrationFailed": "Registration failed: {error}",
+  "@syncRegistrationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "syncLoginFailed": "Login failed: {error}",
+  "@syncLoginFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "syncAuthExpired": "Authentication expired. Please log in again.",
+  "syncPartialFailure": "Sync partially failed: {collections}",
+  "@syncPartialFailure": {
+    "placeholders": {
+      "collections": {}
+    }
+  },
+  "syncFailed": "Sync failed: {error}",
+  "@syncFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "syncFailedToConnectGeneric": "Failed to connect to the server.",
+  "syncRegistrationFailedGeneric": "Registration failed. Please try again.",
+  "syncLoginFailedGeneric": "Login failed. Please check your credentials and try again.",
+  "syncFailedGeneric": "Sync failed. Please try again.",
+  "syncErrorLogGenericMessage": "This data could not be synced.",
+  "syncCollectionBooks": "Books",
+  "syncCollectionReadingProgress": "Reading progress",
+  "syncCollectionBookmarks": "Bookmarks",
+  "syncCollectionHighlights": "Highlights",
+  "syncCollectionShelves": "Shelves",
+  "syncCollectionShelfBooks": "Shelf books",
+  "syncCollectionReadingSessions": "Reading sessions",
+  "syncCollectionReadingGoals": "Reading goals",
+  "syncCollectionUnknown": "Other data",
+  "collectionsTitle": "Shelves",
+  "collectionsEmptyTitle": "No shelves yet",
+  "collectionsEmptyBody": "Organize your books into collections",
+  "collectionsCreateShelf": "Create Shelf",
+  "collectionsNewShelfTitle": "New Shelf",
+  "collectionsNameLabel": "Name",
+  "collectionsNameHint": "e.g. Favorites, To Read...",
+  "collectionsDescriptionOptionalLabel": "Description (optional)",
+  "collectionsDeleteShelfTitle": "Delete Shelf",
+  "collectionsDeleteShelfMessage": "Delete \"{name}\"? Your books won''t be removed from the library.",
+  "@collectionsDeleteShelfMessage": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "collectionDetailAddBooksTooltip": "Add books",
+  "collectionDetailEmptyTitle": "No books in this collection",
+  "collectionDetailAddBooks": "Add Books",
+  "collectionDetailRemoveTitle": "Remove from Collection",
+  "collectionDetailRemoveMessage": "Remove \"{title}\" from \"{collectionName}\"?",
+  "@collectionDetailRemoveMessage": {
+    "placeholders": {
+      "title": {},
+      "collectionName": {}
+    }
+  },
+  "collectionDetailAllBooksAlreadyAdded": "All books are already in this collection",
+  "collectionDetailAddBooksTitle": "Add Books",
+  "collectionDetailAddedBook": "Added \"{title}\"",
+  "@collectionDetailAddedBook": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "readerAnnotations": "Annotations",
+  "readerHighlightsTab": "Highlights ({count})",
+  "@readerHighlightsTab": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readerBookmarksTab": "Bookmarks ({count})",
+  "@readerBookmarksTab": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readerNoHighlightsYet": "No highlights yet",
+  "readerNoHighlightsHint": "Select text while reading to highlight it",
+  "readerNoBookmarksYet": "No bookmarks yet",
+  "readerQuotedSelection": "\"{text}\"",
+  "@readerQuotedSelection": {
+    "placeholders": {
+      "text": {}
+    }
+  },
+  "readerChapterLabel": "Chapter {chapterNumber}",
+  "@readerChapterLabel": {
+    "placeholders": {
+      "chapterNumber": {
+        "type": "int"
+      }
+    }
+  },
+  "readerDeleteHighlightTitle": "Delete Highlight",
+  "readerDeleteHighlightMessage": "Are you sure you want to delete this highlight?",
+  "readerEditNote": "Edit Note",
+  "readerAddNote": "Add Note",
+  "readerNoteHint": "Enter your note...",
+  "readerHighlight": "Highlight",
+  "readerHighlightWithNote": "Highlight with Note",
+  "readerCopiedToClipboard": "Copied to clipboard",
+  "readerErrorTitle": "Reader Error",
+  "readerLoadFailed": "Failed to load this book: {error}",
+  "@readerLoadFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "readerUnknownError": "Something went wrong while opening this book.",
+  "readerExitZenMode": "Exit Zen Mode",
+  "readerZenMode": "Zen Mode",
+  "readerTableOfContents": "Table of Contents",
+  "readerSettings": "Settings",
+  "readerBookmark": "Bookmark",
+  "readerTypography": "Typography",
+  "readerTheme": "Theme",
+  "readerContents": "Contents",
+  "readerPageOf": "Page {currentPage} of {totalPages}",
+  "@readerPageOf": {
+    "placeholders": {
+      "currentPage": {
+        "type": "int"
+      },
+      "totalPages": {
+        "type": "int"
+      }
+    }
+  },
+  "readerChapterProgress": "{chapterTitle} · {percent}%",
+  "@readerChapterProgress": {
+    "placeholders": {
+      "chapterTitle": {},
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "readerFontFamilySystem": "System",
+  "readerFontFamilySerif": "Serif",
+  "readerFontFamilySansSerif": "Sans Serif",
+  "readerFontFamilyMonospace": "Monospace",
+  "statsTitle": "Reading Stats",
+  "statsErrorFallback": "Error",
+  "statsLoadFailed": "Failed to load stats: {error}",
+  "@statsLoadFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "statsTotalTime": "Total Time",
+  "statsBooksStartedThisYear": "Books Started This Year",
+  "statsSessions": "Sessions",
+  "statsRecentSessions": "Recent Sessions",
+  "statsCurrentStreak": "Current Streak",
+  "statsLongestStreak": "Longest Streak",
+  "statsReadingActivity": "Reading Activity",
+  "statsHeatmapLess": "Less",
+  "statsHeatmapMore": "More",
+  "statsHeatmapNoReading": "{date}: No reading",
+  "@statsHeatmapNoReading": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "statsHeatmapMinutes": "{date}: {minutes} min",
+  "@statsHeatmapMinutes": {
+    "placeholders": {
+      "date": {},
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "statsDurationHoursMinutes": "{hours}h {minutes}m",
+  "@statsDurationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "statsDurationMinutes": "{minutes}m",
+  "@statsDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  }
+}

@@ -8,14 +8,13 @@ enum ReaderStatus { initial, loading, loaded, error }
 
 /// Available font families for the reader
 enum ReaderFontFamily {
-  system('System', '-apple-system, system-ui, sans-serif'),
-  serif('Serif', 'Georgia, "Times New Roman", serif'),
-  sansSerif('Sans Serif', '"Helvetica Neue", Helvetica, Arial, sans-serif'),
-  mono('Monospace', '"SF Mono", Menlo, monospace');
+  system('-apple-system, system-ui, sans-serif'),
+  serif('Georgia, "Times New Roman", serif'),
+  sansSerif('"Helvetica Neue", Helvetica, Arial, sans-serif'),
+  mono('"SF Mono", Menlo, monospace');
 
-  final String displayName;
   final String cssFontFamily;
-  const ReaderFontFamily(this.displayName, this.cssFontFamily);
+  const ReaderFontFamily(this.cssFontFamily);
 }
 
 class ReaderState extends Equatable {
@@ -110,13 +109,6 @@ class ReaderState extends Equatable {
 
   bool get hasNextChapter => currentChapter < chapters.length - 1;
   bool get hasPreviousChapter => currentChapter > 0;
-
-  String get chapterTitle {
-    if (chapters.isEmpty || currentChapter >= chapters.length) {
-      return 'Chapter ${currentChapter + 1}';
-    }
-    return chapters[currentChapter].title;
-  }
 
   @override
   List<Object?> get props => [

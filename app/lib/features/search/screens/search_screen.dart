@@ -4,7 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/models/book_localizations.dart';
+import '../../../core/models/book.dart';
 import '../../../core/services/opds_catalog_service.dart';
+import '../../../l10n/l10n.dart';
+import '../catalog_error_localizations.dart';
 import '../cubit/search_cubit.dart';
 import '../cubit/search_state.dart';
 
@@ -26,10 +30,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Discover',
+          l10n.searchTitle,
           style: GoogleFonts.literata(
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
@@ -37,7 +43,7 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Manage catalogs',
+            tooltip: l10n.searchManageCatalogs,
             onPressed: () => _showCatalogManager(context),
             icon: const Icon(Icons.library_add_outlined),
           ),
@@ -56,16 +62,16 @@ class _SearchScreenState extends State<SearchScreen> {
                 return DropdownButtonFormField<String>(
                   initialValue: selected?.id,
                   isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Catalog',
-                    prefixIcon: Icon(Icons.public),
+                  decoration: InputDecoration(
+                    labelText: l10n.searchCatalogLabel,
+                    prefixIcon: const Icon(Icons.public),
                   ),
                   selectedItemBuilder: (context) => state.catalogs
                       .map(
                         (catalog) => Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            catalog.title,
+                            catalogTitleLabel(context, catalog),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -96,11 +102,13 @@ class _SearchScreenState extends State<SearchScreen> {
                   previous.selectedCatalogId != current.selectedCatalogId ||
                   previous.query != current.query,
               builder: (context, state) {
-                final hintCatalog = state.selectedCatalog?.title ?? 'catalog';
+                final hintCatalog = state.selectedCatalog == null
+                    ? l10n.searchGenericCatalogName
+                    : catalogTitleLabel(context, state.selectedCatalog!);
                 return TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search $hintCatalog...',
+                    hintText: l10n.searchHint(catalogTitle: hintCatalog),
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: state.query.isEmpty
                         ? null
@@ -127,7 +135,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
                 if (state.status == SearchStatus.initial) {
                   return _EmptyPrompt(
-                    catalogTitle: state.selectedCatalog?.title ?? 'a catalog',
+                    catalogTitle: state.selectedCatalog == null
+                        ? l10n.searchPromptGenericCatalogName
+                        : catalogTitleLabel(context, state.selectedCatalog!),
                   );
                 }
 
@@ -137,11 +147,15 @@ class _SearchScreenState extends State<SearchScreen> {
 
                 if (state.status == SearchStatus.error &&
                     state.results.isEmpty) {
+                  final errorText = state.selectedCatalog == null
+                      ? l10n.searchNoCatalogSelected
+                      : catalogErrorCodeMessage(context, state.errorCode);
+
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Text(
-                        state.errorMessage ?? 'Something went wrong.',
+                        errorText,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
@@ -150,9 +164,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 }
 
                 if (state.results.isEmpty) {
-                  return const Center(
-                    child: Text('No downloadable books found'),
-                  );
+                  return Center(child: Text(l10n.searchEmptyResults));
                 }
 
                 return ListView.builder(
@@ -169,20 +181,23 @@ class _SearchScreenState extends State<SearchScreen> {
                       onDownload: () async {
                         final cubit = context.read<SearchCubit>();
                         final messenger = ScaffoldMessenger.of(context);
+                        final bookTitle = bookTitleLabel(context, book.title);
                         try {
                           await cubit.downloadBook(book);
-                          if (!mounted) return;
+                          if (!context.mounted) return;
                           messenger.showSnackBar(
                             SnackBar(
                               content: Text(
-                                '${book.title} added to your library',
+                                l10n.searchBookAdded(title: bookTitle),
                               ),
                             ),
                           );
                         } catch (error) {
-                          if (!mounted) return;
+                          if (!context.mounted) return;
                           messenger.showSnackBar(
-                            SnackBar(content: Text('Download failed: $error')),
+                            SnackBar(
+                              content: Text(catalogErrorMessage(context, error)),
+                            ),
                           );
                         }
                       },
@@ -198,6 +213,8 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _showCatalogManager(BuildContext context) async {
+    final l10n = context.l10n;
+
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -215,10 +232,13 @@ class _SearchScreenState extends State<SearchScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Catalogs', style: theme.textTheme.titleLarge),
+                    Text(
+                      l10n.searchCatalogsTitle,
+                      style: theme.textTheme.titleLarge,
+                    ),
                     const SizedBox(height: 8),
                     Text(
-                      'Built-ins are ready to use. Add your own OPDS catalogs too.',
+                      l10n.searchCatalogsBody,
                       style: theme.textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 16),
@@ -230,11 +250,11 @@ class _SearchScreenState extends State<SearchScreen> {
                               ? Icons.link
                               : Icons.auto_awesome_outlined,
                         ),
-                        title: Text(catalog.title),
+                        title: Text(catalogTitleLabel(context, catalog)),
                         subtitle: Text(catalog.url),
                         trailing: catalog.isCustom
                             ? IconButton(
-                                tooltip: 'Remove catalog',
+                                tooltip: l10n.searchRemoveCatalog,
                                 onPressed: () async {
                                   await context
                                       .read<SearchCubit>()
@@ -252,7 +272,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
-                          'No custom catalogs yet.',
+                          l10n.searchNoCustomCatalogs,
                           style: theme.textTheme.bodySmall,
                         ),
                       ),
@@ -265,7 +285,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           await _showAddCatalogDialog(context);
                         },
                         icon: const Icon(Icons.add),
-                        label: const Text('Add Custom Catalog'),
+                        label: Text(l10n.searchAddCustomCatalog),
                       ),
                     ),
                   ],
@@ -280,24 +300,30 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _showAddCatalogDialog(BuildContext context) async {
     final titleController = TextEditingController();
-    final urlController = TextEditingController(text: 'https://');
+    final urlController = TextEditingController();
+    final l10n = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
 
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add Custom Catalog'),
+        title: Text(l10n.searchAddCustomCatalogTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: titleController,
-              decoration: const InputDecoration(labelText: 'Catalog name'),
+              decoration: InputDecoration(
+                labelText: l10n.searchCatalogNameLabel,
+              ),
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: urlController,
-              decoration: const InputDecoration(labelText: 'Catalog URL'),
+              decoration: InputDecoration(
+                labelText: l10n.searchCatalogUrlLabel,
+              ),
               keyboardType: TextInputType.url,
             ),
           ],
@@ -305,7 +331,7 @@ class _SearchScreenState extends State<SearchScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -314,16 +340,18 @@ class _SearchScreenState extends State<SearchScreen> {
                   title: titleController.text,
                   url: urlController.text,
                 );
-                if (!ctx.mounted) return;
+                if (!context.mounted || !ctx.mounted) return;
                 Navigator.pop(ctx);
               } catch (error) {
-                if (!ctx.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Could not add catalog: $error')),
+                if (!context.mounted || !ctx.mounted) return;
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(catalogErrorMessage(context, error)),
+                  ),
                 );
               }
             },
-            child: const Text('Add'),
+            child: Text(l10n.commonAdd),
           ),
         ],
       ),
@@ -344,12 +372,16 @@ class CatalogDropdownItem extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(catalog.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        Text(
+          catalogTitleLabel(context, catalog),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         if (catalog.isCustom)
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              'Custom',
+              context.l10n.searchCatalogTypeCustom,
               style: Theme.of(
                 context,
               ).textTheme.labelSmall?.copyWith(color: colorScheme.primary),
@@ -368,6 +400,7 @@ class _EmptyPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -381,13 +414,13 @@ class _EmptyPrompt extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Search $catalogTitle',
+              l10n.searchInitialPromptTitle(catalogTitle: catalogTitle),
               style: Theme.of(context).textTheme.bodyLarge,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             Text(
-              'Find downloadable books and add them straight to your library.',
+              l10n.searchInitialPromptBody,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -414,6 +447,14 @@ class _SearchResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
+    final title = bookTitleLabel(context, book.title);
+    final author = bookAuthorLabel(context, book.author);
+    final catalogTitle = catalogBookTitleLabel(context, book);
+    final preferredFormatLabel = _bookFormatLabel(
+      context,
+      book.preferredAcquisition.format,
+    );
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -460,14 +501,14 @@ class _SearchResultCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        book.title,
+                        title,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        book.author,
+                        author,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colorScheme.primary,
                         ),
@@ -477,8 +518,10 @@ class _SearchResultCard extends StatelessWidget {
                         spacing: 6,
                         runSpacing: 6,
                         children: [
-                          _MetaChip(label: book.catalogTitle),
-                          _MetaChip(label: book.formatSummary),
+                          _MetaChip(label: catalogTitle),
+                          _MetaChip(
+                            label: _catalogFormatSummary(context, book),
+                          ),
                           if (book.yearLabel != null)
                             _MetaChip(label: book.yearLabel!),
                         ],
@@ -524,15 +567,17 @@ class _SearchResultCard extends StatelessWidget {
                         : const Icon(Icons.download),
                     label: Text(
                       isDownloading
-                          ? 'Downloading...'
-                          : 'Download ${book.preferredAcquisition.format.displayName}',
+                          ? l10n.searchDownloading
+                          : l10n.searchDownloadFormat(
+                              formatName: preferredFormatLabel,
+                            ),
                     ),
                   ),
                 ),
                 if (book.externalUrl != null) ...[
                   const SizedBox(width: 8),
                   IconButton(
-                    tooltip: 'Open source page',
+                    tooltip: l10n.searchOpenSourcePage,
                     onPressed: () {
                       launchUrl(
                         Uri.parse(book.externalUrl!),
@@ -573,4 +618,23 @@ class _MetaChip extends StatelessWidget {
       ),
     );
   }
+}
+
+String _catalogFormatSummary(BuildContext context, CatalogBook book) {
+  return book.acquisitions
+      .map((item) => _bookFormatLabel(context, item.format))
+      .toSet()
+      .join(' · ');
+}
+
+String _bookFormatLabel(BuildContext context, BookFormat format) {
+  final l10n = context.l10n;
+
+  return switch (format) {
+    BookFormat.epub => l10n.formatEpub,
+    BookFormat.pdf => l10n.formatPdf,
+    BookFormat.txt => l10n.formatText,
+    BookFormat.cbz => l10n.formatComicCbz,
+    BookFormat.html => l10n.formatHtml,
+  };
 }

@@ -376,30 +376,25 @@ class MokuTheme {
 class ReaderTheme {
   final Color backgroundColor;
   final Color textColor;
-  final String name;
 
   const ReaderTheme({
     required this.backgroundColor,
     required this.textColor,
-    required this.name,
   });
 
   static const light = ReaderTheme(
     backgroundColor: Color(0xFFFFFBF7),
     textColor: Color(0xFF2C2520),
-    name: 'Light',
   );
 
   static const dark = ReaderTheme(
     backgroundColor: Color(0xFF1A1816),
     textColor: Color(0xFFD5D0CA),
-    name: 'Dark',
   );
 
   static const sepia = ReaderTheme(
     backgroundColor: Color(0xFFF4ECD8),
     textColor: Color(0xFF5B4636),
-    name: 'Sepia',
   );
 
   static const values = [light, dark, sepia];

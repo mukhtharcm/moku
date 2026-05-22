@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/database/database.dart' as db;
+import '../../../core/models/book_localizations.dart';
 import '../../../core/models/models.dart';
 import '../../../core/services/path_resolver.dart';
+import '../../../l10n/l10n.dart';
 import '../../library/widgets/book_cover.dart';
 import '../../library/widgets/book_grid_item.dart';
 import '../../reader/screens/reader_screen.dart';
@@ -25,9 +27,9 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _booksStream = context
-        .read<db.AppDatabase>()
-        .watchBooksInCollection(widget.collection.id);
+    _booksStream = context.read<db.AppDatabase>().watchBooksInCollection(
+      widget.collection.id,
+    );
   }
 
   @override
@@ -40,7 +42,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            tooltip: 'Add books',
+            tooltip: context.l10n.collectionDetailAddBooksTooltip,
             onPressed: () => _showAddBooksDialog(context),
           ),
         ],
@@ -59,18 +61,20 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.library_books_outlined,
-                      size: 64,
-                      color: colorScheme.primary.withValues(alpha: 0.5)),
+                  Icon(
+                    Icons.library_books_outlined,
+                    size: 64,
+                    color: colorScheme.primary.withValues(alpha: 0.5),
+                  ),
                   const SizedBox(height: 16),
                   Text(
-                    'No books in this collection',
+                    context.l10n.collectionDetailEmptyTitle,
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                   const SizedBox(height: 8),
                   FilledButton.tonal(
                     onPressed: () => _showAddBooksDialog(context),
-                    child: const Text('Add Books'),
+                    child: Text(context.l10n.collectionDetailAddBooks),
                   ),
                 ],
               ),
@@ -103,9 +107,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                 book: book,
                 onTap: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ReaderScreen(book: book),
-                    ),
+                    MaterialPageRoute(builder: (_) => ReaderScreen(book: book)),
                   );
                 },
                 onLongPress: () => _confirmRemove(context, book),
@@ -118,26 +120,32 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   }
 
   void _confirmRemove(BuildContext context, Book book) {
+    final l10n = context.l10n;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remove from Collection'),
+        title: Text(l10n.collectionDetailRemoveTitle),
         content: Text(
-            'Remove "${book.title}" from "${widget.collection.name}"?'),
+          l10n.collectionDetailRemoveMessage(
+            title: bookTitleLabel(context, book.title),
+            collectionName: widget.collection.name,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () {
               context.read<db.AppDatabase>().removeBookFromCollection(
-                    widget.collection.id,
-                    book.id,
-                  );
+                widget.collection.id,
+                book.id,
+              );
               Navigator.pop(ctx);
             },
-            child: const Text('Remove'),
+            child: Text(l10n.commonRemove),
           ),
         ],
       ),
@@ -147,18 +155,22 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   void _showAddBooksDialog(BuildContext context) async {
     final database = context.read<db.AppDatabase>();
     final allBooks = await database.getAllBooks();
-    final collectionBooks =
-        await database.getBooksInCollection(widget.collection.id);
+    final collectionBooks = await database.getBooksInCollection(
+      widget.collection.id,
+    );
     final collectionBookIds = collectionBooks.map((b) => b.id).toSet();
 
-    final availableBooks =
-        allBooks.where((b) => !collectionBookIds.contains(b.id)).toList();
+    final availableBooks = allBooks
+        .where((b) => !collectionBookIds.contains(b.id))
+        .toList();
 
     if (!context.mounted) return;
 
+    final l10n = context.l10n;
+
     if (availableBooks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All books are already in this collection')),
+        SnackBar(content: Text(l10n.collectionDetailAllBooksAlreadyAdded)),
       );
       return;
     }
@@ -176,7 +188,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'Add Books',
+                l10n.collectionDetailAddBooksTitle,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
@@ -203,10 +215,16 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                       height: 60,
                       child: BookCoverWidget(book: book, borderRadius: 6),
                     ),
-                    title: Text(dbBook.title,
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                    subtitle: Text(dbBook.author,
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    title: Text(
+                      bookTitleLabel(context, dbBook.title),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      bookAuthorLabel(context, dbBook.author),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     trailing: IconButton(
                       icon: const Icon(Icons.add_circle_outline),
                       onPressed: () async {
@@ -217,7 +235,11 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                         if (ctx.mounted) {
                           ScaffoldMessenger.of(ctx).showSnackBar(
                             SnackBar(
-                              content: Text('Added "${dbBook.title}"'),
+                              content: Text(
+                                l10n.collectionDetailAddedBook(
+                                  title: bookTitleLabel(context, dbBook.title),
+                                ),
+                              ),
                               duration: const Duration(seconds: 1),
                             ),
                           );

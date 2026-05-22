@@ -55,7 +55,9 @@ class HtmlParser {
 
   /// Get chapter content (body HTML) for WebView rendering.
   static Future<String> getChapterContent(
-      String filePath, int chapterIndex) async {
+    String filePath,
+    int chapterIndex,
+  ) async {
     final chapters = await _loadChapters(filePath);
     if (chapterIndex < 0 || chapterIndex >= chapters.length) return '';
     return chapters[chapterIndex].content;
@@ -85,8 +87,11 @@ class HtmlParser {
   }
 
   static String _extractTitle(String html, String filePath) {
-    final match = RegExp(r'<title[^>]*>(.*?)</title>', caseSensitive: false, dotAll: true)
-        .firstMatch(html);
+    final match = RegExp(
+      r'<title[^>]*>(.*?)</title>',
+      caseSensitive: false,
+      dotAll: true,
+    ).firstMatch(html);
     if (match != null) {
       final title = match.group(1)?.trim() ?? '';
       if (title.isNotEmpty) return _stripTags(title);
@@ -100,7 +105,7 @@ class HtmlParser {
       r'<meta\s+name\s*=\s*"author"\s+content\s*=\s*"([^"]*)"',
       caseSensitive: false,
     ).firstMatch(html);
-    return match?.group(1)?.trim() ?? 'Unknown';
+    return match?.group(1)?.trim() ?? '';
   }
 
   /// Extract body content from full HTML document.
@@ -129,10 +134,7 @@ class HtmlParser {
     if (matches.length < 2) {
       // Single chapter: the whole document
       return [
-        _HtmlChapter(
-          title: _extractTitle(html, filePath),
-          content: body,
-        )
+        _HtmlChapter(title: _extractTitle(html, filePath), content: body),
       ];
     }
 
@@ -142,7 +144,7 @@ class HtmlParser {
     if (matches.first.start > 0) {
       final preContent = body.substring(0, matches.first.start).trim();
       if (preContent.isNotEmpty) {
-        chapters.add(_HtmlChapter(title: 'Introduction', content: preContent));
+        chapters.add(_HtmlChapter(title: '', content: preContent));
       }
     }
 
@@ -150,7 +152,7 @@ class HtmlParser {
       final start = matches[i].start;
       final end = i + 1 < matches.length ? matches[i + 1].start : body.length;
       final content = body.substring(start, end).trim();
-      final title = _stripTags(matches[i].group(2) ?? 'Chapter ${i + 1}');
+      final title = _stripTags(matches[i].group(2) ?? '');
 
       if (content.isNotEmpty) {
         chapters.add(_HtmlChapter(title: title, content: content));

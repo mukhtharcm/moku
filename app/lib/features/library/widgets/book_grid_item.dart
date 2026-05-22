@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/models.dart';
+import '../../../core/models/book_localizations.dart';
 import 'book_cover.dart';
 
 class BookGridItem extends StatelessWidget {
@@ -19,6 +20,8 @@ class BookGridItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final title = bookTitleLabel(context, book.title);
+    final author = bookAuthorLabel(context, book.author);
 
     return GestureDetector(
       onTap: onTap,
@@ -47,8 +50,9 @@ class BookGridItem extends StatelessWidget {
                           bottomLeft: Radius.circular(12),
                           bottomRight: Radius.circular(12),
                         ),
-                        color: colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.6),
+                        color: colorScheme.surfaceContainerHighest.withValues(
+                          alpha: 0.6,
+                        ),
                       ),
                       child: FractionallySizedBox(
                         alignment: Alignment.centerLeft,
@@ -70,21 +74,21 @@ class BookGridItem extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            book.title,
+            title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  height: 1.3,
-                ),
+              fontWeight: FontWeight.w600,
+              height: 1.3,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
           Text(
-            book.author,
+            author,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                  fontSize: 11,
-                ),
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+              fontSize: 11,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

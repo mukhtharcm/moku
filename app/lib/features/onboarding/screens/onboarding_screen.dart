@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/l10n.dart';
 import '../../library/cubit/library_cubit.dart';
 import '../../../app_shell.dart';
 
@@ -89,6 +90,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return Scaffold(
       body: FadeTransition(
@@ -132,7 +134,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         TextButton(
                           onPressed: () => _completeOnboarding(),
                           child: Text(
-                            'Skip',
+                            l10n.onboardingSkip,
                             style: TextStyle(
                               color: colorScheme.onSurfaceVariant.withValues(
                                 alpha: 0.6,
@@ -193,6 +195,7 @@ class _WelcomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return SafeArea(
       child: Padding(
@@ -207,7 +210,7 @@ class _WelcomePage extends StatelessWidget {
 
             // Title
             Text(
-              'Welcome to Moku',
+              l10n.onboardingWelcomeTitle,
               style: GoogleFonts.literata(
                 fontSize: 32,
                 fontWeight: FontWeight.w700,
@@ -220,7 +223,7 @@ class _WelcomePage extends StatelessWidget {
 
             // Subtitle
             Text(
-              'Your cozy reading companion',
+              l10n.onboardingWelcomeSubtitle,
               style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.w400,
@@ -231,7 +234,7 @@ class _WelcomePage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Import EPUB, PDF, TXT, CBZ, and HTML files,\ntrack progress, and read distraction-free.',
+              l10n.onboardingWelcomeBody,
               style: GoogleFonts.inter(
                 fontSize: 15,
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
@@ -254,7 +257,7 @@ class _WelcomePage extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  'Get Started',
+                  l10n.onboardingGetStarted,
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -281,6 +284,7 @@ class _ImportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return SafeArea(
       child: Padding(
@@ -294,7 +298,7 @@ class _ImportPage extends StatelessWidget {
             const SizedBox(height: 32),
 
             Text(
-              'Import Your Books',
+              l10n.onboardingImportTitle,
               style: GoogleFonts.literata(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
@@ -306,7 +310,7 @@ class _ImportPage extends StatelessWidget {
             const SizedBox(height: 12),
 
             Text(
-              'Add EPUB, PDF, TXT, CBZ, and HTML files from your device.\nYour library stays on your device, fully offline.',
+              l10n.onboardingImportBody,
               style: GoogleFonts.inter(
                 fontSize: 15,
                 color: colorScheme.onSurfaceVariant,
@@ -325,7 +329,7 @@ class _ImportPage extends StatelessWidget {
                 onPressed: onImport,
                 icon: const Icon(Icons.add_rounded, size: 22),
                 label: Text(
-                  'Import files',
+                  l10n.commonImportFiles,
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -344,7 +348,7 @@ class _ImportPage extends StatelessWidget {
             TextButton(
               onPressed: onNext,
               child: Text(
-                "I'll do this later",
+                l10n.onboardingImportLater,
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
@@ -369,6 +373,7 @@ class _SyncPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return SafeArea(
       child: Padding(
@@ -382,7 +387,7 @@ class _SyncPage extends StatelessWidget {
             const SizedBox(height: 32),
 
             Text(
-              'Sync Across Devices',
+              l10n.onboardingSyncTitle,
               style: GoogleFonts.literata(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
@@ -394,7 +399,7 @@ class _SyncPage extends StatelessWidget {
             const SizedBox(height: 12),
 
             Text(
-              'Moku works fully offline — no account needed.',
+              l10n.onboardingSyncOfflineBody,
               style: GoogleFonts.inter(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
@@ -405,7 +410,7 @@ class _SyncPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Want to sync books and progress across devices?\nConnect your own PocketBase server in Settings.',
+              l10n.onboardingSyncServerBody,
               style: GoogleFonts.inter(
                 fontSize: 14,
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
@@ -424,7 +429,7 @@ class _SyncPage extends StatelessWidget {
                 onPressed: onFinish,
                 icon: const Icon(Icons.auto_stories_rounded, size: 22),
                 label: Text(
-                  'Start Reading',
+                  l10n.onboardingStartReading,
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,

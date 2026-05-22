@@ -2,6 +2,15 @@ import 'dart:convert';
 
 import 'epub_document.dart';
 
+enum EpubContentErrorCode { chapterNotFound, contentNotAvailable }
+
+class EpubContentException implements Exception {
+  final EpubContentErrorCode code;
+  final String? href;
+
+  const EpubContentException(this.code, {this.href});
+}
+
 /// Serves EPUB content for the reader.
 ///
 /// Handles smart chapter building, image/CSS embedding, and fragment
@@ -87,7 +96,7 @@ class EpubContentServer {
       if (tocFiles.contains(normalized)) break;
       chapters.add(ReadingChapter(
         index: chapters.length,
-        title: 'Section ${chapters.length + 1}',
+        title: '',
         contentHref: s.href,
       ));
     }
@@ -138,7 +147,7 @@ class EpubContentServer {
         // No TOC entry — use generic title
         chapters.add(ReadingChapter(
           index: chapters.length,
-          title: 'Section ${chapters.length + 1}',
+          title: '',
           contentHref: s.href,
         ));
       }
@@ -158,14 +167,16 @@ class EpubContentServer {
   /// and fragment scroll scripts.
   String getChapterContent(int chapterIndex) {
     if (chapterIndex < 0 || chapterIndex >= chapters.length) {
-      return '<p>Chapter not found</p>';
+      throw const EpubContentException(EpubContentErrorCode.chapterNotFound);
     }
 
     final chapter = chapters[chapterIndex];
     var html = _getHtmlContent(chapter.contentHref);
     if (html == null) {
-      return '<p>Content not available for: '
-          '${chapter.contentHref}</p>';
+      throw EpubContentException(
+        EpubContentErrorCode.contentNotAvailable,
+        href: chapter.contentHref,
+      );
     }
 
     // Embed images as data URIs (works on full HTML before extraction)

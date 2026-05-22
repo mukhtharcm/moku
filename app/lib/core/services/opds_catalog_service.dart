@@ -14,6 +14,30 @@ enum CatalogKind { openLibrary, gutenberg, custom }
 
 enum CatalogProtocol { opds1, opds2 }
 
+enum CatalogErrorCode {
+  invalidCatalogInput,
+  duplicateCatalog,
+  downloadRedirectLoop,
+  downloadFailed,
+  searchFailed,
+  catalogNotSearchable,
+  catalogLoadFailed,
+  opds2MissingSearchLink,
+  opds1MissingSearchDescription,
+  catalogSearchDescriptionFailed,
+  catalogSearchTemplateMissing,
+}
+
+class CatalogException extends Equatable implements Exception {
+  final CatalogErrorCode code;
+  final int? statusCode;
+
+  const CatalogException(this.code, {this.statusCode});
+
+  @override
+  List<Object?> get props => [code, statusCode];
+}
+
 class CatalogSource extends Equatable {
   final String id;
   final String title;
@@ -111,9 +135,6 @@ class CatalogBook extends Equatable {
 
   CatalogAcquisition get preferredAcquisition => acquisitions.first;
 
-  String get formatSummary =>
-      acquisitions.map((item) => item.format.displayName).toSet().join(' · ');
-
   @override
   List<Object?> get props => [
     id,
@@ -140,14 +161,14 @@ class OpdsCatalogService {
   static const List<CatalogSource> _builtInCatalogs = [
     CatalogSource(
       id: 'open-library',
-      title: 'Open Library',
+      title: '',
       url: 'https://openlibrary.org/opds/',
       kind: CatalogKind.openLibrary,
       protocol: CatalogProtocol.opds2,
     ),
     CatalogSource(
       id: 'project-gutenberg',
-      title: 'Project Gutenberg',
+      title: '',
       url: 'https://www.gutenberg.org/ebooks/search.opds/',
       kind: CatalogKind.gutenberg,
       protocol: CatalogProtocol.opds1,
@@ -175,7 +196,7 @@ class OpdsCatalogService {
     final trimmedTitle = title.trim();
     final normalizedUrl = _normalizeUrl(url);
     if (trimmedTitle.isEmpty || normalizedUrl == null) {
-      throw Exception('Enter a valid title and URL.');
+      throw const CatalogException(CatalogErrorCode.invalidCatalogInput);
     }
 
     final prepared = await _prepareCustomCatalog(
@@ -193,7 +214,7 @@ class OpdsCatalogService {
         .toList();
 
     if (decoded.any((item) => item.url == prepared.url)) {
-      throw Exception('That catalog is already added.');
+      throw const CatalogException(CatalogErrorCode.duplicateCatalog);
     }
 
     final updated = [
@@ -270,7 +291,7 @@ class OpdsCatalogService {
     int depth = 0,
   }) async {
     if (depth > 3) {
-      throw Exception('Download redirected too many times.');
+      throw const CatalogException(CatalogErrorCode.downloadRedirectLoop);
     }
 
     final response = await _client.get(
@@ -282,7 +303,10 @@ class OpdsCatalogService {
       },
     );
     if (response.statusCode != 200) {
-      throw Exception('Download failed (${response.statusCode}).');
+      throw CatalogException(
+        CatalogErrorCode.downloadFailed,
+        statusCode: response.statusCode,
+      );
     }
 
     final contentType = response.headers['content-type']?.toLowerCase() ?? '';
@@ -314,7 +338,10 @@ class OpdsCatalogService {
     );
     final response = await _client.get(uri);
     if (response.statusCode != 200) {
-      throw Exception('Search failed (${response.statusCode}).');
+      throw CatalogException(
+        CatalogErrorCode.searchFailed,
+        statusCode: response.statusCode,
+      );
     }
     final jsonMap = json.decode(response.body) as Map<String, dynamic>;
     return _parseOpds2Feed(catalog: catalog, baseUri: uri, jsonMap: jsonMap);
@@ -326,13 +353,16 @@ class OpdsCatalogService {
   ) async {
     final template = catalog.searchTemplate;
     if (template == null || template.isEmpty) {
-      throw Exception('This catalog does not expose a searchable OPDS feed.');
+      throw const CatalogException(CatalogErrorCode.catalogNotSearchable);
     }
 
     final uri = _expandSearchTemplate(template, query);
     final response = await _client.get(uri);
     if (response.statusCode != 200) {
-      throw Exception('Search failed (${response.statusCode}).');
+      throw CatalogException(
+        CatalogErrorCode.searchFailed,
+        statusCode: response.statusCode,
+      );
     }
 
     final jsonMap = json.decode(response.body) as Map<String, dynamic>;
@@ -345,13 +375,16 @@ class OpdsCatalogService {
   ) async {
     final template = catalog.searchTemplate;
     if (template == null || template.isEmpty) {
-      throw Exception('This catalog does not expose a searchable OPDS feed.');
+      throw const CatalogException(CatalogErrorCode.catalogNotSearchable);
     }
 
     final uri = _expandSearchTemplate(template, query);
     final response = await _client.get(uri);
     if (response.statusCode != 200) {
-      throw Exception('Search failed (${response.statusCode}).');
+      throw CatalogException(
+        CatalogErrorCode.searchFailed,
+        statusCode: response.statusCode,
+      );
     }
 
     final document = XmlDocument.parse(response.body);
@@ -365,7 +398,10 @@ class OpdsCatalogService {
     final rootUri = Uri.parse(rootUrl);
     final response = await _client.get(rootUri);
     if (response.statusCode != 200) {
-      throw Exception('Could not load catalog (${response.statusCode}).');
+      throw CatalogException(
+        CatalogErrorCode.catalogLoadFailed,
+        statusCode: response.statusCode,
+      );
     }
 
     final body = response.body.trimLeft();
@@ -375,7 +411,7 @@ class OpdsCatalogService {
       final jsonMap = json.decode(response.body) as Map<String, dynamic>;
       final searchTemplate = _extractOpds2SearchTemplate(jsonMap, rootUri);
       if (searchTemplate == null) {
-        throw Exception('This OPDS 2 catalog does not expose a search link.');
+        throw const CatalogException(CatalogErrorCode.opds2MissingSearchLink);
       }
       return CatalogSource(
         id: 'custom-${DateTime.now().millisecondsSinceEpoch}',
@@ -390,21 +426,23 @@ class OpdsCatalogService {
     final document = XmlDocument.parse(response.body);
     final openSearchUri = _extractOpds1OpenSearchUri(document, rootUri);
     if (openSearchUri == null) {
-      throw Exception(
-        'This OPDS 1 catalog does not expose an OpenSearch description.',
+      throw const CatalogException(
+        CatalogErrorCode.opds1MissingSearchDescription,
       );
     }
 
     final openSearchResponse = await _client.get(openSearchUri);
     if (openSearchResponse.statusCode != 200) {
-      throw Exception('Could not load the catalog search description.');
+      throw const CatalogException(
+        CatalogErrorCode.catalogSearchDescriptionFailed,
+      );
     }
 
     final openSearchDocument = XmlDocument.parse(openSearchResponse.body);
     final searchTemplate = _extractOpenSearchTemplate(openSearchDocument);
     if (searchTemplate == null) {
-      throw Exception(
-        'Could not find a usable search template for this catalog.',
+      throw const CatalogException(
+        CatalogErrorCode.catalogSearchTemplateMissing,
       );
     }
 
@@ -448,7 +486,7 @@ class OpdsCatalogService {
                 (metadata['identifier'] as String?) ??
                 acquisitions.first.url.toString(),
             title: title,
-            author: author.isEmpty ? 'Unknown Author' : author,
+            author: author.trim(),
             description: _extractDescription(metadata['description']),
             coverUrl: cover?.toString(),
             yearLabel: _extractYear(metadata),
@@ -487,9 +525,7 @@ class OpdsCatalogService {
         CatalogBook(
           id: _childText(entry, 'id') ?? acquisitions.first.url.toString(),
           title: title,
-          author: (authorName == null || authorName.isEmpty)
-              ? 'Unknown Author'
-              : authorName,
+          author: authorName?.trim() ?? '',
           description: _childText(entry, 'content'),
           coverUrl: _extractOpds1Cover(entry, baseUri)?.toString(),
           yearLabel: _childText(entry, 'published')?.split('-').first,

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/models/book_localizations.dart';
 import '../../../core/models/models.dart';
+import '../../../l10n/l10n.dart';
 import '../cubit/library_cubit.dart';
 import '../cubit/library_state.dart';
 import '../widgets/book_cover.dart';
@@ -29,6 +31,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
@@ -36,8 +39,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Search your library…',
+                decoration: InputDecoration(
+                  hintText: l10n.librarySearchHint,
                   border: InputBorder.none,
                   filled: false,
                 ),
@@ -46,7 +49,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 },
               )
             : Text(
-                'Moku',
+                l10n.appTitle,
                 style: GoogleFonts.literata(
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.3,
@@ -110,7 +113,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      state.errorMessage ?? 'Something went wrong',
+                      l10n.libraryErrorFallback,
                       style: Theme.of(context).textTheme.bodyLarge,
                       textAlign: TextAlign.center,
                     ),
@@ -119,7 +122,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       onPressed: () {
                         context.read<LibraryCubit>().loadBooks();
                       },
-                      child: const Text('Try Again'),
+                      child: Text(l10n.commonTryAgain),
                     ),
                   ],
                 ),
@@ -164,7 +167,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     child: Row(
                       children: [
                         Text(
-                          'Library',
+                          l10n.librarySectionTitle,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
@@ -211,7 +214,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  _sortLabel(state.sortMode),
+                                  _sortLabel(context, state.sortMode),
                                   style: Theme.of(context).textTheme.labelSmall
                                       ?.copyWith(
                                         color: colorScheme.onSurfaceVariant,
@@ -227,7 +230,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                               value: m,
                               child: Row(
                                 children: [
-                                  Text(_sortLabel(m)),
+                                  Text(_sortLabel(context, m)),
                                   if (m == state.sortMode) ...[
                                     const Spacer(),
                                     Icon(
@@ -292,12 +295,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             ),
                           ),
                           title: Text(
-                            book.title,
+                            bookTitleLabel(context, book.title),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           subtitle: Text(
-                            book.author,
+                            bookAuthorLabel(context, book.author),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -336,19 +339,21 @@ class _LibraryScreenState extends State<LibraryScreen> {
           context.read<LibraryCubit>().importBook();
         },
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Import'),
+        label: Text(l10n.libraryFabImport),
       ),
     );
   }
 
-  String _sortLabel(LibrarySortMode mode) {
+  String _sortLabel(BuildContext context, LibrarySortMode mode) {
+    final l10n = context.l10n;
+
     switch (mode) {
       case LibrarySortMode.recent:
-        return 'Recent';
+        return l10n.librarySortRecent;
       case LibrarySortMode.title:
-        return 'Title';
+        return l10n.librarySortTitle;
       case LibrarySortMode.author:
-        return 'Author';
+        return l10n.librarySortAuthor;
     }
   }
 
@@ -381,7 +386,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.info_outline_rounded),
-                title: const Text('Book Info'),
+                title: Text(context.l10n.libraryBookInfo),
                 onTap: () {
                   Navigator.pop(ctx);
                   _showBookInfo(context, book);
@@ -393,7 +398,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   color: Theme.of(context).colorScheme.error,
                 ),
                 title: Text(
-                  'Delete',
+                  context.l10n.commonDelete,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
                 onTap: () {
@@ -437,12 +442,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                book.title,
+                bookTitleLabel(context, book.title),
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
               Text(
-                book.author,
+                bookAuthorLabel(context, book.author),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                 ),
@@ -455,11 +460,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 ),
               ],
               const SizedBox(height: 16),
-              _InfoRow('Chapters', '${book.totalChapters}'),
+              _InfoRow(
+                context.l10n.libraryInfoChapters,
+                '${book.totalChapters}',
+              ),
               if (book.publisher != null)
-                _InfoRow('Publisher', book.publisher!),
-              if (book.language != null) _InfoRow('Language', book.language!),
-              if (book.isbn != null) _InfoRow('ISBN', book.isbn!),
+                _InfoRow(context.l10n.libraryInfoPublisher, book.publisher!),
+              if (book.language != null)
+                _InfoRow(context.l10n.libraryInfoLanguage, book.language!),
+              if (book.isbn != null)
+                _InfoRow(context.l10n.libraryInfoIsbn, book.isbn!),
             ],
           ),
         ),
@@ -471,12 +481,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Book'),
-        content: Text('Remove "${book.title}" from your library?'),
+        title: Text(context.l10n.libraryDeleteBookTitle),
+        content: Text(
+          context.l10n.libraryDeleteBookMessage(
+            title: bookTitleLabel(context, book.title),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () {
@@ -486,7 +500,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Delete'),
+            child: Text(context.l10n.commonDelete),
           ),
         ],
       ),
@@ -534,6 +548,7 @@ class _EmptyLibrary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     if (hasSearch) {
       return Center(
@@ -549,12 +564,12 @@ class _EmptyLibrary extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'No books found',
+                l10n.libraryEmptySearchTitle,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 4),
               Text(
-                'Try a different search term',
+                l10n.libraryEmptySearchBody,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -634,14 +649,14 @@ class _EmptyLibrary extends StatelessWidget {
             ),
             const SizedBox(height: 28),
             Text(
-              'Your library awaits',
+              l10n.libraryEmptyTitle,
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
-              'Import your first book or comic to start reading',
+              l10n.libraryEmptyBody,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -651,7 +666,7 @@ class _EmptyLibrary extends StatelessWidget {
             FilledButton.icon(
               onPressed: onImport,
               icon: const Icon(Icons.file_open_rounded),
-              label: const Text('Import files'),
+              label: Text(l10n.commonImportFiles),
             ),
           ],
         ),
@@ -674,6 +689,7 @@ class _ContinueReadingSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -689,7 +705,7 @@ class _ContinueReadingSection extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Continue Reading',
+                l10n.libraryContinueReading,
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -729,7 +745,7 @@ class _ContinueReadingSection extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  book.title,
+                                  bookTitleLabel(context, book.title),
                                   style: Theme.of(context).textTheme.titleSmall
                                       ?.copyWith(
                                         fontWeight: FontWeight.w600,
@@ -740,7 +756,7 @@ class _ContinueReadingSection extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  book.author,
+                                  bookAuthorLabel(context, book.author),
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         color: colorScheme.onSurfaceVariant
@@ -763,7 +779,9 @@ class _ContinueReadingSection extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  '${(progress * 100).toInt()}% read',
+                                  l10n.libraryProgressRead(
+                                    progress: (progress * 100).toInt(),
+                                  ),
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         color: colorScheme.onSurfaceVariant

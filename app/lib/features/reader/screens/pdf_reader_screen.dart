@@ -7,7 +7,9 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/database/database.dart' as db;
 import '../../../core/models/book.dart';
+import '../../../core/models/book_localizations.dart';
 import '../../../core/sync/auto_sync_service.dart';
+import '../../../l10n/l10n.dart';
 
 /// Dedicated reader screen for PDF files using pdfrx.
 class PdfReaderScreen extends StatefulWidget {
@@ -151,6 +153,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final bgColor = _darkMode ? const Color(0xFF1A1A1A) : Colors.white;
     final fgColor = _darkMode ? Colors.white : Colors.black87;
 
@@ -221,7 +224,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
                       ),
                       Expanded(
                         child: Text(
-                          widget.book.title,
+                          bookTitleLabel(context, widget.book.title),
                           style: TextStyle(
                             color: fgColor,
                             fontSize: 16,
@@ -294,7 +297,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
                       ),
                       // Page info
                       Text(
-                        'Page $_currentPage of $_totalPages',
+                        l10n.readerPageOf(
+                          currentPage: _currentPage,
+                          totalPages: _totalPages,
+                        ),
                         style: TextStyle(
                           color: fgColor.withValues(alpha: 0.7),
                           fontSize: 12,

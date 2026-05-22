@@ -1,6 +1,15 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+enum OpenLibraryErrorCode { searchFailed, detailsFailed }
+
+class OpenLibraryException implements Exception {
+  final OpenLibraryErrorCode code;
+  final int? statusCode;
+
+  const OpenLibraryException(this.code, {this.statusCode});
+}
+
 class OpenLibraryService {
   static const _baseUrl = 'https://openlibrary.org';
   static const _coversUrl = 'https://covers.openlibrary.org';
@@ -27,7 +36,10 @@ class OpenLibraryService {
 
     final response = await _client.get(uri);
     if (response.statusCode != 200) {
-      throw Exception('Failed to search books: ${response.statusCode}');
+      throw OpenLibraryException(
+        OpenLibraryErrorCode.searchFailed,
+        statusCode: response.statusCode,
+      );
     }
 
     final data = json.decode(response.body);
@@ -41,7 +53,10 @@ class OpenLibraryService {
     final uri = Uri.parse('$_baseUrl$key.json');
     final response = await _client.get(uri);
     if (response.statusCode != 200) {
-      throw Exception('Failed to get book details: ${response.statusCode}');
+      throw OpenLibraryException(
+        OpenLibraryErrorCode.detailsFailed,
+        statusCode: response.statusCode,
+      );
     }
     return json.decode(response.body);
   }
@@ -85,26 +100,29 @@ class OpenLibraryBook {
   factory OpenLibraryBook.fromJson(Map<String, dynamic> json) {
     return OpenLibraryBook(
       key: json['key'] ?? '',
-      title: json['title'] ?? 'Unknown',
-      authors: (json['author_name'] as List<dynamic>?)
+      title: json['title'] ?? '',
+      authors:
+          (json['author_name'] as List<dynamic>?)
               ?.map((a) => a.toString())
               .toList() ??
           [],
       firstPublishYear: json['first_publish_year'] as int?,
       coverId: json['cover_i'] as int?,
-      isbn: (json['isbn'] as List<dynamic>?)
-              ?.map((i) => i.toString())
-              .toList() ??
+      isbn:
+          (json['isbn'] as List<dynamic>?)?.map((i) => i.toString()).toList() ??
           [],
-      languages: (json['language'] as List<dynamic>?)
+      languages:
+          (json['language'] as List<dynamic>?)
               ?.map((l) => l.toString())
               .toList() ??
           [],
-      publishers: (json['publisher'] as List<dynamic>?)
+      publishers:
+          (json['publisher'] as List<dynamic>?)
               ?.map((p) => p.toString())
               .toList() ??
           [],
-      subjects: (json['subject'] as List<dynamic>?)
+      subjects:
+          (json['subject'] as List<dynamic>?)
               ?.map((s) => s.toString())
               .take(5)
               .toList() ??

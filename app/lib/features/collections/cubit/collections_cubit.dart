@@ -44,7 +44,6 @@ class CollectionsCubit extends Cubit<CollectionsState> {
       onError: (e) {
         emit(state.copyWith(
           status: CollectionsStatus.error,
-          errorMessage: e.toString(),
         ));
       },
     );

@@ -14,6 +14,7 @@ import 'features/library/cubit/library_cubit.dart';
 import 'features/collections/cubit/collections_cubit.dart';
 import 'features/search/cubit/search_cubit.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
+import 'l10n/l10n.dart';
 import 'app_shell.dart';
 
 class MokuApp extends StatelessWidget {
@@ -60,10 +61,9 @@ class MokuApp extends StatelessWidget {
             )..loadBooks(),
           ),
           BlocProvider(
-            create: (_) => CollectionsCubit(
-              database: database,
-              autoSync: autoSyncService,
-            )..loadCollections(),
+            create: (_) =>
+                CollectionsCubit(database: database, autoSync: autoSyncService)
+                  ..loadCollections(),
           ),
           BlocProvider(
             create: (_) => SearchCubit(
@@ -77,8 +77,10 @@ class MokuApp extends StatelessWidget {
         child: BlocBuilder<ThemeCubit, ThemeState>(
           builder: (context, themeState) {
             return MaterialApp(
-              title: 'Moku',
+              onGenerateTitle: (context) => context.l10n.appTitle,
               debugShowCheckedModeBanner: false,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               theme: MokuTheme.lightTheme(),
               darkTheme: MokuTheme.darkTheme(),
               themeMode: themeState.themeMode,

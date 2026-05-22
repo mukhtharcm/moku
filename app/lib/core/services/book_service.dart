@@ -17,7 +17,7 @@ class BookService {
   final EpubService _epubService;
 
   BookService({EpubService? epubService})
-      : _epubService = epubService ?? EpubService();
+    : _epubService = epubService ?? EpubService();
 
   EpubService get epubService => _epubService;
 
@@ -36,7 +36,10 @@ class BookService {
   // ── Chapter / content access ──────────────────────────────────────────────
 
   /// Get chapter list for any format.
-  Future<List<ChapterInfo>> getChapters(String filePath, BookFormat format) async {
+  Future<List<ChapterInfo>> getChapters(
+    String filePath,
+    BookFormat format,
+  ) async {
     return switch (format) {
       BookFormat.epub => _getEpubChapters(filePath),
       BookFormat.pdf => PdfParser.getChapters(filePath),
@@ -48,7 +51,10 @@ class BookService {
 
   /// Get rendered content for a chapter (HTML string for WebView-based formats).
   Future<String> getChapterContent(
-      String filePath, BookFormat format, int chapterIndex) async {
+    String filePath,
+    BookFormat format,
+    int chapterIndex,
+  ) async {
     return switch (format) {
       BookFormat.epub => _epubService.getChapterContent(filePath, chapterIndex),
       BookFormat.txt => TxtParser.getChapterContent(filePath, chapterIndex),
@@ -84,7 +90,7 @@ class BookService {
     return Book(
       id: bookId,
       title: meta.title ?? p.basenameWithoutExtension(filePath),
-      author: meta.author ?? 'Unknown',
+      author: meta.author ?? '',
       description: meta.subject,
       filePath: PathResolver.toRelative(destPath),
       format: BookFormat.pdf,
@@ -187,12 +193,14 @@ class BookService {
   Future<List<ChapterInfo>> _getEpubChapters(String filePath) async {
     final chapters = await _epubService.getChapters(filePath);
     return chapters
-        .map((ch) => ChapterInfo(
-              index: ch.index,
-              title: ch.title,
-              fileName: ch.fileName,
-              fragment: ch.fragment,
-            ))
+        .map(
+          (ch) => ChapterInfo(
+            index: ch.index,
+            title: ch.title,
+            fileName: ch.fileName,
+            fragment: ch.fragment,
+          ),
+        )
         .toList();
   }
 }
