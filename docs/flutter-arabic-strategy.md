@@ -287,6 +287,41 @@ Where `source` records how the direction was decided:
 
 This matters because direction bugs become much easier to debug if the reader can surface where the decision came from.
 
+## Data Modeling Rules
+
+Keep imported metadata, user preference, and runtime resolution separate.
+
+### Imported metadata
+
+`Book.language` should represent source metadata from the file or import pipeline.
+
+It should not be reused to store:
+
+- manual direction overrides
+- heuristic guesses
+- app-locale decisions
+
+### User preference
+
+If we add a reader-direction override, store it separately from imported metadata.
+
+Recommended values:
+
+- `auto`
+- `ltr`
+- `rtl`
+
+### Runtime resolution
+
+The final content direction used for a given reading session can be derived at open time from:
+
+- override
+- resource metadata
+- stored source metadata
+- heuristic fallback
+
+That resolved value does not need to overwrite the imported book language.
+
 ## Format-Specific Conventions
 
 ### EPUB
