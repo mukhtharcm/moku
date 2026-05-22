@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
+
 class ActivityHeatmap extends StatelessWidget {
   final Map<DateTime, int> dailyMinutes;
 
@@ -11,24 +13,25 @@ class ActivityHeatmap extends StatelessWidget {
     final today = DateTime.now();
     final todayMidnight = DateTime(today.year, today.month, today.day);
     const totalDays = 371; // 53 weeks × 7
-    final startDate =
-        todayMidnight.subtract(const Duration(days: totalDays - 1));
+    final startDate = todayMidnight.subtract(
+      const Duration(days: totalDays - 1),
+    );
 
     final days = List.generate(
       totalDays,
       (i) => startDate.add(Duration(days: i)),
     );
 
-    final maxMinutes =
-        dailyMinutes.values.fold(0, (a, b) => a > b ? a : b);
+    final maxMinutes = dailyMinutes.values.fold(0, (a, b) => a > b ? a : b);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Reading Activity',
-          style: theme.textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
+          context.l10n.statsReadingActivity,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 8),
         SizedBox(
@@ -45,10 +48,9 @@ class ActivityHeatmap extends StatelessWidget {
             itemBuilder: (context, index) {
               final day = days[index];
               final mins = dailyMinutes[day] ?? 0;
-              final intensity =
-                  maxMinutes > 0 ? mins / maxMinutes : 0.0;
+              final intensity = maxMinutes > 0 ? mins / maxMinutes : 0.0;
               return Tooltip(
-                message: _tooltip(day, mins),
+                message: _tooltip(context, day, mins),
                 child: Container(
                   decoration: BoxDecoration(
                     color: _cellColor(context, intensity),
@@ -62,7 +64,10 @@ class ActivityHeatmap extends StatelessWidget {
         const SizedBox(height: 4),
         Row(
           children: [
-            Text('Less', style: theme.textTheme.bodySmall),
+            Text(
+              context.l10n.statsHeatmapLess,
+              style: theme.textTheme.bodySmall,
+            ),
             const SizedBox(width: 4),
             for (final intensity in [0.0, 0.25, 0.5, 0.75, 1.0]) ...[
               Container(
@@ -75,7 +80,10 @@ class ActivityHeatmap extends StatelessWidget {
                 ),
               ),
             ],
-            Text('More', style: theme.textTheme.bodySmall),
+            Text(
+              context.l10n.statsHeatmapMore,
+              style: theme.textTheme.bodySmall,
+            ),
           ],
         ),
       ],
@@ -89,10 +97,13 @@ class ActivityHeatmap extends StatelessWidget {
     return Colors.orange.withValues(alpha: 0.2 + intensity * 0.8);
   }
 
-  String _tooltip(DateTime day, int minutes) {
+  String _tooltip(BuildContext context, DateTime day, int minutes) {
     final label =
         '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
-    if (minutes == 0) return '$label: No reading';
-    return '$label: $minutes min';
+    if (minutes == 0) {
+      return context.l10n.statsHeatmapNoReading(date: label);
+    }
+
+    return context.l10n.statsHeatmapMinutes(date: label, minutes: minutes);
   }
 }

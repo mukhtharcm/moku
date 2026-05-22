@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moku/core/services/opds_catalog_service.dart';
 import 'package:moku/features/search/screens/search_screen.dart';
+import 'package:moku/l10n/l10n.dart';
 
 void main() {
   testWidgets(
@@ -17,26 +18,32 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
-            body: Center(
-              child: SizedBox(
-                width: 320,
-                child: DropdownButtonFormField<String>(
-                  initialValue: catalog.id,
-                  isExpanded: true,
-                  selectedItemBuilder: (context) => const [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text('Pocket Catalog'),
-                    ),
-                  ],
-                  items: [
-                    DropdownMenuItem<String>(
-                      value: catalog.id,
-                      child: CatalogDropdownItem(catalog: catalog),
-                    ),
-                  ],
-                  onChanged: (_) {},
+            body: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 24),
+                child: SizedBox(
+                  width: 320,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: catalog.id,
+                    isExpanded: true,
+                    selectedItemBuilder: (context) => const [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Pocket Catalog'),
+                      ),
+                    ],
+                    items: [
+                      DropdownMenuItem<String>(
+                        value: catalog.id,
+                        child: CatalogDropdownItem(catalog: catalog),
+                      ),
+                    ],
+                    onChanged: (_) {},
+                  ),
                 ),
               ),
             ),

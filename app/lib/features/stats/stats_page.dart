@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/database/database.dart';
+import '../../l10n/l10n.dart';
 import 'cubit/stats_cubit.dart';
 import 'cubit/stats_state.dart';
 import 'widgets/streak_card.dart';
@@ -25,11 +26,10 @@ class _StatsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Reading Stats'),
-        centerTitle: false,
-      ),
+      appBar: AppBar(title: Text(l10n.statsTitle), centerTitle: false),
       body: BlocBuilder<StatsCubit, StatsState>(
         builder: (context, state) {
           if (state.status == StatsStatus.loading ||
@@ -37,7 +37,9 @@ class _StatsView extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (state.status == StatsStatus.error) {
-            return Center(child: Text(state.errorMessage ?? 'Error'));
+            return Center(
+              child: Text(state.errorMessage ?? l10n.statsErrorFallback),
+            );
           }
           return RefreshIndicator(
             onRefresh: () => context.read<StatsCubit>().load(),
@@ -54,8 +56,7 @@ class _StatsView extends StatelessWidget {
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: ActivityHeatmap(
-                        dailyMinutes: state.dailyMinutes),
+                    child: ActivityHeatmap(dailyMinutes: state.dailyMinutes),
                   ),
                 ),
                 if (state.recentSessions.isNotEmpty) ...[
@@ -79,7 +80,10 @@ class _SummaryCards extends StatelessWidget {
   Widget build(BuildContext context) {
     final h = state.totalMinutes ~/ 60;
     final m = state.totalMinutes % 60;
-    final timeLabel = h > 0 ? '${h}h ${m}m' : '${m}m';
+    final l10n = context.l10n;
+    final timeLabel = h > 0
+        ? l10n.statsDurationHoursMinutes(hours: h, minutes: m)
+        : l10n.statsDurationMinutes(minutes: m);
 
     return Row(
       children: [
@@ -88,7 +92,7 @@ class _SummaryCards extends StatelessWidget {
             icon: Icons.schedule_rounded,
             iconColor: Colors.blue,
             value: timeLabel,
-            label: 'Total Time',
+            label: l10n.statsTotalTime,
           ),
         ),
         const SizedBox(width: 12),
@@ -97,7 +101,7 @@ class _SummaryCards extends StatelessWidget {
             icon: Icons.menu_book_rounded,
             iconColor: Colors.green,
             value: '${state.booksReadThisYear}',
-            label: 'Books Started This Year',
+            label: l10n.statsBooksStartedThisYear,
           ),
         ),
         const SizedBox(width: 12),
@@ -106,7 +110,7 @@ class _SummaryCards extends StatelessWidget {
             icon: Icons.library_books_rounded,
             iconColor: Colors.purple,
             value: '${state.totalSessions}',
-            label: 'Sessions',
+            label: l10n.statsSessions,
           ),
         ),
       ],
@@ -140,8 +144,9 @@ class _StatCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               value,
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             Text(label, style: theme.textTheme.bodySmall),
           ],
@@ -165,9 +170,10 @@ class _RecentSessions extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Recent Sessions',
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              context.l10n.statsRecentSessions,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             ...sessions.map((s) => _SessionTile(session: s)),
@@ -187,7 +193,9 @@ class _SessionTile extends StatelessWidget {
     final theme = Theme.of(context);
     final h = session.durationSeconds ~/ 3600;
     final m = (session.durationSeconds % 3600) ~/ 60;
-    final duration = h > 0 ? '${h}h ${m}m' : '${m}m';
+    final duration = h > 0
+        ? context.l10n.statsDurationHoursMinutes(hours: h, minutes: m)
+        : context.l10n.statsDurationMinutes(minutes: m);
     final date = session.startedAt;
     final dateLabel =
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -196,13 +204,14 @@ class _SessionTile extends StatelessWidget {
       children: [
         ListTile(
           contentPadding: EdgeInsets.zero,
-          title: Text(session.bookTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+          title: Text(
+            session.bookTitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           subtitle: Text(dateLabel),
           trailing: Chip(
-            label: Text(
-              duration,
-              style: theme.textTheme.bodySmall,
-            ),
+            label: Text(duration, style: theme.textTheme.bodySmall),
             padding: EdgeInsets.zero,
             visualDensity: VisualDensity.compact,
           ),

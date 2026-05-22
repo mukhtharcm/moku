@@ -9,7 +9,7 @@ void main() {
           version: '1.1.0',
           buildNumber: '2',
         ),
-        'Version 1.1.0 (2)',
+        '1.1.0 (2)',
       );
     });
 
@@ -19,14 +19,14 @@ void main() {
           version: '1.1.0',
           buildNumber: ' ',
         ),
-        'Version 1.1.0',
+        '1.1.0',
       );
     });
 
     test('falls back when the version string is blank', () {
       expect(
         AppVersionService.formatDisplayVersion(version: ' ', buildNumber: '2'),
-        'Version unavailable',
+        isNull,
       );
     });
   });

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../core/sync/sync_bootstrap.dart';
 import '../../../core/sync/sync_config.dart';
+
 class SyncSettingsScreen extends StatefulWidget {
   const SyncSettingsScreen({super.key});
 
@@ -39,6 +41,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
   Future<void> _saveServerUrl() async {
     final url = _urlController.text.trim();
     if (url.isEmpty) return;
+    final l10n = context.l10n;
 
     setState(() => _isLoading = true);
     try {
@@ -57,7 +60,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to connect: $e';
+        _errorMessage = l10n.syncFailedToConnect(error: '$e');
         _isLoading = false;
       });
     }
@@ -67,6 +70,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     if (email.isEmpty || password.isEmpty) return;
+    final l10n = context.l10n;
 
     setState(() {
       _isLoading = true;
@@ -86,8 +90,8 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
     } catch (e) {
       setState(() {
         _errorMessage = _isRegisterMode
-            ? 'Registration failed: $e'
-            : 'Login failed: $e';
+            ? l10n.syncRegistrationFailed(error: '$e')
+            : l10n.syncLoginFailed(error: '$e');
         _isLoading = false;
       });
     }
@@ -95,6 +99,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
 
   Future<void> _syncNow() async {
     final cubit = context.read<SyncConfigCubit>();
+    final l10n = context.l10n;
     cubit.setStatus(SyncStatus.syncing);
 
     try {
@@ -107,8 +112,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
         return;
       }
       if (result.authFailed) {
-        cubit.setStatus(SyncStatus.error,
-            errorMessage: 'Authentication expired. Please log in again.');
+        cubit.setStatus(SyncStatus.error, errorMessage: l10n.syncAuthExpired);
         cubit.setAuthenticated(false);
         return;
       }
@@ -117,13 +121,17 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
       } else {
         cubit.setStatus(
           SyncStatus.error,
-          errorMessage:
-              'Sync partially failed: ${result.failedCollections.join(', ')}',
+          errorMessage: l10n.syncPartialFailure(
+            collections: result.failedCollections.join(', '),
+          ),
         );
       }
     } catch (e) {
       if (!mounted) return;
-      cubit.setStatus(SyncStatus.error, errorMessage: 'Sync failed: $e');
+      cubit.setStatus(
+        SyncStatus.error,
+        errorMessage: l10n.syncFailed(error: '$e'),
+      );
     }
   }
 
@@ -139,8 +147,10 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Sync Settings')),
+      appBar: AppBar(title: Text(l10n.syncSettingsTitle)),
       body: BlocBuilder<SyncConfigCubit, SyncConfigState>(
         builder: (context, state) {
           return ListView(
@@ -178,41 +188,48 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
   Widget _buildStatusCard(SyncConfigState state) {
     final (icon, color, label) = switch (state.status) {
       SyncStatus.disconnected => (
-          Icons.cloud_off,
-          Colors.grey,
-          'Disconnected'
-        ),
+        Icons.cloud_off,
+        Colors.grey,
+        context.l10n.syncStatusDisconnected,
+      ),
       SyncStatus.connecting => (
-          Icons.cloud_queue,
-          Colors.orange,
-          'Connecting...'
-        ),
+        Icons.cloud_queue,
+        Colors.orange,
+        context.l10n.syncStatusConnecting,
+      ),
       SyncStatus.connected => (
-          Icons.cloud_done,
-          Colors.green,
-          'Connected'
-        ),
+        Icons.cloud_done,
+        Colors.green,
+        context.l10n.syncStatusConnected,
+      ),
       SyncStatus.syncing => (
-          Icons.sync,
-          Colors.blue,
-          'Syncing...'
-        ),
+        Icons.sync,
+        Colors.blue,
+        context.l10n.syncStatusSyncing,
+      ),
       SyncStatus.error => (
-          Icons.cloud_off,
-          Colors.red,
-          'Error'
-        ),
+        Icons.cloud_off,
+        Colors.red,
+        context.l10n.syncStatusError,
+      ),
     };
 
     return Card(
       child: ListTile(
         leading: Icon(icon, color: color, size: 32),
-        title: Text(label,
-            style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+        title: Text(
+          label,
+          style: TextStyle(fontWeight: FontWeight.bold, color: color),
+        ),
         subtitle: state.config.lastSyncAt != null
             ? Text(
-                'Last synced: ${DateFormat.yMMMd().add_jm().format(state.config.lastSyncAt!)}')
-            : const Text('Never synced'),
+                context.l10n.syncLastSynced(
+                  value: DateFormat.yMMMd().add_jm().format(
+                    state.config.lastSyncAt!,
+                  ),
+                ),
+              )
+            : Text(context.l10n.syncNeverSynced),
       ),
     );
   }
@@ -224,16 +241,18 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Server',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              context.l10n.syncServerSectionTitle,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _urlController,
-              decoration: const InputDecoration(
-                labelText: 'Server URL',
-                hintText: 'https://your-server.com',
-                prefixIcon: Icon(Icons.dns_outlined),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.l10n.syncServerUrlLabel,
+                hintText: context.l10n.syncServerUrlHint,
+                prefixIcon: const Icon(Icons.dns_outlined),
+                border: const OutlineInputBorder(),
               ),
               keyboardType: TextInputType.url,
               enabled: !state.isAuthenticated,
@@ -251,7 +270,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.link),
-                  label: const Text('Connect'),
+                  label: Text(context.l10n.syncConnect),
                 ),
               ),
           ],
@@ -271,37 +290,40 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  _isRegisterMode ? 'Create Account' : 'Login',
+                  _isRegisterMode
+                      ? context.l10n.syncCreateAccount
+                      : context.l10n.syncLogin,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 TextButton(
                   onPressed: () {
-                    setState(
-                        () => _isRegisterMode = !_isRegisterMode);
+                    setState(() => _isRegisterMode = !_isRegisterMode);
                   },
-                  child: Text(_isRegisterMode
-                      ? 'Have an account? Login'
-                      : 'New? Register'),
+                  child: Text(
+                    _isRegisterMode
+                        ? context.l10n.syncHaveAccountLogin
+                        : context.l10n.syncNewRegister,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                prefixIcon: Icon(Icons.email_outlined),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.l10n.syncEmailLabel,
+                prefixIcon: const Icon(Icons.email_outlined),
+                border: const OutlineInputBorder(),
               ),
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                prefixIcon: Icon(Icons.lock_outlined),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.l10n.syncPasswordLabel,
+                prefixIcon: const Icon(Icons.lock_outlined),
+                border: const OutlineInputBorder(),
               ),
               obscureText: true,
             ),
@@ -316,10 +338,12 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Icon(_isRegisterMode
-                        ? Icons.person_add
-                        : Icons.login),
-                label: Text(_isRegisterMode ? 'Register' : 'Login'),
+                    : Icon(_isRegisterMode ? Icons.person_add : Icons.login),
+                label: Text(
+                  _isRegisterMode
+                      ? context.l10n.syncRegister
+                      : context.l10n.syncLogin,
+                ),
               ),
             ),
           ],
@@ -335,15 +359,15 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Sync', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              context.l10n.syncSectionTitle,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 4),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Automatic sync'),
-              subtitle: const Text(
-                'Sync in the background on startup, foreground, '
-                'and after changes.',
-              ),
+              title: Text(context.l10n.syncAutoSyncTitle),
+              subtitle: Text(context.l10n.syncAutoSyncSubtitle),
               value: state.config.autoSyncEnabled,
               onChanged: (v) {
                 final cubit = context.read<SyncConfigCubit>();
@@ -355,9 +379,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: state.status == SyncStatus.syncing
-                    ? null
-                    : _syncNow,
+                onPressed: state.status == SyncStatus.syncing ? null : _syncNow,
                 icon: state.status == SyncStatus.syncing
                     ? const SizedBox(
                         width: 16,
@@ -365,9 +387,11 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.sync),
-                label: Text(state.status == SyncStatus.syncing
-                    ? 'Syncing...'
-                    : 'Sync Now'),
+                label: Text(
+                  state.status == SyncStatus.syncing
+                      ? context.l10n.syncStatusSyncing
+                      : context.l10n.syncSyncNow,
+                ),
               ),
             ),
           ],
@@ -383,18 +407,19 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Account',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              context.l10n.syncAccountTitle,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: _logout,
                 icon: const Icon(Icons.logout),
-                label: const Text('Logout'),
+                label: Text(context.l10n.syncLogout),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor:
-                      Theme.of(context).colorScheme.error,
+                  foregroundColor: Theme.of(context).colorScheme.error,
                 ),
               ),
             ),
@@ -414,49 +439,59 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Recent Sync Errors',
-                    style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  context.l10n.syncRecentErrors,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 TextButton(
                   onPressed: () {
                     context.read<SyncConfigCubit>().clearErrors();
                   },
-                  child: const Text('Clear'),
+                  child: Text(context.l10n.commonClear),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            ...errors.take(5).map((e) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.error_outline,
-                      size: 18,
-                      color: Theme.of(context).colorScheme.error),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
+            ...errors
+                .take(5)
+                .map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          e.collection,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.error,
-                          ),
+                        Icon(
+                          Icons.error_outline,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.error,
                         ),
-                        Text(e.message,
-                            style: Theme.of(context).textTheme.bodySmall),
-                        Text(
-                          DateFormat.Hm().format(e.timestamp),
-                          style: Theme.of(context).textTheme.bodySmall,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                e.collection,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                              Text(
+                                e.message,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              Text(
+                                DateFormat.Hm().format(e.timestamp),
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            )),
+                ),
           ],
         ),
       ),
@@ -470,15 +505,17 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(Icons.error_outline,
-                color: Theme.of(context).colorScheme.error),
+            Icon(
+              Icons.error_outline,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 _errorMessage!,
                 style: TextStyle(
-                    color:
-                        Theme.of(context).colorScheme.onErrorContainer),
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                ),
               ),
             ),
             IconButton(

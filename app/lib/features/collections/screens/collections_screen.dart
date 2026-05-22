@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/models/models.dart';
+import '../../../l10n/l10n.dart';
 import '../cubit/collections_cubit.dart';
 import '../cubit/collections_state.dart';
 import 'collection_detail_screen.dart';
@@ -13,11 +14,12 @@ class CollectionsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Shelves',
+          l10n.collectionsTitle,
           style: GoogleFonts.literata(
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
@@ -40,33 +42,35 @@ class CollectionsScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: colorScheme.primaryContainer
-                            .withValues(alpha: 0.3),
+                        color: colorScheme.primaryContainer.withValues(
+                          alpha: 0.3,
+                        ),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.collections_bookmark_outlined,
-                          size: 44,
-                          color: colorScheme.primary.withValues(alpha: 0.7)),
+                      child: Icon(
+                        Icons.collections_bookmark_outlined,
+                        size: 44,
+                        color: colorScheme.primary.withValues(alpha: 0.7),
+                      ),
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'No shelves yet',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                      l10n.collectionsEmptyTitle,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Organize your books into collections',
+                      l10n.collectionsEmptyBody,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     FilledButton.icon(
                       onPressed: () => _showCreateDialog(context),
                       icon: const Icon(Icons.add_rounded),
-                      label: const Text('Create Shelf'),
+                      label: Text(l10n.collectionsCreateShelf),
                     ),
                   ],
                 ),
@@ -107,19 +111,20 @@ class CollectionsScreen extends StatelessWidget {
   void _showCreateDialog(BuildContext context) {
     final nameController = TextEditingController();
     final descController = TextEditingController();
+    final l10n = context.l10n;
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('New Shelf'),
+        title: Text(l10n.collectionsNewShelfTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                hintText: 'e.g. Favorites, To Read…',
+              decoration: InputDecoration(
+                labelText: l10n.collectionsNameLabel,
+                hintText: l10n.collectionsNameHint,
               ),
               autofocus: true,
               textCapitalization: TextCapitalization.words,
@@ -127,8 +132,8 @@ class CollectionsScreen extends StatelessWidget {
             const SizedBox(height: 12),
             TextField(
               controller: descController,
-              decoration: const InputDecoration(
-                labelText: 'Description (optional)',
+              decoration: InputDecoration(
+                labelText: l10n.collectionsDescriptionOptionalLabel,
               ),
               textCapitalization: TextCapitalization.sentences,
             ),
@@ -137,21 +142,21 @@ class CollectionsScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () {
               if (nameController.text.isNotEmpty) {
                 context.read<CollectionsCubit>().createCollection(
-                      nameController.text,
-                      description: descController.text.isEmpty
-                          ? null
-                          : descController.text,
-                    );
+                  nameController.text,
+                  description: descController.text.isEmpty
+                      ? null
+                      : descController.text,
+                );
                 Navigator.pop(ctx);
               }
             },
-            child: const Text('Create'),
+            child: Text(l10n.commonCreate),
           ),
         ],
       ),
@@ -159,16 +164,19 @@ class CollectionsScreen extends StatelessWidget {
   }
 
   void _confirmDelete(BuildContext context, BookCollection collection) {
+    final l10n = context.l10n;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Shelf'),
+        title: Text(l10n.collectionsDeleteShelfTitle),
         content: Text(
-            'Delete "${collection.name}"? Your books won\'t be removed from the library.'),
+          l10n.collectionsDeleteShelfMessage(name: collection.name),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () {
@@ -178,7 +186,7 @@ class CollectionsScreen extends StatelessWidget {
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Delete'),
+            child: Text(l10n.commonDelete),
           ),
         ],
       ),
@@ -214,8 +222,7 @@ class _CollectionCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
                 Container(
@@ -236,28 +243,30 @@ class _CollectionCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(collection.name,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w600)),
+                      Text(
+                        collection.name,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       if (collection.description != null) ...[
                         const SizedBox(height: 2),
-                        Text(collection.description!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                    color: colorScheme.onSurfaceVariant)),
+                        Text(
+                          collection.description!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
+                        ),
                       ],
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.more_horiz_rounded,
-                      color: colorScheme.onSurfaceVariant),
+                  icon: Icon(
+                    Icons.more_horiz_rounded,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                   onPressed: onDelete,
                 ),
               ],

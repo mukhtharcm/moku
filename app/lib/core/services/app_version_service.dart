@@ -1,12 +1,12 @@
 import 'package:package_info_plus/package_info_plus.dart';
 
 class AppVersionService {
-  static Future<String>? _cachedDisplayVersion;
+  static Future<String?>? _cachedDisplayVersion;
 
-  static Future<String> get displayVersion =>
+  static Future<String?> get displayVersion =>
       _cachedDisplayVersion ??= _loadDisplayVersion();
 
-  static Future<String> _loadDisplayVersion() async {
+  static Future<String?> _loadDisplayVersion() async {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       return formatDisplayVersion(
@@ -14,11 +14,11 @@ class AppVersionService {
         buildNumber: packageInfo.buildNumber,
       );
     } catch (_) {
-      return 'Version unavailable';
+      return null;
     }
   }
 
-  static String formatDisplayVersion({
+  static String? formatDisplayVersion({
     required String version,
     required String buildNumber,
   }) {
@@ -26,13 +26,13 @@ class AppVersionService {
     final normalizedBuild = buildNumber.trim();
 
     if (normalizedVersion.isEmpty) {
-      return 'Version unavailable';
+      return null;
     }
 
     if (normalizedBuild.isEmpty) {
-      return 'Version $normalizedVersion';
+      return normalizedVersion;
     }
 
-    return 'Version $normalizedVersion ($normalizedBuild)';
+    return '$normalizedVersion ($normalizedBuild)';
   }
 }

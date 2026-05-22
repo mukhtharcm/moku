@@ -6,6 +6,7 @@ import '../../../core/database/database.dart';
 import '../../../core/services/app_version_service.dart';
 import '../../../core/sync/sync_config.dart';
 import '../../../core/theme/theme_cubit.dart';
+import '../../../l10n/l10n.dart';
 import 'sync_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -14,11 +15,12 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Settings',
+          l10n.settingsTitle,
           style: GoogleFonts.literata(
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
@@ -29,7 +31,7 @@ class SettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           const SizedBox(height: 8),
-          _SectionHeader('Appearance'),
+          _SectionHeader(l10n.settingsSectionAppearance),
           const SizedBox(height: 8),
           Card(
             child: Padding(
@@ -46,8 +48,8 @@ class SettingsScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         RadioListTile<ThemeMode>(
-                          title: const Text('System'),
-                          subtitle: const Text('Follow device theme'),
+                          title: Text(l10n.settingsThemeSystem),
+                          subtitle: Text(l10n.settingsThemeSystemSubtitle),
                           value: ThemeMode.system,
                           secondary: Icon(
                             Icons.brightness_auto_rounded,
@@ -55,7 +57,7 @@ class SettingsScreen extends StatelessWidget {
                           ),
                         ),
                         RadioListTile<ThemeMode>(
-                          title: const Text('Light'),
+                          title: Text(l10n.settingsThemeLight),
                           value: ThemeMode.light,
                           secondary: Icon(
                             Icons.light_mode_rounded,
@@ -63,7 +65,7 @@ class SettingsScreen extends StatelessWidget {
                           ),
                         ),
                         RadioListTile<ThemeMode>(
-                          title: const Text('Dark'),
+                          title: Text(l10n.settingsThemeDark),
                           value: ThemeMode.dark,
                           secondary: Icon(
                             Icons.dark_mode_rounded,
@@ -78,7 +80,7 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          _SectionHeader('Battery'),
+          _SectionHeader(l10n.settingsSectionBattery),
           const SizedBox(height: 8),
           Card(
             child: BlocBuilder<ThemeCubit, ThemeState>(
@@ -96,8 +98,8 @@ class SettingsScreen extends StatelessWidget {
                         ? Colors.green
                         : colorScheme.onSurfaceVariant,
                   ),
-                  title: const Text('Power Saver'),
-                  subtitle: const Text('Reduce animations & scroll updates'),
+                  title: Text(l10n.settingsPowerSaverTitle),
+                  subtitle: Text(l10n.settingsPowerSaverSubtitle),
                   value: state.powerSaver,
                   onChanged: (v) => context.read<ThemeCubit>().setPowerSaver(v),
                 );
@@ -105,7 +107,7 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          _SectionHeader('Sync'),
+          _SectionHeader(l10n.settingsSectionSync),
           const SizedBox(height: 8),
           Card(
             child: BlocBuilder<SyncConfigCubit, SyncConfigState>(
@@ -137,13 +139,13 @@ class SettingsScreen extends StatelessWidget {
                       size: 22,
                     ),
                   ),
-                  title: const Text('Sync Server'),
+                  title: Text(l10n.settingsSyncServerTitle),
                   subtitle: Text(
                     isConnected
-                        ? 'Connected'
+                        ? l10n.settingsSyncConnected
                         : state.config.serverUrl.isNotEmpty
-                        ? 'Not logged in'
-                        : 'Not configured',
+                        ? l10n.settingsSyncNotLoggedIn
+                        : l10n.settingsSyncNotConfigured,
                     style: TextStyle(
                       color: isConnected
                           ? Colors.green
@@ -171,7 +173,7 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          _SectionHeader('About'),
+          _SectionHeader(l10n.settingsSectionAbout),
           const SizedBox(height: 8),
           Card(
             child: Column(
@@ -182,13 +184,22 @@ class SettingsScreen extends StatelessWidget {
                     color: colorScheme.primary,
                   ),
                   title: Text(
-                    'Moku',
+                    l10n.appTitle,
                     style: GoogleFonts.literata(fontWeight: FontWeight.w600),
                   ),
-                  subtitle: FutureBuilder<String>(
+                  subtitle: FutureBuilder<String?>(
                     future: AppVersionService.displayVersion,
                     builder: (context, snapshot) {
-                      return Text(snapshot.data ?? 'Version...');
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Text(l10n.settingsVersionLoading);
+                      }
+
+                      final version = snapshot.data;
+                      return Text(
+                        version == null
+                            ? l10n.settingsVersionUnavailable
+                            : l10n.settingsVersion(version: version),
+                      );
                     },
                   ),
                 ),
@@ -203,8 +214,8 @@ class SettingsScreen extends StatelessWidget {
                     Icons.code_rounded,
                     color: colorScheme.onSurfaceVariant,
                   ),
-                  title: const Text('Open Source'),
-                  subtitle: const Text('Flutter + PocketBase'),
+                  title: Text(l10n.settingsOpenSourceTitle),
+                  subtitle: Text(l10n.settingsOpenSourceSubtitle),
                 ),
               ],
             ),
@@ -226,7 +237,7 @@ class _SectionHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
       child: Text(
-        title.toUpperCase(),
+        title,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
           color: Theme.of(context).colorScheme.primary,
           fontWeight: FontWeight.w700,
