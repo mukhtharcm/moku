@@ -12,6 +12,15 @@ The goal is not "translate the UI into Arabic". The goal is:
 
 In other words, app locale and reading content locale must be treated as separate concerns.
 
+## Non-goals
+
+This strategy does not imply:
+
+- translating imported books
+- rewriting imported metadata into the UI language
+- OCR or language detection for scanned PDF/CBZ page images
+- forcing all reading surfaces to mirror just because the app shell is Arabic
+
 ## Decisions
 
 ### 1. App locale and book locale are separate
@@ -433,6 +442,30 @@ This PR is research-only, but these are the concrete code changes it points to.
 5. Make typography locale-aware.
 6. Audit the remaining app shell layouts for directional APIs.
 7. Run Arabic-shell + English-book and English-shell + Arabic-book smoke tests.
+
+## Verification Matrix
+
+At minimum, implementation should be checked against these scenarios:
+
+### Arabic app shell
+
+- Arabic UI + English EPUB:
+  content stays LTR, metadata stays English, surrounding UI stays Arabic/RTL
+- Arabic UI + Arabic EPUB:
+  content is RTL, metadata is Arabic, chapter/page behavior respects book direction
+- Arabic UI + English TXT:
+  auto detection should resolve LTR or allow fast override
+- Arabic UI + PDF:
+  document rendering stays unchanged, chrome and metadata remain bidi-safe
+
+### English app shell
+
+- English UI + Arabic EPUB:
+  content stays RTL inside an English UI shell
+- English UI + Arabic HTML/XHTML:
+  document `lang`/`dir` is honored
+- English UI + mixed-language metadata:
+  title/author snippets do not reorder surrounding UI text incorrectly
 
 ## Success Criteria
 
