@@ -101,9 +101,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               onPageChanged: (page) => setState(() => _currentPage = page),
               physics: const ClampingScrollPhysics(),
               children: [
-                _WelcomePage(
-                  onNext: () => _goToPage(1),
-                ),
+                _WelcomePage(onNext: () => _goToPage(1)),
                 _ImportPage(
                   onNext: () => _goToPage(2),
                   onImport: () async {
@@ -112,9 +110,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     if (mounted) _goToPage(2);
                   },
                 ),
-                _SyncPage(
-                  onFinish: () => _completeOnboarding(),
-                ),
+                _SyncPage(onFinish: () => _completeOnboarding()),
               ],
             ),
 
@@ -138,8 +134,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           child: Text(
                             'Skip',
                             style: TextStyle(
-                              color: colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.6),
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
                           ),
                         )
@@ -162,8 +159,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                             decoration: BoxDecoration(
                               color: isActive
                                   ? colorScheme.primary
-                                  : colorScheme.onSurface
-                                      .withValues(alpha: 0.15),
+                                  : colorScheme.onSurface.withValues(
+                                      alpha: 0.15,
+                                    ),
                               borderRadius: BorderRadius.circular(4),
                             ),
                           );
@@ -233,7 +231,7 @@ class _WelcomePage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Import your EPUB books, track progress,\nand read distraction-free.',
+              'Import EPUB, PDF, TXT, CBZ, and HTML files,\ntrack progress, and read distraction-free.',
               style: GoogleFonts.inter(
                 fontSize: 15,
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
@@ -308,7 +306,7 @@ class _ImportPage extends StatelessWidget {
             const SizedBox(height: 12),
 
             Text(
-              'Add EPUB files from your device.\nYour books stay on your phone — fully offline.',
+              'Add EPUB, PDF, TXT, CBZ, and HTML files from your device.\nYour library stays on your device, fully offline.',
               style: GoogleFonts.inter(
                 fontSize: 15,
                 color: colorScheme.onSurfaceVariant,
@@ -327,7 +325,7 @@ class _ImportPage extends StatelessWidget {
                 onPressed: onImport,
                 icon: const Icon(Icons.add_rounded, size: 22),
                 label: Text(
-                  'Import an EPUB',
+                  'Import files',
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -565,12 +563,8 @@ class _BooksStackPainter extends CustomPainter {
       canvas.drawRRect(rect.shift(const Offset(2, 3)), shadow);
 
       // Book
-      final bookColor =
-          Color.lerp(color, Colors.white, book.shade) ?? color;
-      canvas.drawRRect(
-        rect,
-        Paint()..color = bookColor,
-      );
+      final bookColor = Color.lerp(color, Colors.white, book.shade) ?? color;
+      canvas.drawRRect(rect, Paint()..color = bookColor);
 
       // Spine line
       canvas.drawLine(

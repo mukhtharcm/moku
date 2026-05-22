@@ -128,7 +128,7 @@ struct LibraryView: View {
                 Image(systemName: "plus")
                     .font(.system(size: 13, weight: .medium))
             }
-            .help("Import EPUB (⌘O)")
+            .help("Import files (⌘O)")
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 14)
@@ -275,13 +275,13 @@ struct LibraryView: View {
                 Text("Your Library Awaits")
                     .font(.system(size: 24, weight: .bold, design: .serif))
                     .tracking(-0.3)
-                Text("Import EPUB files to start reading")
+                Text("Import books or comics to start reading")
                     .font(.system(size: 14))
                     .foregroundStyle(.secondary)
             }
 
             Button { viewModel.importBook() } label: {
-                Label("Import EPUB", systemImage: "plus.circle.fill")
+                Label("Import files", systemImage: "plus.circle.fill")
                     .font(.system(size: 14, weight: .semibold))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)
