@@ -52,7 +52,7 @@ class TxtParser {
 
     return TxtMetadata(
       title: _guessTitle(text, filePath),
-      author: 'Unknown',
+      author: '',
       chapterCount: chapters.length,
     );
   }
@@ -67,7 +67,9 @@ class TxtParser {
 
   /// Get chapter content as HTML for WebView rendering.
   static Future<String> getChapterContent(
-      String filePath, int chapterIndex) async {
+    String filePath,
+    int chapterIndex,
+  ) async {
     final chapters = await _loadChapters(filePath);
     if (chapterIndex < 0 || chapterIndex >= chapters.length) return '';
 
@@ -123,7 +125,7 @@ class TxtParser {
           final isDivider =
               line == '***' || line.startsWith('---') || line.startsWith('===');
           breaks.add(i);
-          titles[i] = isDivider ? 'Section ${breaks.length}' : line;
+          titles[i] = isDivider ? '' : line;
           break;
         }
       }
@@ -139,7 +141,7 @@ class TxtParser {
     if (breaks.first > 0) {
       final content = lines.sublist(0, breaks.first).join('\n').trim();
       if (content.isNotEmpty) {
-        chapters.add(_TxtChapter(title: 'Preface', content: content));
+        chapters.add(_TxtChapter(title: '', content: content));
       }
     }
 
@@ -148,10 +150,7 @@ class TxtParser {
       final end = i + 1 < breaks.length ? breaks[i + 1] : lines.length;
       final content = lines.sublist(start, end).join('\n').trim();
       if (content.isNotEmpty) {
-        chapters.add(_TxtChapter(
-          title: titles[start] ?? 'Chapter ${chapters.length + 1}',
-          content: content,
-        ));
+        chapters.add(_TxtChapter(title: titles[start] ?? '', content: content));
       }
     }
 
@@ -164,21 +163,15 @@ class TxtParser {
     final chapters = <_TxtChapter>[];
 
     for (int i = 0; i < lines.length; i += linesPerChapter) {
-      final end =
-          (i + linesPerChapter).clamp(0, lines.length);
+      final end = (i + linesPerChapter).clamp(0, lines.length);
       final content = lines.sublist(i, end).join('\n').trim();
       if (content.isNotEmpty) {
-        chapters.add(_TxtChapter(
-          title: chapters.isEmpty
-              ? 'Beginning'
-              : 'Part ${chapters.length + 1}',
-          content: content,
-        ));
+        chapters.add(_TxtChapter(title: '', content: content));
       }
     }
 
     return chapters.isEmpty
-        ? [const _TxtChapter(title: 'Full Text', content: '')]
+        ? [const _TxtChapter(title: '', content: '')]
         : chapters;
   }
 

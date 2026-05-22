@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/models/models.dart';
+import '../../../core/models/book_localizations.dart';
 
 /// A book cover with realistic depth via shadow and a subtle spine edge.
 class BookCoverWidget extends StatelessWidget {
@@ -90,20 +91,23 @@ class _PlaceholderCover extends StatelessWidget {
   final double? width;
   final double? height;
 
-  const _PlaceholderCover({
-    required this.book,
-    this.width,
-    this.height,
-  });
+  const _PlaceholderCover({required this.book, this.width, this.height});
 
   @override
   Widget build(BuildContext context) {
     final hash = book.title.hashCode;
+    final title = bookTitleLabel(context, book.title);
+    final author = bookAuthorLabel(context, book.author);
     final hue = (hash % 360).toDouble().abs();
     // Richer, deeper placeholder colors
     final baseColor = HSLColor.fromAHSL(1, hue, 0.35, 0.28).toColor();
     final darkColor = HSLColor.fromAHSL(1, hue, 0.45, 0.14).toColor();
-    final accentColor = HSLColor.fromAHSL(1, (hue + 30) % 360, 0.5, 0.55).toColor();
+    final accentColor = HSLColor.fromAHSL(
+      1,
+      (hue + 30) % 360,
+      0.5,
+      0.55,
+    ).toColor();
 
     return Container(
       width: width,
@@ -148,7 +152,7 @@ class _PlaceholderCover extends StatelessWidget {
                 const SizedBox(height: 10),
                 Flexible(
                   child: Text(
-                    book.title,
+                    title,
                     style: GoogleFonts.literata(
                       color: Colors.white.withValues(alpha: 0.92),
                       fontSize: 13,
@@ -161,7 +165,7 @@ class _PlaceholderCover extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  book.author,
+                  author,
                   style: GoogleFonts.inter(
                     color: Colors.white.withValues(alpha: 0.55),
                     fontSize: 10,

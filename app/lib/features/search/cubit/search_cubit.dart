@@ -145,12 +145,7 @@ class SearchCubit extends Cubit<SearchState> {
   Future<void> _performSearch(String query) async {
     final catalog = state.selectedCatalog;
     if (catalog == null) {
-      emit(
-        state.copyWith(
-          status: SearchStatus.error,
-          errorMessage: 'No catalog selected.',
-        ),
-      );
+      emit(state.copyWith(status: SearchStatus.error, clearError: true));
       return;
     }
 

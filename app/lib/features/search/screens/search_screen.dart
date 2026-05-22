@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/models/book_localizations.dart';
+import '../../../core/models/book.dart';
 import '../../../core/services/opds_catalog_service.dart';
 import '../../../l10n/l10n.dart';
 import '../cubit/search_cubit.dart';
@@ -144,11 +146,15 @@ class _SearchScreenState extends State<SearchScreen> {
 
                 if (state.status == SearchStatus.error &&
                     state.results.isEmpty) {
+                  final errorText = state.selectedCatalog == null
+                      ? l10n.searchNoCatalogSelected
+                      : (state.errorMessage ?? l10n.searchErrorFallback);
+
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Text(
-                        state.errorMessage ?? l10n.searchErrorFallback,
+                        errorText,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
@@ -174,13 +180,14 @@ class _SearchScreenState extends State<SearchScreen> {
                       onDownload: () async {
                         final cubit = context.read<SearchCubit>();
                         final messenger = ScaffoldMessenger.of(context);
+                        final bookTitle = bookTitleLabel(context, book.title);
                         try {
                           await cubit.downloadBook(book);
                           if (!mounted) return;
                           messenger.showSnackBar(
                             SnackBar(
                               content: Text(
-                                l10n.searchBookAdded(title: book.title),
+                                l10n.searchBookAdded(title: bookTitle),
                               ),
                             ),
                           );
@@ -439,6 +446,12 @@ class _SearchResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = context.l10n;
+    final title = bookTitleLabel(context, book.title);
+    final author = bookAuthorLabel(context, book.author);
+    final preferredFormatLabel = _bookFormatLabel(
+      context,
+      book.preferredAcquisition.format,
+    );
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -485,14 +498,14 @@ class _SearchResultCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        book.title,
+                        title,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        book.author,
+                        author,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: colorScheme.primary,
                         ),
@@ -503,7 +516,9 @@ class _SearchResultCard extends StatelessWidget {
                         runSpacing: 6,
                         children: [
                           _MetaChip(label: book.catalogTitle),
-                          _MetaChip(label: book.formatSummary),
+                          _MetaChip(
+                            label: _catalogFormatSummary(context, book),
+                          ),
                           if (book.yearLabel != null)
                             _MetaChip(label: book.yearLabel!),
                         ],
@@ -551,8 +566,7 @@ class _SearchResultCard extends StatelessWidget {
                       isDownloading
                           ? l10n.searchDownloading
                           : l10n.searchDownloadFormat(
-                              formatName:
-                                  book.preferredAcquisition.format.displayName,
+                              formatName: preferredFormatLabel,
                             ),
                     ),
                   ),
@@ -601,4 +615,23 @@ class _MetaChip extends StatelessWidget {
       ),
     );
   }
+}
+
+String _catalogFormatSummary(BuildContext context, CatalogBook book) {
+  return book.acquisitions
+      .map((item) => _bookFormatLabel(context, item.format))
+      .toSet()
+      .join(' · ');
+}
+
+String _bookFormatLabel(BuildContext context, BookFormat format) {
+  final l10n = context.l10n;
+
+  return switch (format) {
+    BookFormat.epub => l10n.formatEpub,
+    BookFormat.pdf => l10n.formatPdf,
+    BookFormat.txt => l10n.formatText,
+    BookFormat.cbz => l10n.formatComicCbz,
+    BookFormat.html => l10n.formatHtml,
+  };
 }

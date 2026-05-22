@@ -111,9 +111,6 @@ class CatalogBook extends Equatable {
 
   CatalogAcquisition get preferredAcquisition => acquisitions.first;
 
-  String get formatSummary =>
-      acquisitions.map((item) => item.format.displayName).toSet().join(' · ');
-
   @override
   List<Object?> get props => [
     id,

@@ -22,16 +22,14 @@ enum BookFormat {
   }
 
   /// File extensions accepted by the file picker for this format.
-  static List<String> get allExtensions =>
-      ['epub', 'pdf', 'txt', 'cbz', 'html', 'htm'];
-
-  String get displayName => switch (this) {
-    BookFormat.epub => 'EPUB',
-    BookFormat.pdf => 'PDF',
-    BookFormat.txt => 'Text',
-    BookFormat.cbz => 'Comic (CBZ)',
-    BookFormat.html => 'HTML',
-  };
+  static List<String> get allExtensions => [
+    'epub',
+    'pdf',
+    'txt',
+    'cbz',
+    'html',
+    'htm',
+  ];
 }
 
 class Book extends Equatable {

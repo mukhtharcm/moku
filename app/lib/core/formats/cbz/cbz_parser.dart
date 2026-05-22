@@ -35,7 +35,13 @@ class CbzParser {
   static final _cache = <String, _CachedCbz>{};
 
   static const _imageExtensions = {
-    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff',
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.webp',
+    '.bmp',
+    '.tiff',
   };
 
   /// Extract metadata from a CBZ file.
@@ -45,7 +51,7 @@ class CbzParser {
 
     return CbzMetadata(
       title: p.basenameWithoutExtension(filePath),
-      author: 'Unknown',
+      author: '',
       pageCount: images.length,
     );
   }
@@ -63,13 +69,12 @@ class CbzParser {
   static Future<List<ChapterInfo>> getChapters(String filePath) async {
     final cached = await _loadCbz(filePath);
     return cached.images.asMap().entries.map((e) {
-      return ChapterInfo(index: e.key, title: 'Page ${e.key + 1}');
+      return ChapterInfo(index: e.key, title: '');
     }).toList();
   }
 
   /// Get a single page image as bytes.
-  static Future<Uint8List> getPageImage(
-      String filePath, int pageIndex) async {
+  static Future<Uint8List> getPageImage(String filePath, int pageIndex) async {
     final cached = await _loadCbz(filePath);
     if (pageIndex < 0 || pageIndex >= cached.images.length) {
       return Uint8List(0);
@@ -115,8 +120,9 @@ class CbzParser {
   /// Get image files from archive, sorted by filename (natural order).
   static List<ArchiveFile> _getSortedImages(Archive archive) {
     return archive.files
-        .where((f) =>
-            !f.isFile ? false : _isImageFile(f.name) && !_isHidden(f.name))
+        .where(
+          (f) => !f.isFile ? false : _isImageFile(f.name) && !_isHidden(f.name),
+        )
         .toList()
       ..sort((a, b) => _naturalCompare(a.name, b.name));
   }

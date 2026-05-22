@@ -1,6 +1,13 @@
 {
   "@@locale": "en",
   "appTitle": "Moku",
+  "bookUnknownTitle": "Untitled",
+  "bookUnknownAuthor": "Unknown author",
+  "formatEpub": "EPUB",
+  "formatPdf": "PDF",
+  "formatText": "Text",
+  "formatComicCbz": "Comic (CBZ)",
+  "formatHtml": "HTML",
   "navLibrary": "Library",
   "navDiscover": "Discover",
   "navShelves": "Shelves",
@@ -12,6 +19,8 @@
   "commonAdd": "Add",
   "commonRemove": "Remove",
   "commonClear": "Clear",
+  "commonSave": "Save",
+  "commonCopy": "Copy",
   "commonTryAgain": "Try Again",
   "commonImportFiles": "Import files",
   "onboardingSkip": "Skip",
@@ -78,6 +87,7 @@
   "searchInitialPromptBody": "Find downloadable books and add them straight to your library.",
   "searchErrorFallback": "Something went wrong.",
   "searchEmptyResults": "No downloadable books found",
+  "searchNoCatalogSelected": "Choose a catalog to start searching",
   "searchBookAdded": "{title} added to your library",
   "@searchBookAdded": {
     "placeholders": {
@@ -234,8 +244,90 @@
       "title": {}
     }
   },
+  "readerAnnotations": "Annotations",
+  "readerHighlightsTab": "Highlights ({count})",
+  "@readerHighlightsTab": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readerBookmarksTab": "Bookmarks ({count})",
+  "@readerBookmarksTab": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readerNoHighlightsYet": "No highlights yet",
+  "readerNoHighlightsHint": "Select text while reading to highlight it",
+  "readerNoBookmarksYet": "No bookmarks yet",
+  "readerChapterLabel": "Chapter {chapterNumber}",
+  "@readerChapterLabel": {
+    "placeholders": {
+      "chapterNumber": {
+        "type": "int"
+      }
+    }
+  },
+  "readerDeleteHighlightTitle": "Delete Highlight",
+  "readerDeleteHighlightMessage": "Are you sure you want to delete this highlight?",
+  "readerEditNote": "Edit Note",
+  "readerAddNote": "Add Note",
+  "readerNoteHint": "Enter your note...",
+  "readerHighlight": "Highlight",
+  "readerHighlightWithNote": "Highlight with Note",
+  "readerCopiedToClipboard": "Copied to clipboard",
+  "readerErrorTitle": "Reader Error",
+  "readerLoadFailed": "Failed to load this book: {error}",
+  "@readerLoadFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "readerUnknownError": "Something went wrong while opening this book.",
+  "readerExitZenMode": "Exit Zen Mode",
+  "readerZenMode": "Zen Mode",
+  "readerTableOfContents": "Table of Contents",
+  "readerSettings": "Settings",
+  "readerBookmark": "Bookmark",
+  "readerTypography": "Typography",
+  "readerTheme": "Theme",
+  "readerContents": "Contents",
+  "readerPageOf": "Page {currentPage} of {totalPages}",
+  "@readerPageOf": {
+    "placeholders": {
+      "currentPage": {
+        "type": "int"
+      },
+      "totalPages": {
+        "type": "int"
+      }
+    }
+  },
+  "readerChapterProgress": "{chapterTitle} · {percent}%",
+  "@readerChapterProgress": {
+    "placeholders": {
+      "chapterTitle": {},
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "readerFontFamilySystem": "System",
+  "readerFontFamilySerif": "Serif",
+  "readerFontFamilySansSerif": "Sans Serif",
+  "readerFontFamilyMonospace": "Monospace",
   "statsTitle": "Reading Stats",
   "statsErrorFallback": "Error",
+  "statsLoadFailed": "Failed to load stats: {error}",
+  "@statsLoadFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "statsTotalTime": "Total Time",
   "statsBooksStartedThisYear": "Books Started This Year",
   "statsSessions": "Sessions",

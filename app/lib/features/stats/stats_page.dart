@@ -38,7 +38,11 @@ class _StatsView extends StatelessWidget {
           }
           if (state.status == StatsStatus.error) {
             return Center(
-              child: Text(state.errorMessage ?? l10n.statsErrorFallback),
+              child: Text(
+                state.errorMessage != null && state.errorMessage!.isNotEmpty
+                    ? l10n.statsLoadFailed(error: state.errorMessage!)
+                    : l10n.statsErrorFallback,
+              ),
             );
           }
           return RefreshIndicator(
@@ -191,14 +195,14 @@ class _SessionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final localizations = MaterialLocalizations.of(context);
     final h = session.durationSeconds ~/ 3600;
     final m = (session.durationSeconds % 3600) ~/ 60;
     final duration = h > 0
         ? context.l10n.statsDurationHoursMinutes(hours: h, minutes: m)
         : context.l10n.statsDurationMinutes(minutes: m);
     final date = session.startedAt;
-    final dateLabel =
-        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final dateLabel = localizations.formatShortDate(date);
 
     return Column(
       children: [

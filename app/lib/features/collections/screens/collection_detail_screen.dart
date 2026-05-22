@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/database/database.dart' as db;
+import '../../../core/models/book_localizations.dart';
 import '../../../core/models/models.dart';
 import '../../../core/services/path_resolver.dart';
 import '../../../l10n/l10n.dart';
@@ -127,7 +128,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         title: Text(l10n.collectionDetailRemoveTitle),
         content: Text(
           l10n.collectionDetailRemoveMessage(
-            title: book.title,
+            title: bookTitleLabel(context, book.title),
             collectionName: widget.collection.name,
           ),
         ),
@@ -215,12 +216,12 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                       child: BookCoverWidget(book: book, borderRadius: 6),
                     ),
                     title: Text(
-                      dbBook.title,
+                      bookTitleLabel(context, dbBook.title),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: Text(
-                      dbBook.author,
+                      bookAuthorLabel(context, dbBook.author),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -236,7 +237,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                             SnackBar(
                               content: Text(
                                 l10n.collectionDetailAddedBook(
-                                  title: dbBook.title,
+                                  title: bookTitleLabel(context, dbBook.title),
                                 ),
                               ),
                               duration: const Duration(seconds: 1),

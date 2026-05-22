@@ -9,9 +9,12 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../core/database/database.dart'
     hide Book, Bookmark, Highlight, BookCollection;
 import '../../../core/models/book.dart';
+import '../../../core/models/book_localizations.dart';
 import '../../../core/services/book_service.dart';
 import '../../../core/sync/auto_sync_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/l10n.dart';
+import '../reader_localizations.dart';
 import '../cubit/reader_cubit.dart';
 import '../cubit/reader_state.dart';
 import 'annotations_screen.dart';
@@ -110,10 +113,7 @@ class _ReaderViewState extends State<_ReaderView>
     _webController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.transparent)
-      ..addJavaScriptChannel(
-        'MokuBridge',
-        onMessageReceived: _onJsMessage,
-      )
+      ..addJavaScriptChannel('MokuBridge', onMessageReceived: _onJsMessage)
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (_) {
@@ -131,7 +131,8 @@ class _ReaderViewState extends State<_ReaderView>
               // Small delay to let highlights render first
               Future.delayed(const Duration(milliseconds: 200), () {
                 _webController.runJavaScript(
-                    "scrollToHighlightText('$escaped');");
+                  "scrollToHighlightText('$escaped');",
+                );
                 cubit.clearPendingHighlight();
               });
             }
@@ -246,21 +247,19 @@ class _ReaderViewState extends State<_ReaderView>
 
   void _applyHighlightsToWebView(List highlights) {
     if (highlights.isEmpty) {
-      _webController
-          .runJavaScript('if(typeof clearHighlights==="function") clearHighlights();');
+      _webController.runJavaScript(
+        'if(typeof clearHighlights==="function") clearHighlights();',
+      );
       return;
     }
     final highlightData = highlights
-        .map((h) => {
-              'text': h.selectedText,
-              'id': h.id,
-              'color': h.color,
-            })
+        .map((h) => {'text': h.selectedText, 'id': h.id, 'color': h.color})
         .toList();
     final jsonStr = json.encode(highlightData);
     final escaped = jsonStr.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
     _webController.runJavaScript(
-        "if(typeof applyHighlights==='function') applyHighlights('$escaped');");
+      "if(typeof applyHighlights==='function') applyHighlights('$escaped');",
+    );
   }
 
   void _clearSelection() {
@@ -278,6 +277,7 @@ class _ReaderViewState extends State<_ReaderView>
     final text = _selectedText;
     final startOffset = _selectionStartOffset ?? 0;
     final endOffset = _selectionEndOffset ?? 0;
+    final l10n = context.l10n;
     if (text == null || text.isEmpty) return;
 
     showModalBottomSheet(
@@ -309,18 +309,20 @@ class _ReaderViewState extends State<_ReaderView>
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.highlight),
-                title: const Text('Highlight'),
+                title: Text(l10n.readerHighlight),
                 onTap: () {
                   Navigator.pop(ctx);
-                  context
-                      .read<ReaderCubit>()
-                      .addHighlight(text, startOffset, endOffset);
+                  context.read<ReaderCubit>().addHighlight(
+                    text,
+                    startOffset,
+                    endOffset,
+                  );
                   _clearSelection();
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.note_add),
-                title: const Text('Highlight with Note'),
+                title: Text(l10n.readerHighlightWithNote),
                 onTap: () {
                   Navigator.pop(ctx);
                   _showAddNoteDialog(context, text, startOffset, endOffset);
@@ -328,15 +330,15 @@ class _ReaderViewState extends State<_ReaderView>
               ),
               ListTile(
                 leading: const Icon(Icons.copy),
-                title: const Text('Copy'),
+                title: Text(l10n.commonCopy),
                 onTap: () {
                   Navigator.pop(ctx);
                   Clipboard.setData(ClipboardData(text: text));
                   _clearSelection();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Copied to clipboard'),
-                      duration: Duration(seconds: 1),
+                    SnackBar(
+                      content: Text(l10n.readerCopiedToClipboard),
+                      duration: const Duration(seconds: 1),
                     ),
                   );
                 },
@@ -349,12 +351,17 @@ class _ReaderViewState extends State<_ReaderView>
   }
 
   void _showAddNoteDialog(
-      BuildContext context, String text, int startOffset, int endOffset) {
+    BuildContext context,
+    String text,
+    int startOffset,
+    int endOffset,
+  ) {
     final noteController = TextEditingController();
+    final l10n = context.l10n;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add Note'),
+        title: Text(l10n.readerAddNote),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -368,9 +375,9 @@ class _ReaderViewState extends State<_ReaderView>
             const SizedBox(height: 12),
             TextField(
               controller: noteController,
-              decoration: const InputDecoration(
-                hintText: 'Enter your note...',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: l10n.readerNoteHint,
+                border: const OutlineInputBorder(),
               ),
               maxLines: 3,
               autofocus: true,
@@ -380,7 +387,7 @@ class _ReaderViewState extends State<_ReaderView>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -392,12 +399,14 @@ class _ReaderViewState extends State<_ReaderView>
                 if (highlights.isNotEmpty) {
                   final lastHighlight = highlights.last;
                   await cubit.updateHighlightNote(
-                      lastHighlight.id, noteController.text);
+                    lastHighlight.id,
+                    noteController.text,
+                  );
                 }
               }
               _clearSelection();
             },
-            child: const Text('Save'),
+            child: Text(l10n.commonSave),
           ),
         ],
       ),
@@ -408,11 +417,19 @@ class _ReaderViewState extends State<_ReaderView>
 
   void _loadContent(ReaderState state, {String startPosition = 'first'}) {
     setState(() => _webViewReady = false);
-    final html = _wrapHtml(state.currentContent, state, startPosition: startPosition);
+    final html = _wrapHtml(
+      state.currentContent,
+      state,
+      startPosition: startPosition,
+    );
     _webController.loadHtmlString(html);
   }
 
-  String _wrapHtml(String content, ReaderState state, {String startPosition = 'first'}) {
+  String _wrapHtml(
+    String content,
+    ReaderState state, {
+    String startPosition = 'first',
+  }) {
     final bgColor = _colorToHex(state.readerTheme.backgroundColor);
     final textColor = _colorToHex(state.readerTheme.textColor);
     final fontFamily = state.fontFamily.cssFontFamily;
@@ -429,7 +446,8 @@ class _ReaderViewState extends State<_ReaderView>
     } else if (startPosition.startsWith('fraction:')) {
       startPosJs = "{ type: 'fraction', value: ${startPosition.substring(9)} }";
     } else if (startPosition.startsWith('fragment:')) {
-      startPosJs = "{ type: 'fragment', value: '${startPosition.substring(9)}' }";
+      startPosJs =
+          "{ type: 'fragment', value: '${startPosition.substring(9)}' }";
     } else {
       startPosJs = "{ type: 'first' }";
     }
@@ -869,13 +887,15 @@ window.addEventListener('load', function() {
         }
 
         final contentChanged = state.currentContent != _lastLoadedContent;
-        final settingsChanged = state.fontSize != _lastLoadedFontSize ||
+        final settingsChanged =
+            state.fontSize != _lastLoadedFontSize ||
             state.lineHeight != _lastLoadedLineHeight ||
             state.horizontalMargin != _lastLoadedMargin ||
             state.fontFamily != _lastLoadedFontFamily ||
             state.readerTheme != _lastLoadedTheme;
 
-        if (state.currentContent.isNotEmpty && (contentChanged || settingsChanged)) {
+        if (state.currentContent.isNotEmpty &&
+            (contentChanged || settingsChanged)) {
           _lastLoadedContent = state.currentContent;
           _lastLoadedFontSize = state.fontSize;
           _lastLoadedLineHeight = state.lineHeight;
@@ -907,13 +927,14 @@ window.addEventListener('load', function() {
                 .replaceAll('\\', '\\\\')
                 .replaceAll("'", "\\'")
                 .replaceAll('\n', '\\n');
-            _webController.runJavaScript(
-                "scrollToHighlightText('$escaped');");
+            _webController.runJavaScript("scrollToHighlightText('$escaped');");
             context.read<ReaderCubit>().clearPendingHighlight();
           }
         }
       },
       builder: (context, state) {
+        final l10n = context.l10n;
+
         if (state.status == ReaderStatus.loading) {
           return Scaffold(
             backgroundColor: state.readerTheme.backgroundColor,
@@ -923,8 +944,18 @@ window.addEventListener('load', function() {
 
         if (state.status == ReaderStatus.error) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Error')),
-            body: Center(child: Text(state.errorMessage ?? 'Unknown error')),
+            appBar: AppBar(title: Text(l10n.readerErrorTitle)),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  state.errorMessage != null && state.errorMessage!.isNotEmpty
+                      ? l10n.readerLoadFailed(error: state.errorMessage!)
+                      : l10n.readerUnknownError,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
           );
         }
 
@@ -948,22 +979,24 @@ window.addEventListener('load', function() {
               // Top controls
               if (state.showControls && !state.zenMode)
                 _TopControls(
-                  title: state.book.title,
-                  chapterTitle: state.chapterTitle,
-                  onZenMode: () =>
-                      context.read<ReaderCubit>().toggleZenMode(),
+                  title: bookTitleLabel(context, state.book.title),
+                  chapterTitle: readerChapterTitle(
+                    context,
+                    state,
+                    state.currentChapter,
+                  ),
+                  onZenMode: () => context.read<ReaderCubit>().toggleZenMode(),
                 ),
 
               // Bottom controls
               if (state.showControls && !state.zenMode)
                 _BottomControls(
                   state: state,
-                  onToc: () =>
-                      context.read<ReaderCubit>().toggleToc(),
+                  onToc: () => context.read<ReaderCubit>().toggleToc(),
                   onSettings: () => _showSettingsSheet(context),
-                  onBookmark: () => context
-                      .read<ReaderCubit>()
-                      .addBookmark(state.chapterTitle),
+                  onBookmark: () => context.read<ReaderCubit>().addBookmark(
+                    readerChapterTitle(context, state, state.currentChapter),
+                  ),
                   onAnnotations: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -975,7 +1008,8 @@ window.addEventListener('load', function() {
                   ),
                   onPageScrub: (page) {
                     _webController.runJavaScript(
-                        'mokuPagination.goToPage($page);');
+                      'mokuPagination.goToPage($page);',
+                    );
                   },
                   onBookScrub: (progress) {
                     final cubit = context.read<ReaderCubit>();
@@ -994,7 +1028,8 @@ window.addEventListener('load', function() {
                           .round()
                           .clamp(0, cubit.state.totalPages - 1);
                       _webController.runJavaScript(
-                          'mokuPagination.goToPage($page);');
+                        'mokuPagination.goToPage($page);',
+                      );
                     }
                   },
                 ),
@@ -1010,7 +1045,7 @@ window.addEventListener('load', function() {
                     heroTag: 'reader_highlight',
                     onPressed: () => _showHighlightActions(context),
                     icon: const Icon(Icons.highlight_rounded),
-                    label: const Text('Highlight'),
+                    label: Text(l10n.readerHighlight),
                   ),
                 ),
 
@@ -1041,14 +1076,13 @@ window.addEventListener('load', function() {
                     value: state.chapters.isEmpty
                         ? 0
                         : (state.currentChapter + state.scrollProgress) /
-                            state.chapters.length,
+                              state.chapters.length,
                     minHeight: state.zenMode ? 1.5 : 2.5,
                     backgroundColor: Colors.transparent,
                     valueColor: AlwaysStoppedAnimation(
-                      Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.6),
+                      Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -1073,7 +1107,9 @@ window.addEventListener('load', function() {
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 10),
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.black87,
                             borderRadius: BorderRadius.circular(24),
@@ -1084,12 +1120,14 @@ window.addEventListener('load', function() {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.close_rounded,
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  size: 16),
+                              Icon(
+                                Icons.close_rounded,
+                                color: Colors.white.withValues(alpha: 0.9),
+                                size: 16,
+                              ),
                               const SizedBox(width: 8),
                               Text(
-                                'Exit Zen Mode',
+                                l10n.readerExitZenMode,
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.9),
                                   fontSize: 13,
@@ -1139,6 +1177,8 @@ class _TopControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Positioned(
       top: 0,
       left: 0,
@@ -1148,10 +1188,7 @@ class _TopControls extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.7),
-              Colors.transparent,
-            ],
+            colors: [Colors.black.withValues(alpha: 0.7), Colors.transparent],
           ),
         ),
         child: SafeArea(
@@ -1196,7 +1233,7 @@ class _TopControls extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.spa_outlined, color: Colors.white),
                     onPressed: onZenMode,
-                    tooltip: 'Zen Mode',
+                    tooltip: l10n.readerZenMode,
                   ),
               ],
             ),
@@ -1232,15 +1269,22 @@ class _BottomControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final totalChapters = state.chapters.length;
     // Overall progress: 0.0 → 1.0 across entire book
     final overallProgress = totalChapters == 0
         ? 0.0
-        : ((state.currentChapter + state.scrollProgress) / totalChapters)
-            .clamp(0.0, 1.0);
+        : ((state.currentChapter + state.scrollProgress) / totalChapters).clamp(
+            0.0,
+            1.0,
+          );
     final overallPercent = (overallProgress * 100).round();
 
-    final chapterName = state.chapterTitle;
+    final chapterName = readerChapterTitle(
+      context,
+      state,
+      state.currentChapter,
+    );
 
     return Positioned(
       bottom: 0,
@@ -1277,15 +1321,18 @@ class _BottomControls extends StatelessWidget {
                           data: SliderThemeData(
                             trackHeight: 3,
                             thumbShape: const RoundSliderThumbShape(
-                                enabledThumbRadius: 6),
+                              enabledThumbRadius: 6,
+                            ),
                             overlayShape: const RoundSliderOverlayShape(
-                                overlayRadius: 14),
-                            activeTrackColor:
-                                Theme.of(context).colorScheme.primary,
-                            inactiveTrackColor:
-                                Colors.white.withValues(alpha: 0.2),
-                            thumbColor:
-                                Theme.of(context).colorScheme.primary,
+                              overlayRadius: 14,
+                            ),
+                            activeTrackColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                            inactiveTrackColor: Colors.white.withValues(
+                              alpha: 0.2,
+                            ),
+                            thumbColor: Theme.of(context).colorScheme.primary,
                           ),
                           child: Slider(
                             value: overallProgress,
@@ -1295,7 +1342,10 @@ class _BottomControls extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '$chapterName · $overallPercent%',
+                          l10n.readerChapterProgress(
+                            chapterTitle: chapterName,
+                            percent: overallPercent,
+                          ),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.6),
                             fontSize: 11,
@@ -1312,22 +1362,26 @@ class _BottomControls extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.toc_rounded,
-                          color: Colors.white),
+                      icon: const Icon(Icons.toc_rounded, color: Colors.white),
                       onPressed: onToc,
-                      tooltip: 'Table of Contents',
+                      tooltip: l10n.readerTableOfContents,
                     ),
                     IconButton(
-                      icon: const Icon(Icons.settings_outlined,
-                          color: Colors.white),
+                      icon: const Icon(
+                        Icons.settings_outlined,
+                        color: Colors.white,
+                      ),
                       onPressed: onSettings,
-                      tooltip: 'Settings',
+                      tooltip: l10n.readerSettings,
                     ),
                     // Page within chapter
                     Flexible(
                       child: Text(
                         state.totalPages > 1
-                            ? 'Page ${state.currentPage + 1} of ${state.totalPages}'
+                            ? l10n.readerPageOf(
+                                currentPage: state.currentPage + 1,
+                                totalPages: state.totalPages,
+                              )
                             : '',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.5),
@@ -1339,16 +1393,20 @@ class _BottomControls extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.bookmark_add_outlined,
-                          color: Colors.white),
+                      icon: const Icon(
+                        Icons.bookmark_add_outlined,
+                        color: Colors.white,
+                      ),
                       onPressed: onBookmark,
-                      tooltip: 'Bookmark',
+                      tooltip: l10n.readerBookmark,
                     ),
                     IconButton(
-                      icon: const Icon(Icons.format_list_bulleted,
-                          color: Colors.white),
+                      icon: const Icon(
+                        Icons.format_list_bulleted,
+                        color: Colors.white,
+                      ),
                       onPressed: onAnnotations,
-                      tooltip: 'Annotations',
+                      tooltip: l10n.readerAnnotations,
                     ),
                   ],
                 ),
@@ -1371,6 +1429,7 @@ class _ReaderSettingsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return BlocBuilder<ReaderCubit, ReaderState>(
       builder: (context, state) {
@@ -1398,10 +1457,10 @@ class _ReaderSettingsSheet extends StatelessWidget {
 
                 // -- Typography section --
                 Text(
-                  'Typography',
+                  l10n.readerTypography,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 12),
 
@@ -1414,7 +1473,7 @@ class _ReaderSettingsSheet extends StatelessWidget {
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: ChoiceChip(
-                          label: Text(family.displayName),
+                          label: Text(readerFontFamilyLabel(context, family)),
                           selected: isActive,
                           onSelected: (_) => cubit.setFontFamily(family),
                         ),
@@ -1428,10 +1487,11 @@ class _ReaderSettingsSheet extends StatelessWidget {
                 Row(
                   children: [
                     IconButton.outlined(
-                      icon: const Text('A-',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
-                      onPressed: () =>
-                          cubit.setFontSize(state.fontSize - 1),
+                      icon: const Text(
+                        'A-',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      onPressed: () => cubit.setFontSize(state.fontSize - 1),
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -1440,10 +1500,11 @@ class _ReaderSettingsSheet extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     IconButton.outlined(
-                      icon: const Text('A+',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
-                      onPressed: () =>
-                          cubit.setFontSize(state.fontSize + 1),
+                      icon: const Text(
+                        'A+',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      onPressed: () => cubit.setFontSize(state.fontSize + 1),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -1463,8 +1524,11 @@ class _ReaderSettingsSheet extends StatelessWidget {
                 // Line height
                 Row(
                   children: [
-                    Icon(Icons.format_line_spacing,
-                        size: 20, color: colorScheme.onSurfaceVariant),
+                    Icon(
+                      Icons.format_line_spacing,
+                      size: 20,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Slider(
@@ -1483,8 +1547,11 @@ class _ReaderSettingsSheet extends StatelessWidget {
                 // Margins
                 Row(
                   children: [
-                    Icon(Icons.padding,
-                        size: 20, color: colorScheme.onSurfaceVariant),
+                    Icon(
+                      Icons.padding,
+                      size: 20,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Slider(
@@ -1503,10 +1570,10 @@ class _ReaderSettingsSheet extends StatelessWidget {
 
                 // -- Theme section --
                 Text(
-                  'Theme',
+                  l10n.readerTheme,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -1531,8 +1598,11 @@ class _ReaderSettingsSheet extends StatelessWidget {
                         ),
                         child: Center(
                           child: isActive
-                              ? Icon(Icons.check,
-                                  color: theme.textColor, size: 20)
+                              ? Icon(
+                                  Icons.check,
+                                  color: theme.textColor,
+                                  size: 20,
+                                )
                               : Text(
                                   'Aa',
                                   style: TextStyle(
@@ -1576,6 +1646,7 @@ class _TocDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return Positioned.fill(
       child: GestureDetector(
@@ -1598,7 +1669,7 @@ class _TocDrawer extends StatelessWidget {
                         child: Row(
                           children: [
                             Text(
-                              'Contents',
+                              l10n.readerContents,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const Spacer(),

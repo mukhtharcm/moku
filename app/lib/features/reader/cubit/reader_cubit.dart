@@ -25,10 +25,10 @@ class ReaderCubit extends Cubit<ReaderState> {
     required BookService bookService,
     required Book book,
     AutoSyncService? autoSync,
-  })  : _database = database,
-        _bookService = bookService,
-        _autoSync = autoSync,
-        super(ReaderState(book: book));
+  }) : _database = database,
+       _bookService = bookService,
+       _autoSync = autoSync,
+       super(ReaderState(book: book));
 
   db.AppDatabase get database => _database;
 
@@ -46,12 +46,17 @@ class ReaderCubit extends Cubit<ReaderState> {
 
       // Get spine items (reading order)
       final chapters = await _bookService.getChapters(
-          state.book.filePath, state.book.format);
+        state.book.filePath,
+        state.book.format,
+      );
 
       // Load saved progress
       final progress = await _database.getProgressForBook(state.book.id);
       final startChapter = progress?.currentChapter ?? 0;
-      final safeStartChapter = startChapter.clamp(0, chapters.isEmpty ? 0 : chapters.length - 1);
+      final safeStartChapter = startChapter.clamp(
+        0,
+        chapters.isEmpty ? 0 : chapters.length - 1,
+      );
 
       // Load content (only for WebView-based formats)
       String content = '';
@@ -65,28 +70,30 @@ class ReaderCubit extends Cubit<ReaderState> {
         );
       }
 
-      emit(state.copyWith(
-        status: ReaderStatus.loaded,
-        chapters: chapters,
-        currentChapter: safeStartChapter,
-        currentContent: content,
-        fontSize: fontSize,
-        lineHeight: lineHeight,
-        horizontalMargin: margin,
-        fontFamily: ReaderFontFamily.values[
-            fontFamilyIndex.clamp(0, ReaderFontFamily.values.length - 1)],
-        readerTheme: ReaderTheme.values[
-            themeIndex.clamp(0, ReaderTheme.values.length - 1)],
-        scrollProgress: progress?.chapterProgress ?? 0.0,
-      ));
+      emit(
+        state.copyWith(
+          status: ReaderStatus.loaded,
+          chapters: chapters,
+          currentChapter: safeStartChapter,
+          currentContent: content,
+          fontSize: fontSize,
+          lineHeight: lineHeight,
+          horizontalMargin: margin,
+          fontFamily:
+              ReaderFontFamily.values[fontFamilyIndex.clamp(
+                0,
+                ReaderFontFamily.values.length - 1,
+              )],
+          readerTheme: ReaderTheme
+              .values[themeIndex.clamp(0, ReaderTheme.values.length - 1)],
+          scrollProgress: progress?.chapterProgress ?? 0.0,
+        ),
+      );
 
       await loadHighlightsForChapter();
       _beginSession();
     } catch (e) {
-      emit(state.copyWith(
-        status: ReaderStatus.error,
-        errorMessage: 'Failed to load book: $e',
-      ));
+      emit(state.copyWith(status: ReaderStatus.error, errorMessage: '$e'));
     }
   }
 
@@ -145,19 +152,19 @@ class ReaderCubit extends Cubit<ReaderState> {
         );
       }
 
-      emit(state.copyWith(
-        currentChapter: chapterIndex,
-        currentContent: content,
-        scrollProgress: 0.0,
-        showToc: false,
-      ));
+      emit(
+        state.copyWith(
+          currentChapter: chapterIndex,
+          currentContent: content,
+          scrollProgress: 0.0,
+          showToc: false,
+        ),
+      );
 
       await _saveProgress();
       await loadHighlightsForChapter();
     } catch (e) {
-      emit(state.copyWith(
-        errorMessage: 'Failed to load chapter: $e',
-      ));
+      emit(state.copyWith(errorMessage: '$e'));
     }
   }
 
@@ -177,13 +184,15 @@ class ReaderCubit extends Cubit<ReaderState> {
             chapterIndex,
           );
         }
-        emit(state.copyWith(
-          currentChapter: chapterIndex,
-          currentContent: content,
-          scrollProgress: 0.0,
-          showToc: false,
-          pendingHighlightText: selectedText,
-        ));
+        emit(
+          state.copyWith(
+            currentChapter: chapterIndex,
+            currentContent: content,
+            scrollProgress: 0.0,
+            showToc: false,
+            pendingHighlightText: selectedText,
+          ),
+        );
         await _saveProgress();
         await loadHighlightsForChapter();
       } else {
@@ -191,9 +200,7 @@ class ReaderCubit extends Cubit<ReaderState> {
         emit(state.copyWith(pendingHighlightText: selectedText));
       }
     } catch (e) {
-      emit(state.copyWith(
-        errorMessage: 'Failed to navigate to highlight: $e',
-      ));
+      emit(state.copyWith(errorMessage: '$e'));
     }
   }
 
@@ -220,11 +227,13 @@ class ReaderCubit extends Cubit<ReaderState> {
 
   void updatePageInfo(int page, int total) {
     final progress = total > 1 ? page / (total - 1) : 0.0;
-    emit(state.copyWith(
-      currentPage: page,
-      totalPages: total,
-      scrollProgress: progress.clamp(0.0, 1.0),
-    ));
+    emit(
+      state.copyWith(
+        currentPage: page,
+        totalPages: total,
+        scrollProgress: progress.clamp(0.0, 1.0),
+      ),
+    );
     _saveProgress();
   }
 
@@ -238,11 +247,9 @@ class ReaderCubit extends Cubit<ReaderState> {
 
   void toggleZenMode() {
     final entering = !state.zenMode;
-    emit(state.copyWith(
-      zenMode: entering,
-      showControls: false,
-      showToc: false,
-    ));
+    emit(
+      state.copyWith(zenMode: entering, showControls: false, showToc: false),
+    );
   }
 
   Future<void> setFontSize(double size) async {
@@ -269,7 +276,9 @@ class ReaderCubit extends Cubit<ReaderState> {
   Future<void> setFontFamily(ReaderFontFamily family) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(
-        'reader_font_family', ReaderFontFamily.values.indexOf(family));
+      'reader_font_family',
+      ReaderFontFamily.values.indexOf(family),
+    );
     emit(state.copyWith(fontFamily: family));
   }
 
@@ -283,8 +292,7 @@ class ReaderCubit extends Cubit<ReaderState> {
   Future<void> _saveProgress() async {
     final overallProgress = state.chapters.isEmpty
         ? 0.0
-        : (state.currentChapter + state.scrollProgress) /
-            state.chapters.length;
+        : (state.currentChapter + state.scrollProgress) / state.chapters.length;
 
     final now = DateTime.now();
     await _database.upsertProgress(
@@ -329,7 +337,10 @@ class ReaderCubit extends Cubit<ReaderState> {
   }
 
   Future<void> addHighlight(
-      String selectedText, int startOffset, int endOffset) async {
+    String selectedText,
+    int startOffset,
+    int endOffset,
+  ) async {
     final now = DateTime.now();
     await _database.insertHighlight(
       db.HighlightsCompanion.insert(

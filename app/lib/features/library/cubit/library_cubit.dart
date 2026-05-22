@@ -23,10 +23,10 @@ class LibraryCubit extends Cubit<LibraryState> {
     required db.AppDatabase database,
     required BookService bookService,
     AutoSyncService? autoSync,
-  })  : _database = database,
-        _bookService = bookService,
-        _autoSync = autoSync,
-        super(const LibraryState());
+  }) : _database = database,
+       _bookService = bookService,
+       _autoSync = autoSync,
+       super(const LibraryState());
 
   void loadBooks() {
     emit(state.copyWith(status: LibraryStatus.loading));
@@ -44,17 +44,21 @@ class LibraryCubit extends Cubit<LibraryState> {
           }
         }
 
-        emit(state.copyWith(
-          status: LibraryStatus.loaded,
-          books: books,
-          progressMap: progressMap,
-        ));
+        emit(
+          state.copyWith(
+            status: LibraryStatus.loaded,
+            books: books,
+            progressMap: progressMap,
+          ),
+        );
       },
       onError: (error) {
-        emit(state.copyWith(
-          status: LibraryStatus.error,
-          errorMessage: error.toString(),
-        ));
+        emit(
+          state.copyWith(
+            status: LibraryStatus.error,
+            errorMessage: error.toString(),
+          ),
+        );
       },
     );
   }
@@ -76,10 +80,7 @@ class LibraryCubit extends Cubit<LibraryState> {
         await _importSingleBook(file.path!);
       }
     } catch (e) {
-      emit(state.copyWith(
-        status: LibraryStatus.error,
-        errorMessage: 'Failed to import book: $e',
-      ));
+      emit(state.copyWith(status: LibraryStatus.error, errorMessage: '$e'));
     } finally {
       _isImporting = false;
     }
@@ -88,23 +89,25 @@ class LibraryCubit extends Cubit<LibraryState> {
   Future<void> _importSingleBook(String filePath) async {
     final book = await _bookService.importBook(filePath);
 
-    await _database.insertBook(db.BooksCompanion.insert(
-      id: book.id,
-      title: book.title,
-      author: book.author,
-      description: Value(book.description),
-      coverPath: Value(book.coverPath),
-      filePath: book.filePath,
-      format: Value(book.format.name),
-      isbn: Value(book.isbn),
-      language: Value(book.language),
-      publisher: Value(book.publisher),
-      publishDate: Value(book.publishDate),
-      totalChapters: Value(book.totalChapters),
-      fileHash: Value(book.fileHash),
-      createdAt: book.createdAt,
-      updatedAt: book.updatedAt,
-    ));
+    await _database.insertBook(
+      db.BooksCompanion.insert(
+        id: book.id,
+        title: book.title,
+        author: book.author,
+        description: Value(book.description),
+        coverPath: Value(book.coverPath),
+        filePath: book.filePath,
+        format: Value(book.format.name),
+        isbn: Value(book.isbn),
+        language: Value(book.language),
+        publisher: Value(book.publisher),
+        publishDate: Value(book.publishDate),
+        totalChapters: Value(book.totalChapters),
+        fileHash: Value(book.fileHash),
+        createdAt: book.createdAt,
+        updatedAt: book.updatedAt,
+      ),
+    );
     _autoSync?.bump();
   }
 
@@ -123,8 +126,7 @@ class LibraryCubit extends Cubit<LibraryState> {
     if (bookRecord != null) {
       await _deleteFileIfExists(PathResolver.resolve(bookRecord.filePath));
       if (bookRecord.coverPath != null) {
-        await _deleteFileIfExists(
-            PathResolver.resolve(bookRecord.coverPath!));
+        await _deleteFileIfExists(PathResolver.resolve(bookRecord.coverPath!));
       }
     }
   }

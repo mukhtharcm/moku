@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/database/database.dart' as db;
 import '../../../core/models/book.dart';
+import '../../../l10n/l10n.dart';
+import '../reader_localizations.dart';
 import '../cubit/reader_cubit.dart';
 import '../cubit/reader_state.dart';
 
@@ -51,20 +53,21 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final state = context.watch<ReaderCubit>().state;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Annotations'),
+        title: Text(l10n.readerAnnotations),
         bottom: TabBar(
           controller: _tabController,
           tabs: [
             Tab(
               icon: const Icon(Icons.highlight),
-              text: 'Highlights (${_allHighlights.length})',
+              text: l10n.readerHighlightsTab(count: _allHighlights.length),
             ),
             Tab(
               icon: const Icon(Icons.bookmark),
-              text: 'Bookmarks (${_allBookmarks.length})',
+              text: l10n.readerBookmarksTab(count: _allBookmarks.length),
             ),
           ],
         ),
@@ -87,17 +90,23 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
     ColorScheme colorScheme,
   ) {
     if (_allHighlights.isEmpty) {
-      return const Center(
+      final l10n = context.l10n;
+
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.highlight_off, size: 48, color: Colors.grey),
-            SizedBox(height: 12),
-            Text('No highlights yet',
-                style: TextStyle(color: Colors.grey, fontSize: 16)),
-            SizedBox(height: 4),
-            Text('Select text while reading to highlight it',
-                style: TextStyle(color: Colors.grey, fontSize: 13)),
+            const Icon(Icons.highlight_off, size: 48, color: Colors.grey),
+            const SizedBox(height: 12),
+            Text(
+              l10n.readerNoHighlightsYet,
+              style: const TextStyle(color: Colors.grey, fontSize: 16),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l10n.readerNoHighlightsHint,
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
+            ),
           ],
         ),
       );
@@ -116,9 +125,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
       itemBuilder: (context, index) {
         final chapterIndex = sortedChapters[index];
         final highlights = grouped[chapterIndex]!;
-        final chapterTitle = chapterIndex < state.chapters.length
-            ? state.chapters[chapterIndex].title
-            : 'Chapter ${chapterIndex + 1}';
+        final chapterTitle = readerChapterTitle(context, state, chapterIndex);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,17 +141,20 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
                 ),
               ),
             ),
-            ...highlights.map((h) => _HighlightTile(
-                  highlight: h,
-                  onTap: () {
-                    context
-                        .read<ReaderCubit>()
-                        .goToHighlight(h.chapterIndex, h.selectedText);
-                    Navigator.pop(context);
-                  },
-                  onDelete: () => _confirmDelete(context, h),
-                  onEditNote: () => _editNote(context, h),
-                )),
+            ...highlights.map(
+              (h) => _HighlightTile(
+                highlight: h,
+                onTap: () {
+                  context.read<ReaderCubit>().goToHighlight(
+                    h.chapterIndex,
+                    h.selectedText,
+                  );
+                  Navigator.pop(context);
+                },
+                onDelete: () => _confirmDelete(context, h),
+                onEditNote: () => _editNote(context, h),
+              ),
+            ),
             if (index < sortedChapters.length - 1)
               const Divider(height: 1, indent: 16, endIndent: 16),
           ],
@@ -159,14 +169,16 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
     ColorScheme colorScheme,
   ) {
     if (_allBookmarks.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.bookmark_border, size: 48, color: Colors.grey),
-            SizedBox(height: 12),
-            Text('No bookmarks yet',
-                style: TextStyle(color: Colors.grey, fontSize: 16)),
+            const Icon(Icons.bookmark_border, size: 48, color: Colors.grey),
+            const SizedBox(height: 12),
+            Text(
+              context.l10n.readerNoBookmarksYet,
+              style: const TextStyle(color: Colors.grey, fontSize: 16),
+            ),
           ],
         ),
       );
@@ -177,9 +189,11 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
       itemCount: _allBookmarks.length,
       itemBuilder: (context, index) {
         final bm = _allBookmarks[index];
-        final chapterTitle = bm.chapterIndex < state.chapters.length
-            ? state.chapters[bm.chapterIndex].title
-            : 'Chapter ${bm.chapterIndex + 1}';
+        final chapterTitle = readerChapterTitle(
+          context,
+          state,
+          bm.chapterIndex,
+        );
 
         return ListTile(
           leading: Icon(Icons.bookmark, color: colorScheme.primary),
@@ -195,15 +209,17 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
   }
 
   void _confirmDelete(BuildContext context, db.Highlight highlight) {
+    final l10n = context.l10n;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Highlight'),
-        content: const Text('Are you sure you want to delete this highlight?'),
+        title: Text(l10n.readerDeleteHighlightTitle),
+        content: Text(l10n.readerDeleteHighlightMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -211,7 +227,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
               await context.read<ReaderCubit>().deleteHighlight(highlight.id);
               _loadData();
             },
-            child: const Text('Delete'),
+            child: Text(l10n.commonDelete),
           ),
         ],
       ),
@@ -220,10 +236,11 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
 
   void _editNote(BuildContext context, db.Highlight highlight) {
     final noteController = TextEditingController(text: highlight.note ?? '');
+    final l10n = context.l10n;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Edit Note'),
+        title: Text(l10n.readerEditNote),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,9 +254,9 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
             const SizedBox(height: 12),
             TextField(
               controller: noteController,
-              decoration: const InputDecoration(
-                hintText: 'Enter your note...',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: l10n.readerNoteHint,
+                border: const OutlineInputBorder(),
               ),
               maxLines: 3,
               autofocus: true,
@@ -249,17 +266,18 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await context
-                  .read<ReaderCubit>()
-                  .updateHighlightNote(highlight.id, noteController.text);
+              await context.read<ReaderCubit>().updateHighlightNote(
+                highlight.id,
+                noteController.text,
+              );
               _loadData();
             },
-            child: const Text('Save'),
+            child: Text(l10n.commonSave),
           ),
         ],
       ),
@@ -324,17 +342,20 @@ class _HighlightTile extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.note, size: 14,
-                            color: Theme.of(context).colorScheme.secondary),
+                        Icon(
+                          Icons.note,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             highlight.note!,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -353,6 +374,8 @@ class _HighlightTile extends StatelessWidget {
   }
 
   void _showActions(BuildContext context) {
+    final l10n = context.l10n;
+
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
@@ -361,7 +384,7 @@ class _HighlightTile extends StatelessWidget {
           children: [
             ListTile(
               leading: const Icon(Icons.edit_note),
-              title: const Text('Edit Note'),
+              title: Text(l10n.readerEditNote),
               onTap: () {
                 Navigator.pop(ctx);
                 onEditNote();
@@ -369,8 +392,10 @@ class _HighlightTile extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title:
-                  const Text('Delete', style: TextStyle(color: Colors.red)),
+              title: Text(
+                l10n.commonDelete,
+                style: const TextStyle(color: Colors.red),
+              ),
               onTap: () {
                 Navigator.pop(ctx);
                 onDelete();

@@ -6,7 +6,9 @@ import 'package:uuid/uuid.dart';
 import '../../../core/database/database.dart' as db;
 import '../../../core/formats/cbz/cbz_parser.dart';
 import '../../../core/models/book.dart';
+import '../../../core/models/book_localizations.dart';
 import '../../../core/sync/auto_sync_service.dart';
+import '../../../l10n/l10n.dart';
 
 /// Dedicated reader screen for CBZ (Comic Book ZIP) files.
 ///
@@ -195,6 +197,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     const bgColor = Colors.black;
     const fgColor = Colors.white;
 
@@ -257,7 +260,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                       ),
                       Expanded(
                         child: Text(
-                          widget.book.title,
+                          bookTitleLabel(context, widget.book.title),
                           style: const TextStyle(
                             color: fgColor,
                             fontSize: 16,
@@ -319,7 +322,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                         ),
                       ),
                       Text(
-                        'Page ${_currentPage + 1} of $_totalPages',
+                        l10n.readerPageOf(
+                          currentPage: _currentPage + 1,
+                          totalPages: _totalPages,
+                        ),
                         style: TextStyle(
                           color: fgColor.withValues(alpha: 0.7),
                           fontSize: 12,

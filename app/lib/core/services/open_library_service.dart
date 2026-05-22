@@ -85,26 +85,29 @@ class OpenLibraryBook {
   factory OpenLibraryBook.fromJson(Map<String, dynamic> json) {
     return OpenLibraryBook(
       key: json['key'] ?? '',
-      title: json['title'] ?? 'Unknown',
-      authors: (json['author_name'] as List<dynamic>?)
+      title: json['title'] ?? '',
+      authors:
+          (json['author_name'] as List<dynamic>?)
               ?.map((a) => a.toString())
               .toList() ??
           [],
       firstPublishYear: json['first_publish_year'] as int?,
       coverId: json['cover_i'] as int?,
-      isbn: (json['isbn'] as List<dynamic>?)
-              ?.map((i) => i.toString())
-              .toList() ??
+      isbn:
+          (json['isbn'] as List<dynamic>?)?.map((i) => i.toString()).toList() ??
           [],
-      languages: (json['language'] as List<dynamic>?)
+      languages:
+          (json['language'] as List<dynamic>?)
               ?.map((l) => l.toString())
               .toList() ??
           [],
-      publishers: (json['publisher'] as List<dynamic>?)
+      publishers:
+          (json['publisher'] as List<dynamic>?)
               ?.map((p) => p.toString())
               .toList() ??
           [],
-      subjects: (json['subject'] as List<dynamic>?)
+      subjects:
+          (json['subject'] as List<dynamic>?)
               ?.map((s) => s.toString())
               .take(5)
               .toList() ??

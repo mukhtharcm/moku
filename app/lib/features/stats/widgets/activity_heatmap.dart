@@ -98,8 +98,7 @@ class ActivityHeatmap extends StatelessWidget {
   }
 
   String _tooltip(BuildContext context, DateTime day, int minutes) {
-    final label =
-        '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+    final label = MaterialLocalizations.of(context).formatShortDate(day);
     if (minutes == 0) {
       return context.l10n.statsHeatmapNoReading(date: label);
     }

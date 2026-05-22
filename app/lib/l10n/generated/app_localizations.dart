@@ -100,6 +100,48 @@ abstract class AppLocalizations {
   /// **'Moku'**
   String get appTitle;
 
+  /// No description provided for @bookUnknownTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled'**
+  String get bookUnknownTitle;
+
+  /// No description provided for @bookUnknownAuthor.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown author'**
+  String get bookUnknownAuthor;
+
+  /// No description provided for @formatEpub.
+  ///
+  /// In en, this message translates to:
+  /// **'EPUB'**
+  String get formatEpub;
+
+  /// No description provided for @formatPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF'**
+  String get formatPdf;
+
+  /// No description provided for @formatText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get formatText;
+
+  /// No description provided for @formatComicCbz.
+  ///
+  /// In en, this message translates to:
+  /// **'Comic (CBZ)'**
+  String get formatComicCbz;
+
+  /// No description provided for @formatHtml.
+  ///
+  /// In en, this message translates to:
+  /// **'HTML'**
+  String get formatHtml;
+
   /// No description provided for @navLibrary.
   ///
   /// In en, this message translates to:
@@ -165,6 +207,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear'**
   String get commonClear;
+
+  /// No description provided for @commonSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get commonSave;
+
+  /// No description provided for @commonCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get commonCopy;
 
   /// No description provided for @commonTryAgain.
   ///
@@ -429,6 +483,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No downloadable books found'**
   String get searchEmptyResults;
+
+  /// No description provided for @searchNoCatalogSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a catalog to start searching'**
+  String get searchNoCatalogSelected;
 
   /// No description provided for @searchBookAdded.
   ///
@@ -943,6 +1003,201 @@ abstract class AppLocalizations {
   /// **'Added \"{title}\"'**
   String collectionDetailAddedBook({required Object title});
 
+  /// No description provided for @readerAnnotations.
+  ///
+  /// In en, this message translates to:
+  /// **'Annotations'**
+  String get readerAnnotations;
+
+  /// No description provided for @readerHighlightsTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlights ({count})'**
+  String readerHighlightsTab({required int count});
+
+  /// No description provided for @readerBookmarksTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmarks ({count})'**
+  String readerBookmarksTab({required int count});
+
+  /// No description provided for @readerNoHighlightsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No highlights yet'**
+  String get readerNoHighlightsYet;
+
+  /// No description provided for @readerNoHighlightsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select text while reading to highlight it'**
+  String get readerNoHighlightsHint;
+
+  /// No description provided for @readerNoBookmarksYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No bookmarks yet'**
+  String get readerNoBookmarksYet;
+
+  /// No description provided for @readerChapterLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter {chapterNumber}'**
+  String readerChapterLabel({required int chapterNumber});
+
+  /// No description provided for @readerDeleteHighlightTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Highlight'**
+  String get readerDeleteHighlightTitle;
+
+  /// No description provided for @readerDeleteHighlightMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this highlight?'**
+  String get readerDeleteHighlightMessage;
+
+  /// No description provided for @readerEditNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Note'**
+  String get readerEditNote;
+
+  /// No description provided for @readerAddNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Note'**
+  String get readerAddNote;
+
+  /// No description provided for @readerNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your note...'**
+  String get readerNoteHint;
+
+  /// No description provided for @readerHighlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight'**
+  String get readerHighlight;
+
+  /// No description provided for @readerHighlightWithNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight with Note'**
+  String get readerHighlightWithNote;
+
+  /// No description provided for @readerCopiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard'**
+  String get readerCopiedToClipboard;
+
+  /// No description provided for @readerErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reader Error'**
+  String get readerErrorTitle;
+
+  /// No description provided for @readerLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load this book: {error}'**
+  String readerLoadFailed({required Object error});
+
+  /// No description provided for @readerUnknownError.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong while opening this book.'**
+  String get readerUnknownError;
+
+  /// No description provided for @readerExitZenMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit Zen Mode'**
+  String get readerExitZenMode;
+
+  /// No description provided for @readerZenMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Zen Mode'**
+  String get readerZenMode;
+
+  /// No description provided for @readerTableOfContents.
+  ///
+  /// In en, this message translates to:
+  /// **'Table of Contents'**
+  String get readerTableOfContents;
+
+  /// No description provided for @readerSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get readerSettings;
+
+  /// No description provided for @readerBookmark.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmark'**
+  String get readerBookmark;
+
+  /// No description provided for @readerTypography.
+  ///
+  /// In en, this message translates to:
+  /// **'Typography'**
+  String get readerTypography;
+
+  /// No description provided for @readerTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get readerTheme;
+
+  /// No description provided for @readerContents.
+  ///
+  /// In en, this message translates to:
+  /// **'Contents'**
+  String get readerContents;
+
+  /// No description provided for @readerPageOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {currentPage} of {totalPages}'**
+  String readerPageOf({required int currentPage, required int totalPages});
+
+  /// No description provided for @readerChapterProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{chapterTitle} · {percent}%'**
+  String readerChapterProgress({
+    required Object chapterTitle,
+    required int percent,
+  });
+
+  /// No description provided for @readerFontFamilySystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get readerFontFamilySystem;
+
+  /// No description provided for @readerFontFamilySerif.
+  ///
+  /// In en, this message translates to:
+  /// **'Serif'**
+  String get readerFontFamilySerif;
+
+  /// No description provided for @readerFontFamilySansSerif.
+  ///
+  /// In en, this message translates to:
+  /// **'Sans Serif'**
+  String get readerFontFamilySansSerif;
+
+  /// No description provided for @readerFontFamilyMonospace.
+  ///
+  /// In en, this message translates to:
+  /// **'Monospace'**
+  String get readerFontFamilyMonospace;
+
   /// No description provided for @statsTitle.
   ///
   /// In en, this message translates to:
@@ -954,6 +1209,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error'**
   String get statsErrorFallback;
+
+  /// No description provided for @statsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load stats: {error}'**
+  String statsLoadFailed({required Object error});
 
   /// No description provided for @statsTotalTime.
   ///

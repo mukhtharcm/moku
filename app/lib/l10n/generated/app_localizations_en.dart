@@ -12,6 +12,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Moku';
 
   @override
+  String get bookUnknownTitle => 'Untitled';
+
+  @override
+  String get bookUnknownAuthor => 'Unknown author';
+
+  @override
+  String get formatEpub => 'EPUB';
+
+  @override
+  String get formatPdf => 'PDF';
+
+  @override
+  String get formatText => 'Text';
+
+  @override
+  String get formatComicCbz => 'Comic (CBZ)';
+
+  @override
+  String get formatHtml => 'HTML';
+
+  @override
   String get navLibrary => 'Library';
 
   @override
@@ -43,6 +64,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonClear => 'Clear';
+
+  @override
+  String get commonSave => 'Save';
+
+  @override
+  String get commonCopy => 'Copy';
 
   @override
   String get commonTryAgain => 'Try Again';
@@ -189,6 +216,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchEmptyResults => 'No downloadable books found';
+
+  @override
+  String get searchNoCatalogSelected => 'Choose a catalog to start searching';
 
   @override
   String searchBookAdded({required Object title}) {
@@ -481,10 +511,129 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get readerAnnotations => 'Annotations';
+
+  @override
+  String readerHighlightsTab({required int count}) {
+    return 'Highlights ($count)';
+  }
+
+  @override
+  String readerBookmarksTab({required int count}) {
+    return 'Bookmarks ($count)';
+  }
+
+  @override
+  String get readerNoHighlightsYet => 'No highlights yet';
+
+  @override
+  String get readerNoHighlightsHint =>
+      'Select text while reading to highlight it';
+
+  @override
+  String get readerNoBookmarksYet => 'No bookmarks yet';
+
+  @override
+  String readerChapterLabel({required int chapterNumber}) {
+    return 'Chapter $chapterNumber';
+  }
+
+  @override
+  String get readerDeleteHighlightTitle => 'Delete Highlight';
+
+  @override
+  String get readerDeleteHighlightMessage =>
+      'Are you sure you want to delete this highlight?';
+
+  @override
+  String get readerEditNote => 'Edit Note';
+
+  @override
+  String get readerAddNote => 'Add Note';
+
+  @override
+  String get readerNoteHint => 'Enter your note...';
+
+  @override
+  String get readerHighlight => 'Highlight';
+
+  @override
+  String get readerHighlightWithNote => 'Highlight with Note';
+
+  @override
+  String get readerCopiedToClipboard => 'Copied to clipboard';
+
+  @override
+  String get readerErrorTitle => 'Reader Error';
+
+  @override
+  String readerLoadFailed({required Object error}) {
+    return 'Failed to load this book: $error';
+  }
+
+  @override
+  String get readerUnknownError =>
+      'Something went wrong while opening this book.';
+
+  @override
+  String get readerExitZenMode => 'Exit Zen Mode';
+
+  @override
+  String get readerZenMode => 'Zen Mode';
+
+  @override
+  String get readerTableOfContents => 'Table of Contents';
+
+  @override
+  String get readerSettings => 'Settings';
+
+  @override
+  String get readerBookmark => 'Bookmark';
+
+  @override
+  String get readerTypography => 'Typography';
+
+  @override
+  String get readerTheme => 'Theme';
+
+  @override
+  String get readerContents => 'Contents';
+
+  @override
+  String readerPageOf({required int currentPage, required int totalPages}) {
+    return 'Page $currentPage of $totalPages';
+  }
+
+  @override
+  String readerChapterProgress({
+    required Object chapterTitle,
+    required int percent,
+  }) {
+    return '$chapterTitle · $percent%';
+  }
+
+  @override
+  String get readerFontFamilySystem => 'System';
+
+  @override
+  String get readerFontFamilySerif => 'Serif';
+
+  @override
+  String get readerFontFamilySansSerif => 'Sans Serif';
+
+  @override
+  String get readerFontFamilyMonospace => 'Monospace';
+
+  @override
   String get statsTitle => 'Reading Stats';
 
   @override
   String get statsErrorFallback => 'Error';
+
+  @override
+  String statsLoadFailed({required Object error}) {
+    return 'Failed to load stats: $error';
+  }
 
   @override
   String get statsTotalTime => 'Total Time';

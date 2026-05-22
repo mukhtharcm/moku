@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/models/book_localizations.dart';
 import '../../../core/models/models.dart';
 import '../../../l10n/l10n.dart';
 import '../cubit/library_cubit.dart';
@@ -294,12 +295,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             ),
                           ),
                           title: Text(
-                            book.title,
+                            bookTitleLabel(context, book.title),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           subtitle: Text(
-                            book.author,
+                            bookAuthorLabel(context, book.author),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -441,12 +442,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                book.title,
+                bookTitleLabel(context, book.title),
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
               Text(
-                book.author,
+                bookAuthorLabel(context, book.author),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                 ),
@@ -481,7 +482,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(context.l10n.libraryDeleteBookTitle),
-        content: Text(context.l10n.libraryDeleteBookMessage(title: book.title)),
+        content: Text(
+          context.l10n.libraryDeleteBookMessage(
+            title: bookTitleLabel(context, book.title),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -740,7 +745,7 @@ class _ContinueReadingSection extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  book.title,
+                                  bookTitleLabel(context, book.title),
                                   style: Theme.of(context).textTheme.titleSmall
                                       ?.copyWith(
                                         fontWeight: FontWeight.w600,
@@ -751,7 +756,7 @@ class _ContinueReadingSection extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  book.author,
+                                  bookAuthorLabel(context, book.author),
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         color: colorScheme.onSurfaceVariant

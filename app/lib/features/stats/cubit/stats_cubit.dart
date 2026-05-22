@@ -7,8 +7,8 @@ class StatsCubit extends Cubit<StatsState> {
   final AppDatabase _database;
 
   StatsCubit({required AppDatabase database})
-      : _database = database,
-        super(const StatsState());
+    : _database = database,
+      super(const StatsState());
 
   Future<void> load() async {
     emit(state.copyWith(status: StatsStatus.loading));
@@ -16,21 +16,20 @@ class StatsCubit extends Cubit<StatsState> {
     try {
       final sessions = await _database.getAllSessions();
       final computed = _compute(sessions);
-      emit(state.copyWith(
-        status: StatsStatus.loaded,
-        recentSessions: sessions.take(20).toList(),
-        currentStreak: computed.currentStreak,
-        longestStreak: computed.longestStreak,
-        totalMinutes: computed.totalMinutes,
-        totalSessions: sessions.length,
-        booksReadThisYear: computed.booksReadThisYear,
-        dailyMinutes: computed.dailyMinutes,
-      ));
+      emit(
+        state.copyWith(
+          status: StatsStatus.loaded,
+          recentSessions: sessions.take(20).toList(),
+          currentStreak: computed.currentStreak,
+          longestStreak: computed.longestStreak,
+          totalMinutes: computed.totalMinutes,
+          totalSessions: sessions.length,
+          booksReadThisYear: computed.booksReadThisYear,
+          dailyMinutes: computed.dailyMinutes,
+        ),
+      );
     } catch (e) {
-      emit(state.copyWith(
-        status: StatsStatus.error,
-        errorMessage: 'Failed to load stats: $e',
-      ));
+      emit(state.copyWith(status: StatsStatus.error, errorMessage: '$e'));
     }
   }
 
@@ -41,8 +40,11 @@ class StatsCubit extends Cubit<StatsState> {
     // Build daily activity map (normalised to local midnight)
     final Map<DateTime, int> byDay = {};
     for (final s in sessions) {
-      final day =
-          DateTime(s.startedAt.year, s.startedAt.month, s.startedAt.day);
+      final day = DateTime(
+        s.startedAt.year,
+        s.startedAt.month,
+        s.startedAt.day,
+      );
       byDay[day] = (byDay[day] ?? 0) + s.durationSeconds ~/ 60;
     }
 
@@ -55,8 +57,7 @@ class StatsCubit extends Cubit<StatsState> {
       minutesByBook[s.bookId] =
           (minutesByBook[s.bookId] ?? 0) + s.durationSeconds ~/ 60;
     }
-    final booksReadThisYear =
-        minutesByBook.values.where((m) => m >= 10).length;
+    final booksReadThisYear = minutesByBook.values.where((m) => m >= 10).length;
 
     return _ComputedStats(
       totalMinutes: totalMinutes,
@@ -77,8 +78,7 @@ class StatsCubit extends Cubit<StatsState> {
     final todayMidnight = DateTime(today.year, today.month, today.day);
     final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
 
-    final daysSinceMostRecent =
-        todayMidnight.difference(days[0]).inDays;
+    final daysSinceMostRecent = todayMidnight.difference(days[0]).inDays;
 
     int leadingRun = 1; // consecutive days from the most recent
     bool leadingEnded = false;
