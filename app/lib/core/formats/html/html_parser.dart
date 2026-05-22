@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 
+import '../../models/reader_content_profile.dart';
+import '../../services/reader_content_resolver.dart';
 import '../../services/book_service.dart';
 
 /// Metadata extracted from an HTML file.
@@ -11,11 +13,15 @@ class HtmlMetadata {
   final String title;
   final String author;
   final int chapterCount;
+  final String? languageTag;
+  final ContentTextDirection? textDirection;
 
   const HtmlMetadata({
     required this.title,
     required this.author,
     required this.chapterCount,
+    this.languageTag,
+    this.textDirection,
   });
 }
 
@@ -42,6 +48,10 @@ class HtmlParser {
       title: _extractTitle(html, filePath),
       author: _extractAuthor(html),
       chapterCount: chapters.length,
+      languageTag: ReaderContentResolver.extractLanguageTagFromHtml(html),
+      textDirection: ReaderContentResolver.directionFromDirAttribute(
+        ReaderContentResolver.extractDirAttributeFromHtml(html),
+      ),
     );
   }
 
@@ -61,6 +71,35 @@ class HtmlParser {
     final chapters = await _loadChapters(filePath);
     if (chapterIndex < 0 || chapterIndex >= chapters.length) return '';
     return chapters[chapterIndex].content;
+  }
+
+  static Future<ReaderContentProfile> getContentProfile(
+    String filePath,
+    int chapterIndex, {
+    required String? bookLanguageTag,
+    required ReaderDirectionOverride directionOverride,
+  }) async {
+    final file = File(filePath);
+    final bytes = await file.readAsBytes();
+    final html = _decode(bytes);
+    final chapters = _parseChapters(html, filePath);
+    final safeChapterIndex = chapterIndex.clamp(
+      0,
+      chapters.isEmpty ? 0 : chapters.length - 1,
+    );
+    final chapterContent = chapters.isEmpty
+        ? html
+        : chapters[safeChapterIndex].content;
+
+    return ReaderContentResolver.resolve(
+      directionOverride: directionOverride,
+      explicitLanguageTag: ReaderContentResolver.extractLanguageTagFromHtml(
+        html,
+      ),
+      explicitDir: ReaderContentResolver.extractDirAttributeFromHtml(html),
+      bookLanguageTag: bookLanguageTag,
+      textSample: chapterContent,
+    );
   }
 
   static void clearCache(String filePath) => _cache.remove(filePath);

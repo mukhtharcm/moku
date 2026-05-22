@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/localization/bidi_text.dart';
 import '../../../core/models/book_localizations.dart';
 import '../../../core/models/models.dart';
 import '../../../l10n/l10n.dart';
@@ -484,7 +485,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         title: Text(context.l10n.libraryDeleteBookTitle),
         content: Text(
           context.l10n.libraryDeleteBookMessage(
-            title: bookTitleLabel(context, book.title),
+            title: bidiWrappedText(context, bookTitleLabel(context, book.title)),
           ),
         ),
         actions: [

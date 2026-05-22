@@ -370,6 +370,51 @@ class MokuTheme {
       ),
     );
   }
+
+  static ThemeData adaptForTextDirection(
+    ThemeData baseTheme,
+    TextDirection textDirection,
+  ) {
+    if (textDirection != TextDirection.rtl) {
+      return baseTheme;
+    }
+
+    final colorScheme = baseTheme.colorScheme;
+    final systemTextTheme = ThemeData(
+      useMaterial3: true,
+      brightness: baseTheme.brightness,
+      colorScheme: colorScheme,
+    ).textTheme.apply(
+      bodyColor: colorScheme.onSurface,
+      displayColor: colorScheme.onSurface,
+    );
+
+    final titleStyle = systemTextTheme.titleLarge?.copyWith(
+      fontSize: 22,
+      fontWeight: FontWeight.w700,
+    );
+
+    return baseTheme.copyWith(
+      textTheme: systemTextTheme,
+      appBarTheme: baseTheme.appBarTheme.copyWith(titleTextStyle: titleStyle),
+      navigationBarTheme: baseTheme.navigationBarTheme.copyWith(
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: colorScheme.primary,
+            );
+          }
+          return TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+          );
+        }),
+      ),
+    );
+  }
 }
 
 /// Reader-specific theme settings

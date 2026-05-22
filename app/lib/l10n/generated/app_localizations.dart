@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'app_localizations_ar.dart';
 import 'app_localizations_en.dart';
 
 // ignore_for_file: type=lint
@@ -92,7 +93,10 @@ abstract class AppLocalizations {
       ];
 
   /// A list of this localizations delegate's supported locales.
-  static const List<Locale> supportedLocales = <Locale>[Locale('en')];
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('en'),
+    Locale('ar'),
+  ];
 
   /// No description provided for @appTitle.
   ///
@@ -1324,6 +1328,30 @@ abstract class AppLocalizations {
   /// **'Typography'**
   String get readerTypography;
 
+  /// No description provided for @readerReadingDirection.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading direction'**
+  String get readerReadingDirection;
+
+  /// No description provided for @readerDirectionAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get readerDirectionAuto;
+
+  /// No description provided for @readerDirectionLeftToRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Left to right'**
+  String get readerDirectionLeftToRight;
+
+  /// No description provided for @readerDirectionRightToLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Right to left'**
+  String get readerDirectionRightToLeft;
+
   /// No description provided for @readerTheme.
   ///
   /// In en, this message translates to:
@@ -1483,7 +1511,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en'].contains(locale.languageCode);
+      <String>['ar', 'en'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -1492,6 +1520,8 @@ class _AppLocalizationsDelegate
 AppLocalizations lookupAppLocalizations(Locale locale) {
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'ar':
+      return AppLocalizationsAr();
     case 'en':
       return AppLocalizationsEn();
   }

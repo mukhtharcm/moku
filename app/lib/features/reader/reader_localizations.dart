@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../../core/localization/bidi_text.dart';
 import '../../l10n/l10n.dart';
 import 'cubit/reader_state.dart';
 
@@ -30,5 +31,7 @@ String readerFontFamilyLabel(BuildContext context, ReaderFontFamily family) {
 }
 
 String readerQuotedSelection(BuildContext context, String text) {
-  return context.l10n.readerQuotedSelection(text: text);
+  return context.l10n.readerQuotedSelection(
+    text: bidiWrappedText(context, text),
+  );
 }
