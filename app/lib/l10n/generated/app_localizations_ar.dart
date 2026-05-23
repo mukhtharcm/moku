@@ -9,13 +9,13 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appTitle => 'موكو';
+  String get appTitle => 'Moku';
 
   @override
-  String get bookUnknownTitle => 'بدون عنوان';
+  String get bookUnknownTitle => 'بلا عنوان';
 
   @override
-  String get bookUnknownAuthor => 'مؤلف غير معروف';
+  String get bookUnknownAuthor => 'مؤلف مجهول';
 
   @override
   String get formatEpub => 'EPUB';
@@ -27,25 +27,25 @@ class AppLocalizationsAr extends AppLocalizations {
   String get formatText => 'نص';
 
   @override
-  String get formatComicCbz => 'قصص مصورة (CBZ)';
+  String get formatComicCbz => 'قصص مصوّرة (CBZ)';
 
   @override
   String get formatHtml => 'HTML';
 
   @override
-  String get navLibrary => 'مكتبة';
+  String get navLibrary => 'المكتبة';
 
   @override
-  String get navDiscover => 'استكشاف';
+  String get navDiscover => 'اكتشف';
 
   @override
-  String get navShelves => 'رفوف';
+  String get navShelves => 'الرفوف';
 
   @override
-  String get navStats => 'إحصاءات';
+  String get navStats => 'الإحصاءات';
 
   @override
-  String get navSettings => 'إعدادات';
+  String get navSettings => 'الإعدادات';
 
   @override
   String get commonCancel => 'إلغاء';
@@ -72,23 +72,23 @@ class AppLocalizationsAr extends AppLocalizations {
   String get commonCopy => 'نسخ';
 
   @override
-  String get commonTryAgain => 'حاول ثانية';
+  String get commonTryAgain => 'حاوِل مجددًا';
 
   @override
-  String get commonImportFiles => 'استيراد الملفات';
+  String get commonImportFiles => 'استيراد ملفات';
 
   @override
   String get onboardingSkip => 'تخطي';
 
   @override
-  String get onboardingWelcomeTitle => 'مرحبا بكم في موكو';
+  String get onboardingWelcomeTitle => 'مرحبًا بك في Moku';
 
   @override
-  String get onboardingWelcomeSubtitle => 'رفيقك المريح في القراءة';
+  String get onboardingWelcomeSubtitle => 'رفيقك الهادئ للقراءة';
 
   @override
   String get onboardingWelcomeBody =>
-      'قم باستيراد ملفات EPUB، وPDF، وTXT، وCBZ، وHTML، وتتبع التقدم، وقراءة خالية من التشتيت.';
+      'استورد ملفات EPUB وPDF وTXT وCBZ وHTML، وتابع تقدّمك، واقرأ من دون تشتيت.';
 
   @override
   String get onboardingGetStarted => 'ابدأ';
@@ -98,92 +98,91 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get onboardingImportBody =>
-      'أضف ملفات EPUB، وPDF، وTXT، وCBZ، وHTML من جهازك.\nتبقى مكتبتك على جهازك، دون اتصال بالإنترنت بشكل كامل.';
+      'أضف ملفات EPUB وPDF وTXT وCBZ وHTML من جهازك.\nتظل مكتبتك على جهازك وتعمل بالكامل من دون اتصال بالإنترنت.';
 
   @override
-  String get onboardingImportLater => 'سأفعل هذا لاحقًا';
+  String get onboardingImportLater => 'لاحقًا';
 
   @override
-  String get onboardingSyncTitle => 'المزامنة عبر الأجهزة';
+  String get onboardingSyncTitle => 'المزامنة بين الأجهزة';
 
   @override
   String get onboardingSyncOfflineBody =>
-      'يعمل Moku بشكل كامل بدون اتصال بالإنترنت - لا حاجة إلى حساب.';
+      'يعمل Moku بالكامل من دون اتصال بالإنترنت، ولا يحتاج إلى حساب.';
 
   @override
   String get onboardingSyncServerBody =>
-      'هل تريد مزامنة الكتب والتقدم عبر الأجهزة؟\nقم بتوصيل خادم PocketBase الخاص بك في الإعدادات.';
+      'هل تريد مزامنة كتبك وتقدّمك بين الأجهزة؟\nاربط خادم PocketBase الخاص بك من الإعدادات.';
 
   @override
   String get onboardingStartReading => 'ابدأ القراءة';
 
   @override
-  String get librarySearchHint => 'ابحث في مكتبتك...';
+  String get librarySearchHint => 'ابحث في المكتبة…';
 
   @override
   String get libraryErrorFallback => 'حدث خطأ ما';
 
   @override
-  String get librarySectionTitle => 'مكتبة';
+  String get librarySectionTitle => 'المكتبة';
 
   @override
   String get libraryFabImport => 'استيراد';
 
   @override
-  String get librarySortRecent => 'مؤخرًا';
+  String get librarySortRecent => 'الأحدث';
 
   @override
-  String get librarySortTitle => 'عنوان';
+  String get librarySortTitle => 'العنوان';
 
   @override
-  String get librarySortAuthor => 'مؤلف';
+  String get librarySortAuthor => 'المؤلف';
 
   @override
   String get libraryBookInfo => 'معلومات الكتاب';
 
   @override
-  String get libraryInfoChapters => 'فصول';
+  String get libraryInfoChapters => 'الفصول';
 
   @override
   String get libraryInfoPublisher => 'الناشر';
 
   @override
-  String get libraryInfoLanguage => 'لغة';
+  String get libraryInfoLanguage => 'اللغة';
 
   @override
-  String get libraryInfoIsbn => 'رقم ISBN';
+  String get libraryInfoIsbn => 'ISBN';
 
   @override
   String get libraryDeleteBookTitle => 'حذف الكتاب';
 
   @override
   String libraryDeleteBookMessage({required Object title}) {
-    return 'هل تريد إزالة \"$title\" من مكتبتك؟';
+    return 'إزالة «$title» من مكتبتك؟';
   }
 
   @override
   String get libraryEmptySearchTitle => 'لم يتم العثور على كتب';
 
   @override
-  String get libraryEmptySearchBody => 'حاول استخدام مصطلح بحث مختلف';
+  String get libraryEmptySearchBody => 'جرّب كلمة بحث مختلفة';
 
   @override
-  String get libraryEmptyTitle => 'مكتبتك في انتظارك';
+  String get libraryEmptyTitle => 'مكتبتك بانتظارك';
 
   @override
-  String get libraryEmptyBody =>
-      'قم باستيراد كتابك الأول أو كتابك الهزلي لبدء القراءة';
+  String get libraryEmptyBody => 'استورد أول كتاب أو قصة مصوّرة لتبدأ القراءة';
 
   @override
-  String get libraryContinueReading => 'مواصلة القراءة';
+  String get libraryContinueReading => 'تابع القراءة';
 
   @override
   String libraryProgressRead({required int progress}) {
-    return '$progress% قراءة';
+    return 'تمت قراءة $progress٪';
   }
 
   @override
-  String get searchTitle => 'استكشاف';
+  String get searchTitle => 'اكتشف';
 
   @override
   String get searchCatalogOpenLibraryTitle => 'Open Library';
@@ -192,135 +191,134 @@ class AppLocalizationsAr extends AppLocalizations {
   String get searchCatalogProjectGutenbergTitle => 'Project Gutenberg';
 
   @override
-  String get searchManageCatalogs => 'إدارة الكتالوجات';
+  String get searchManageCatalogs => 'إدارة الفهارس';
 
   @override
-  String get searchCatalogLabel => 'كتالوج';
+  String get searchCatalogLabel => 'الفهرس';
 
   @override
-  String get searchGenericCatalogName => 'كتالوج';
+  String get searchGenericCatalogName => 'الفهرس';
 
   @override
-  String get searchPromptGenericCatalogName => 'كتالوج';
+  String get searchPromptGenericCatalogName => 'أحد الفهارس';
 
   @override
   String searchHint({required Object catalogTitle}) {
-    return 'بحث $catalogTitle...';
+    return 'ابحث في $catalogTitle…';
   }
 
   @override
   String searchInitialPromptTitle({required Object catalogTitle}) {
-    return 'بحث $catalogTitle';
+    return 'ابحث في $catalogTitle';
   }
 
   @override
   String get searchInitialPromptBody =>
-      'ابحث عن الكتب القابلة للتنزيل وأضفها مباشرة إلى مكتبتك.';
+      'ابحث عن كتب قابلة للتنزيل وأضفها مباشرة إلى مكتبتك.';
 
   @override
   String get searchErrorFallback => 'حدث خطأ ما.';
 
   @override
-  String get searchErrorInvalidCatalogInput =>
-      'أدخل اسمًا صالحًا للكتالوج وعنوان URL.';
+  String get searchErrorInvalidCatalogInput => 'أدخل اسم فهرس ورابطًا صالحين.';
 
   @override
-  String get searchErrorDuplicateCatalog => 'تمت إضافة هذا الكتالوج بالفعل.';
+  String get searchErrorDuplicateCatalog => 'هذا الفهرس مضاف بالفعل.';
 
   @override
   String get searchErrorDownloadRedirected =>
-      'تمت إعادة توجيه التنزيل عدة مرات.';
+      'أُعيد توجيه التنزيل مرات كثيرة جدًا.';
 
   @override
-  String get searchErrorDownloadFailed => 'فشل التنزيل.';
+  String get searchErrorDownloadFailed => 'تعذّر التنزيل.';
 
   @override
   String get searchErrorCatalogNotSearchable =>
-      'لا يوفر هذا الكتالوج موجز OPDS قابلاً للبحث.';
+      'هذا الفهرس لا يوفّر موجز OPDS قابلًا للبحث.';
 
   @override
-  String get searchErrorSearchFailed => 'فشل البحث في الكتالوج.';
+  String get searchErrorSearchFailed => 'تعذّر البحث في الفهرس.';
 
   @override
-  String get searchErrorCatalogLoadFailed => 'تعذر تحميل هذا الكتالوج.';
+  String get searchErrorCatalogLoadFailed => 'تعذّر تحميل هذا الفهرس.';
 
   @override
   String get searchErrorCatalogMissingSearchLink =>
-      'لا يعرض هذا الكتالوج رابط بحث قابل للاستخدام.';
+      'لا يوفّر هذا الفهرس رابط بحث صالحًا.';
 
   @override
   String get searchErrorCatalogSearchDescriptionFailed =>
-      'تعذر تحميل وصف البحث في الكتالوج.';
+      'تعذّر تحميل وصف البحث لهذا الفهرس.';
 
   @override
   String get searchErrorCatalogSearchTemplateMissing =>
-      'تعذر العثور على قالب بحث قابل للاستخدام لهذا الكتالوج.';
+      'تعذّر العثور على قالب بحث صالح لهذا الفهرس.';
 
   @override
-  String get searchEmptyResults => 'لم يتم العثور على كتب قابلة للتحميل';
+  String get searchEmptyResults => 'لم نعثر على كتب قابلة للتنزيل';
 
   @override
-  String get searchNoCatalogSelected => 'اختر كتالوجًا لبدء البحث';
+  String get searchNoCatalogSelected => 'اختر فهرسًا لبدء البحث';
 
   @override
   String searchBookAdded({required Object title}) {
-    return 'تمت إضافة $title إلى مكتبتك';
+    return 'أُضيف $title إلى مكتبتك';
   }
 
   @override
   String searchDownloadFailed({required Object error}) {
-    return 'فشل التنزيل: $error';
+    return 'تعذّر التنزيل: $error';
   }
 
   @override
-  String get searchCatalogsTitle => 'الكتالوجات';
+  String get searchCatalogsTitle => 'الفهارس';
 
   @override
   String get searchCatalogsBody =>
-      'الكتالوجات المدمجة جاهزة للاستخدام. يمكنك أيضًا إضافة كتالوجات OPDS الخاصة بك.';
+      'الفهارس المضمّنة جاهزة للاستخدام. ويمكنك أيضًا إضافة فهارس OPDS الخاصة بك.';
 
   @override
-  String get searchRemoveCatalog => 'إزالة الكتالوج';
+  String get searchRemoveCatalog => 'إزالة الفهرس';
 
   @override
-  String get searchNoCustomCatalogs => 'لا توجد كتالوجات مخصصة حتى الآن.';
+  String get searchNoCustomCatalogs => 'لا توجد فهارس مخصّصة حتى الآن.';
 
   @override
-  String get searchAddCustomCatalog => 'إضافة كتالوج مخصص';
+  String get searchAddCustomCatalog => 'إضافة فهرس مخصّص';
 
   @override
-  String get searchAddCustomCatalogTitle => 'إضافة كتالوج مخصص';
+  String get searchAddCustomCatalogTitle => 'إضافة فهرس مخصّص';
 
   @override
-  String get searchCatalogNameLabel => 'اسم الكتالوج';
+  String get searchCatalogNameLabel => 'اسم الفهرس';
 
   @override
-  String get searchCatalogUrlLabel => 'عنوان URL للكتالوج';
+  String get searchCatalogUrlLabel => 'رابط الفهرس';
 
   @override
   String searchCouldNotAddCatalog({required Object error}) {
-    return 'لا يمكن إضافة الكتالوج: $error';
+    return 'تعذّرت إضافة الفهرس: $error';
   }
 
   @override
-  String get searchCatalogTypeCustom => 'مخصص';
+  String get searchCatalogTypeCustom => 'مخصّص';
 
   @override
-  String get searchOpenSourcePage => 'صفحة مفتوحة المصدر';
+  String get searchOpenSourcePage => 'صفحة المصدر';
 
   @override
-  String get searchDownloading => 'جارٍ التنزيل...';
+  String get searchDownloading => 'جارٍ التنزيل…';
 
   @override
   String searchDownloadFormat({required Object formatName}) {
-    return 'تحميل $formatName';
+    return 'تنزيل $formatName';
   }
 
   @override
-  String get settingsTitle => 'إعدادات';
+  String get settingsTitle => 'الإعدادات';
 
   @override
-  String get settingsSectionAppearance => 'مظهر';
+  String get settingsSectionAppearance => 'المظهر';
 
   @override
   String get settingsLanguageTitle => 'لغة التطبيق';
@@ -329,7 +327,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsLanguageSystem => 'النظام';
 
   @override
-  String get settingsLanguageSystemSubtitle => 'اتبع لغة الجهاز';
+  String get settingsLanguageSystemSubtitle => 'اتّباع لغة الجهاز';
 
   @override
   String get settingsLanguageEnglish => 'English';
@@ -338,28 +336,28 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsLanguageArabic => 'العربية';
 
   @override
-  String get settingsSectionBattery => 'بطارية';
+  String get settingsSectionBattery => 'البطارية';
 
   @override
-  String get settingsSectionSync => 'مزامنة';
+  String get settingsSectionSync => 'المزامنة';
 
   @override
-  String get settingsSectionAbout => 'عن';
+  String get settingsSectionAbout => 'حول التطبيق';
 
   @override
-  String get settingsThemeSystem => 'نظام';
+  String get settingsThemeSystem => 'النظام';
 
   @override
-  String get settingsThemeSystemSubtitle => 'اتبع موضوع الجهاز';
+  String get settingsThemeSystemSubtitle => 'اتّباع مظهر الجهاز';
 
   @override
   String get settingsThemeLight => 'فاتح';
 
   @override
-  String get settingsThemeDark => 'مظلم';
+  String get settingsThemeDark => 'داكن';
 
   @override
-  String get settingsPowerSaverTitle => 'موفر الطاقة';
+  String get settingsPowerSaverTitle => 'توفير الطاقة';
 
   @override
   String get settingsPowerSaverSubtitle =>
@@ -372,10 +370,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsSyncConnected => 'متصل';
 
   @override
-  String get settingsSyncNotLoggedIn => 'لم يتم تسجيل الدخول';
+  String get settingsSyncNotLoggedIn => 'غير مسجّل الدخول';
 
   @override
-  String get settingsSyncNotConfigured => 'لم يتم تكوينه';
+  String get settingsSyncNotConfigured => 'غير مهيّأ';
 
   @override
   String settingsVersion({required Object version}) {
@@ -396,10 +394,10 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get settingsVersionUnavailable => 'الإصدار غير متوفر';
+  String get settingsVersionUnavailable => 'الإصدار غير متاح';
 
   @override
-  String get settingsVersionLoading => 'جارٍ تحميل النسخة...';
+  String get settingsVersionLoading => 'جارٍ تحميل الإصدار…';
 
   @override
   String get settingsOpenSourceTitle => 'مفتوح المصدر';
@@ -414,13 +412,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get syncStatusDisconnected => 'غير متصل';
 
   @override
-  String get syncStatusConnecting => 'جارٍ الاتصال...';
+  String get syncStatusConnecting => 'جارٍ الاتصال…';
 
   @override
   String get syncStatusConnected => 'متصل';
 
   @override
-  String get syncStatusSyncing => 'جارٍ المزامنة...';
+  String get syncStatusSyncing => 'جارٍ المزامنة…';
 
   @override
   String get syncStatusError => 'خطأ';
@@ -431,19 +429,19 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get syncNeverSynced => 'لم تتم مزامنتها مطلقًا';
+  String get syncNeverSynced => 'لم تتم أي مزامنة بعد';
 
   @override
   String get syncServerSectionTitle => 'الخادم';
 
   @override
-  String get syncServerUrlLabel => 'عنوان URL للخادم';
+  String get syncServerUrlLabel => 'رابط الخادم';
 
   @override
   String get syncServerUrlHint => 'https://your-server.com';
 
   @override
-  String get syncConnect => 'اتصال';
+  String get syncConnect => 'اتصل';
 
   @override
   String get syncCreateAccount => 'إنشاء حساب';
@@ -452,35 +450,35 @@ class AppLocalizationsAr extends AppLocalizations {
   String get syncLogin => 'تسجيل الدخول';
 
   @override
-  String get syncHaveAccountLogin => 'هل لديك حساب؟ تسجيل الدخول';
+  String get syncHaveAccountLogin => 'لديك حساب؟ سجّل الدخول';
 
   @override
   String get syncNewRegister => 'مستخدم جديد؟ أنشئ حسابًا';
 
   @override
-  String get syncEmailLabel => 'بريد إلكتروني';
+  String get syncEmailLabel => 'البريد الإلكتروني';
 
   @override
   String get syncPasswordLabel => 'كلمة المرور';
 
   @override
-  String get syncRegister => 'تسجيل';
+  String get syncRegister => 'إنشاء حساب';
 
   @override
-  String get syncSectionTitle => 'مزامنة';
+  String get syncSectionTitle => 'المزامنة';
 
   @override
   String get syncAutoSyncTitle => 'المزامنة التلقائية';
 
   @override
   String get syncAutoSyncSubtitle =>
-      'المزامنة في الخلفية عند بدء التشغيل والمقدمة وبعد التغييرات.';
+      'تُجرى المزامنة في الخلفية عند التشغيل، وعند العودة إلى التطبيق، وبعد إجراء تغييرات.';
 
   @override
-  String get syncSyncNow => 'مزامنة الآن';
+  String get syncSyncNow => 'زامِن الآن';
 
   @override
-  String get syncAccountTitle => 'حساب';
+  String get syncAccountTitle => 'الحساب';
 
   @override
   String get syncLogout => 'تسجيل الخروج';
@@ -490,67 +488,67 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String syncFailedToConnect({required Object error}) {
-    return 'فشل الاتصال: $error';
+    return 'تعذّر الاتصال: $error';
   }
 
   @override
   String syncRegistrationFailed({required Object error}) {
-    return 'فشل التسجيل: $error';
+    return 'تعذّر إنشاء الحساب: $error';
   }
 
   @override
   String syncLoginFailed({required Object error}) {
-    return 'فشل تسجيل الدخول: $error';
+    return 'تعذّر تسجيل الدخول: $error';
   }
 
   @override
   String get syncAuthExpired =>
-      'انتهت صلاحية المصادقة. الرجاء تسجيل الدخول مرة أخرى.';
+      'انتهت صلاحية جلسة الدخول. يُرجى تسجيل الدخول مرة أخرى.';
 
   @override
   String syncPartialFailure({required Object collections}) {
-    return 'فشلت المزامنة جزئيًا: $collections';
+    return 'تعذّرت مزامنة بعض البيانات: $collections';
   }
 
   @override
   String syncFailed({required Object error}) {
-    return 'فشلت المزامنة: $error';
+    return 'تعذّرت المزامنة: $error';
   }
 
   @override
-  String get syncFailedToConnectGeneric => 'فشل الاتصال بالخادم.';
+  String get syncFailedToConnectGeneric => 'تعذّر الاتصال بالخادم.';
 
   @override
   String get syncRegistrationFailedGeneric =>
-      'فشل التسجيل. يرجى المحاولة مرة أخرى.';
+      'تعذّر إنشاء الحساب. يُرجى المحاولة مرة أخرى.';
 
   @override
   String get syncLoginFailedGeneric =>
-      'فشل تسجيل الدخول. يرجى التحقق من بيانات الاعتماد الخاصة بك وحاول مرة أخرى.';
+      'تعذّر تسجيل الدخول. تحقّق من بياناتك ثم حاوِل مرة أخرى.';
 
   @override
-  String get syncFailedGeneric => 'فشلت المزامنة. يرجى المحاولة مرة أخرى.';
+  String get syncFailedGeneric => 'تعذّرت المزامنة. يُرجى المحاولة مرة أخرى.';
 
   @override
-  String get syncErrorLogGenericMessage => 'لا يمكن مزامنة هذه البيانات.';
+  String get syncErrorLogGenericMessage => 'تعذّرت مزامنة هذه البيانات.';
 
   @override
-  String get syncCollectionBooks => 'كتب';
+  String get syncCollectionBooks => 'الكتب';
 
   @override
-  String get syncCollectionReadingProgress => 'تقدم القراءة';
+  String get syncCollectionReadingProgress => 'تقدّم القراءة';
 
   @override
   String get syncCollectionBookmarks => 'الإشارات المرجعية';
 
   @override
-  String get syncCollectionHighlights => 'أبرز';
+  String get syncCollectionHighlights => 'التمييزات';
 
   @override
-  String get syncCollectionShelves => 'رفوف';
+  String get syncCollectionShelves => 'الرفوف';
 
   @override
-  String get syncCollectionShelfBooks => 'كتب الرف';
+  String get syncCollectionShelfBooks => 'كتب الرفوف';
 
   @override
   String get syncCollectionReadingSessions => 'جلسات القراءة';
@@ -562,25 +560,25 @@ class AppLocalizationsAr extends AppLocalizations {
   String get syncCollectionUnknown => 'بيانات أخرى';
 
   @override
-  String get collectionsTitle => 'رفوف';
+  String get collectionsTitle => 'الرفوف';
 
   @override
-  String get collectionsEmptyTitle => 'لا يوجد رفوف بعد';
+  String get collectionsEmptyTitle => 'لا توجد رفوف بعد';
 
   @override
-  String get collectionsEmptyBody => 'تنظيم كتبك في مجموعات';
+  String get collectionsEmptyBody => 'نظّم كتبك في رفوف';
 
   @override
-  String get collectionsCreateShelf => 'إنشاء رف';
+  String get collectionsCreateShelf => 'أنشئ رفًا';
 
   @override
   String get collectionsNewShelfTitle => 'رف جديد';
 
   @override
-  String get collectionsNameLabel => 'اسم';
+  String get collectionsNameLabel => 'الاسم';
 
   @override
-  String get collectionsNameHint => 'مثال: المفضلة، للقراءة لاحقًا...';
+  String get collectionsNameHint => 'مثل: المفضلة، للقراءة لاحقًا…';
 
   @override
   String get collectionsDescriptionOptionalLabel => 'الوصف (اختياري)';
@@ -590,47 +588,47 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String collectionsDeleteShelfMessage({required Object name}) {
-    return 'هل تريد حذف \"$name\"؟ لن تتم إزالة كتبك من المكتبة.';
+    return 'حذف «$name»؟ لن تُزال كتبك من المكتبة.';
   }
 
   @override
-  String get collectionDetailAddBooksTooltip => 'إضافة كتب';
+  String get collectionDetailAddBooksTooltip => 'أضف كتبًا';
 
   @override
-  String get collectionDetailEmptyTitle => 'لا توجد كتب في هذه المجموعة';
+  String get collectionDetailEmptyTitle => 'لا توجد كتب في هذا الرف';
 
   @override
-  String get collectionDetailAddBooks => 'إضافة كتب';
+  String get collectionDetailAddBooks => 'أضف كتبًا';
 
   @override
-  String get collectionDetailRemoveTitle => 'إزالة من المجموعة';
+  String get collectionDetailRemoveTitle => 'إزالة من الرف';
 
   @override
   String collectionDetailRemoveMessage({
     required Object title,
     required Object collectionName,
   }) {
-    return 'هل تريد إزالة \"$title\" من \"$collectionName\"؟';
+    return 'إزالة «$title» من «$collectionName»؟';
   }
 
   @override
   String get collectionDetailAllBooksAlreadyAdded =>
-      'جميع الكتب موجودة بالفعل في هذه المجموعة';
+      'جميع الكتب مضافة بالفعل إلى هذا الرف';
 
   @override
   String get collectionDetailAddBooksTitle => 'إضافة كتب';
 
   @override
   String collectionDetailAddedBook({required Object title}) {
-    return 'تمت إضافة \"$title\"';
+    return 'أُضيف «$title»';
   }
 
   @override
-  String get readerAnnotations => 'التعليقات';
+  String get readerAnnotations => 'التعليقات التوضيحية';
 
   @override
   String readerHighlightsTab({required int count}) {
-    return 'التظليلات ($count)';
+    return 'التمييزات ($count)';
   }
 
   @override
@@ -639,17 +637,18 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get readerNoHighlightsYet => 'لا توجد تظليلات بعد';
+  String get readerNoHighlightsYet => 'لا توجد تمييزات بعد';
 
   @override
-  String get readerNoHighlightsHint => 'حدد النص أثناء القراءة لتمييزه';
+  String get readerNoHighlightsHint =>
+      'حدّد نصًا أثناء القراءة لتضيف إليه تمييزًا';
 
   @override
-  String get readerNoBookmarksYet => 'لا توجد إشارات مرجعية حتى الآن';
+  String get readerNoBookmarksYet => 'لا توجد إشارات مرجعية بعد';
 
   @override
   String readerQuotedSelection({required Object text}) {
-    return '\"$text\"';
+    return '«$text»';
   }
 
   @override
@@ -661,61 +660,60 @@ class AppLocalizationsAr extends AppLocalizations {
   String get readerDeleteHighlightTitle => 'حذف التمييز';
 
   @override
-  String get readerDeleteHighlightMessage =>
-      'هل أنت متأكد أنك تريد حذف هذا التمييز؟';
+  String get readerDeleteHighlightMessage => 'هل تريد حذف هذا التمييز؟';
 
   @override
-  String get readerEditNote => 'تحرير الملاحظة';
+  String get readerEditNote => 'عدّل الملاحظة';
 
   @override
   String get readerAddNote => 'أضف ملاحظة';
 
   @override
-  String get readerNoteHint => 'أدخل ملاحظتك...';
+  String get readerNoteHint => 'اكتب ملاحظتك…';
 
   @override
-  String get readerHighlight => 'تظليل';
+  String get readerHighlight => 'تمييز';
 
   @override
-  String get readerHighlightWithNote => 'تسليط الضوء مع ملاحظة';
+  String get readerHighlightWithNote => 'تمييز مع ملاحظة';
 
   @override
-  String get readerCopiedToClipboard => 'تم النسخ إلى الحافظة';
+  String get readerCopiedToClipboard => 'نُسخ إلى الحافظة';
 
   @override
-  String get readerErrorTitle => 'خطأ القارئ';
+  String get readerErrorTitle => 'خطأ في القارئ';
 
   @override
   String readerLoadFailed({required Object error}) {
-    return 'فشل تحميل هذا الكتاب: $error';
+    return 'تعذّر فتح هذا الكتاب: $error';
   }
 
   @override
-  String get readerUnknownError => 'حدث خطأ ما أثناء فتح هذا الكتاب.';
+  String get readerUnknownError => 'حدث خطأ أثناء فتح هذا الكتاب.';
 
   @override
-  String get readerExitZenMode => 'الخروج من وضع زين';
+  String get readerExitZenMode => 'إنهاء وضع التركيز';
 
   @override
-  String get readerZenMode => 'وضع زين';
+  String get readerZenMode => 'وضع التركيز';
 
   @override
   String get readerTableOfContents => 'جدول المحتويات';
 
   @override
-  String get readerSettings => 'إعدادات';
+  String get readerSettings => 'إعدادات القراءة';
 
   @override
   String get readerBookmark => 'إشارة مرجعية';
 
   @override
-  String get readerTypography => 'الطباعة';
+  String get readerTypography => 'تنسيق النص';
 
   @override
   String get readerReadingDirection => 'اتجاه القراءة';
 
   @override
-  String get readerDirectionAuto => 'آلي';
+  String get readerDirectionAuto => 'تلقائي';
 
   @override
   String get readerDirectionLeftToRight => 'من اليسار إلى اليمين';
@@ -724,14 +722,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get readerDirectionRightToLeft => 'من اليمين إلى اليسار';
 
   @override
-  String get readerTheme => 'سمة';
+  String get readerTheme => 'النسق';
 
   @override
-  String get readerContents => 'محتويات';
+  String get readerContents => 'المحتويات';
 
   @override
   String readerPageOf({required int currentPage, required int totalPages}) {
-    return 'صفحة $currentPage من $totalPages';
+    return 'الصفحة $currentPage من $totalPages';
   }
 
   @override
@@ -739,49 +737,49 @@ class AppLocalizationsAr extends AppLocalizations {
     required Object chapterTitle,
     required int percent,
   }) {
-    return '$chapterTitle · $percent%';
+    return '$chapterTitle · $percent٪';
   }
 
   @override
-  String get readerFontFamilySystem => 'نظام';
+  String get readerFontFamilySystem => 'خط النظام';
 
   @override
-  String get readerFontFamilySerif => 'Serif';
+  String get readerFontFamilySerif => 'سيريف';
 
   @override
-  String get readerFontFamilySansSerif => 'Sans Serif';
+  String get readerFontFamilySansSerif => 'سانس سيريف';
 
   @override
-  String get readerFontFamilyMonospace => 'مونوسبيس';
+  String get readerFontFamilyMonospace => 'أحادي المسافة';
 
   @override
   String get statsTitle => 'إحصائيات القراءة';
 
   @override
-  String get statsErrorFallback => 'خطأ';
+  String get statsErrorFallback => 'حدث خطأ';
 
   @override
   String statsLoadFailed({required Object error}) {
-    return 'فشل تحميل الإحصائيات: $error';
+    return 'تعذّر تحميل الإحصاءات: $error';
   }
 
   @override
-  String get statsTotalTime => 'الوقت الإجمالي';
+  String get statsTotalTime => 'إجمالي وقت القراءة';
 
   @override
-  String get statsBooksStartedThisYear => 'الكتب التي بدأت هذا العام';
+  String get statsBooksStartedThisYear => 'الكتب التي بدأت قراءتها هذا العام';
 
   @override
-  String get statsSessions => 'الجلسات';
+  String get statsSessions => 'جلسات القراءة';
 
   @override
-  String get statsRecentSessions => 'الجلسات الأخيرة';
+  String get statsRecentSessions => 'جلسات القراءة الأخيرة';
 
   @override
-  String get statsCurrentStreak => 'الخط الحالي';
+  String get statsCurrentStreak => 'سلسلة القراءة الحالية';
 
   @override
-  String get statsLongestStreak => 'أطول خط';
+  String get statsLongestStreak => 'أطول سلسلة قراءة';
 
   @override
   String get statsReadingActivity => 'نشاط القراءة';
@@ -794,21 +792,21 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String statsHeatmapNoReading({required Object date}) {
-    return '$date: لا توجد قراءة';
+    return 'لا توجد قراءة في $date';
   }
 
   @override
   String statsHeatmapMinutes({required Object date, required int minutes}) {
-    return '$date: $minutes دقيقة';
+    return '$minutes دقيقة في $date';
   }
 
   @override
   String statsDurationHoursMinutes({required int hours, required int minutes}) {
-    return '$hoursس $minutesد';
+    return '$hours س $minutes د';
   }
 
   @override
   String statsDurationMinutes({required int minutes}) {
-    return '$minutesم';
+    return '$minutes د';
   }
 }
