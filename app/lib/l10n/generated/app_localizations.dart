@@ -314,6 +314,18 @@ abstract class AppLocalizations {
   /// **'Search your library...'**
   String get librarySearchHint;
 
+  /// No description provided for @librarySearchAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Search library'**
+  String get librarySearchAction;
+
+  /// No description provided for @libraryCloseSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Close search'**
+  String get libraryCloseSearch;
+
   /// No description provided for @libraryErrorFallback.
   ///
   /// In en, this message translates to:
@@ -331,6 +343,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Import'**
   String get libraryFabImport;
+
+  /// No description provided for @librarySwitchToListView.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to list view'**
+  String get librarySwitchToListView;
+
+  /// No description provided for @librarySwitchToGridView.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to grid view'**
+  String get librarySwitchToGridView;
 
   /// No description provided for @librarySortRecent.
   ///

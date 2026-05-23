@@ -33,6 +33,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = context.l10n;
+    final searchTooltip = _isSearching
+        ? l10n.libraryCloseSearch
+        : l10n.librarySearchAction;
 
     return Scaffold(
       appBar: AppBar(
@@ -58,7 +61,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
         actions: [
           IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search_rounded),
+            tooltip: searchTooltip,
+            icon: Icon(
+              _isSearching ? Icons.close : Icons.search_rounded,
+              semanticLabel: searchTooltip,
+            ),
             onPressed: () {
               setState(() {
                 _isSearching = !_isSearching;
@@ -71,11 +78,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ),
           BlocBuilder<LibraryCubit, LibraryState>(
             builder: (context, state) {
+              final viewModeTooltip = state.viewMode == LibraryView.grid
+                  ? l10n.librarySwitchToListView
+                  : l10n.librarySwitchToGridView;
+
               return IconButton(
+                tooltip: viewModeTooltip,
                 icon: Icon(
                   state.viewMode == LibraryView.grid
                       ? Icons.view_list_rounded
                       : Icons.grid_view_rounded,
+                  semanticLabel: viewModeTooltip,
                 ),
                 onPressed: () {
                   context.read<LibraryCubit>().toggleViewMode();
