@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/l10n.dart';
+import 'stats_semantics.dart';
 
 class ActivityHeatmap extends StatelessWidget {
   final Map<DateTime, int> dailyMinutes;
@@ -12,6 +13,7 @@ class ActivityHeatmap extends StatelessWidget {
     final theme = Theme.of(context);
     final today = DateTime.now();
     final todayMidnight = DateTime(today.year, today.month, today.day);
+    final localizations = MaterialLocalizations.of(context);
     const totalDays = 371; // 53 weeks × 7
     final startDate = todayMidnight.subtract(
       const Duration(days: totalDays - 1),
@@ -23,70 +25,124 @@ class ActivityHeatmap extends StatelessWidget {
     );
 
     final maxMinutes = dailyMinutes.values.fold(0, (a, b) => a > b ? a : b);
+    final heatmapHeight = 12.0 * 7 + 2.0 * 6;
+    final emptySummary = context.l10n.statsHeatmapNoReading(
+      date: localizations.formatShortDate(todayMidnight),
+    );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          context.l10n.statsReadingActivity,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 12.0 * 7 + 2.0 * 6, // 7 rows × cell + gaps
-          child: GridView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: days.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              mainAxisSpacing: 2,
-              crossAxisSpacing: 2,
-              childAspectRatio: 1,
+    return StatsSemanticSection(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          StatsSemanticNode(
+            label: context.l10n.statsReadingActivity,
+            header: true,
+            child: Text(
+              context.l10n.statsReadingActivity,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            itemBuilder: (context, index) {
-              final day = days[index];
-              final mins = dailyMinutes[day] ?? 0;
-              final intensity = maxMinutes > 0 ? mins / maxMinutes : 0.0;
-              return Tooltip(
-                message: _tooltip(context, day, mins),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: _cellColor(context, intensity),
-                    borderRadius: BorderRadius.circular(2),
+          ),
+          const SizedBox(height: 8),
+          if (maxMinutes == 0)
+            StatsSemanticNode(
+              label: context.l10n.statsReadingActivity,
+              value: emptySummary,
+              child: SizedBox(
+                height: heatmapHeight, // 7 rows × cell + gaps
+                child: GridView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: days.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
+                    mainAxisSpacing: 2,
+                    crossAxisSpacing: 2,
+                    childAspectRatio: 1,
                   ),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Text(
-              context.l10n.statsHeatmapLess,
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(width: 4),
-            for (final intensity in [0.0, 0.25, 0.5, 0.75, 1.0]) ...[
-              Container(
-                width: 12,
-                height: 12,
-                margin: const EdgeInsets.only(right: 2),
-                decoration: BoxDecoration(
-                  color: _cellColor(context, intensity),
-                  borderRadius: BorderRadius.circular(2),
+                  itemBuilder: (context, index) {
+                    final day = days[index];
+                    final mins = dailyMinutes[day] ?? 0;
+                    final intensity = maxMinutes > 0 ? mins / maxMinutes : 0.0;
+                    return Tooltip(
+                      message: _tooltip(context, day, mins),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _cellColor(context, intensity),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
-            ],
-            Text(
-              context.l10n.statsHeatmapMore,
-              style: theme.textTheme.bodySmall,
+            )
+          else
+            SizedBox(
+              height: heatmapHeight, // 7 rows × cell + gaps
+              child: GridView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: days.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 7,
+                  mainAxisSpacing: 2,
+                  crossAxisSpacing: 2,
+                  childAspectRatio: 1,
+                ),
+                itemBuilder: (context, index) {
+                  final day = days[index];
+                  final mins = dailyMinutes[day] ?? 0;
+                  final intensity = maxMinutes > 0 ? mins / maxMinutes : 0.0;
+                  final cell = Tooltip(
+                    message: _tooltip(context, day, mins),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _cellColor(context, intensity),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  );
+
+                  if (mins == 0) {
+                    return ExcludeSemantics(child: cell);
+                  }
+
+                  return StatsSemanticNode(
+                    label: _tooltip(context, day, mins),
+                    child: cell,
+                  );
+                },
+              ),
             ),
-          ],
-        ),
-      ],
+          const SizedBox(height: 4),
+          ExcludeSemantics(
+            child: Row(
+              children: [
+                Text(
+                  context.l10n.statsHeatmapLess,
+                  style: theme.textTheme.bodySmall,
+                ),
+                const SizedBox(width: 4),
+                for (final intensity in [0.0, 0.25, 0.5, 0.75, 1.0]) ...[
+                  Container(
+                    width: 12,
+                    height: 12,
+                    margin: const EdgeInsets.only(right: 2),
+                    decoration: BoxDecoration(
+                      color: _cellColor(context, intensity),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
+                Text(
+                  context.l10n.statsHeatmapMore,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
