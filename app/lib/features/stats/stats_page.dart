@@ -5,8 +5,9 @@ import '../../core/database/database.dart';
 import '../../l10n/l10n.dart';
 import 'cubit/stats_cubit.dart';
 import 'cubit/stats_state.dart';
-import 'widgets/streak_card.dart';
 import 'widgets/activity_heatmap.dart';
+import 'widgets/stats_semantics.dart';
+import 'widgets/streak_card.dart';
 
 class StatsPage extends StatelessWidget {
   const StatsPage({super.key});
@@ -132,22 +133,26 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: iconColor, size: 22),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+    return StatsSemanticNode(
+      label: label,
+      value: value,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: iconColor, size: 22),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            Text(label, style: theme.textTheme.bodySmall),
-          ],
+              Text(label, style: theme.textTheme.bodySmall),
+            ],
+          ),
         ),
       ),
     );
@@ -161,21 +166,27 @@ class _RecentSessions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              context.l10n.statsRecentSessions,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+    return StatsSemanticSection(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              StatsSemanticNode(
+                label: context.l10n.statsRecentSessions,
+                header: true,
+                child: Text(
+                  context.l10n.statsRecentSessions,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            ...sessions.map((s) => _SessionTile(session: s)),
-          ],
+              const SizedBox(height: 8),
+              ...sessions.map((s) => _SessionTile(session: s)),
+            ],
+          ),
         ),
       ),
     );
@@ -200,18 +211,22 @@ class _SessionTile extends StatelessWidget {
 
     return Column(
       children: [
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(
-            session.bookTitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Text(dateLabel),
-          trailing: Chip(
-            label: Text(duration, style: theme.textTheme.bodySmall),
-            padding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
+        StatsSemanticNode(
+          label: session.bookTitle,
+          value: '$dateLabel, $duration',
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              session.bookTitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Text(dateLabel),
+            trailing: Chip(
+              label: Text(duration, style: theme.textTheme.bodySmall),
+              padding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+            ),
           ),
         ),
         const Divider(height: 1),
