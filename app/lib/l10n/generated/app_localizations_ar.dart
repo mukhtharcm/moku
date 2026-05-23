@@ -323,6 +323,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsSectionAppearance => 'مظهر';
 
   @override
+  String get settingsLanguageTitle => 'لغة التطبيق';
+
+  @override
+  String get settingsLanguageSystem => 'النظام';
+
+  @override
+  String get settingsLanguageSystemSubtitle => 'اتبع لغة الجهاز';
+
+  @override
+  String get settingsLanguageEnglish => 'English';
+
+  @override
+  String get settingsLanguageArabic => 'العربية';
+
+  @override
   String get settingsSectionBattery => 'بطارية';
 
   @override
