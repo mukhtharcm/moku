@@ -8,6 +8,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../core/database/database.dart'
     hide Book, Bookmark, Highlight, BookCollection;
+import '../../../core/localization/bidi_text.dart';
 import '../../../core/models/book.dart';
 import '../../../core/models/book_localizations.dart';
 import '../../../core/models/reader_content_profile.dart';
@@ -15,6 +16,7 @@ import '../../../core/services/book_service.dart';
 import '../../../core/sync/auto_sync_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../l10n/l10n.dart';
+import '../reader_accessibility.dart';
 import '../reader_localizations.dart';
 import '../cubit/reader_cubit.dart';
 import '../cubit/reader_state.dart';
@@ -83,6 +85,8 @@ class _ReaderViewState extends State<_ReaderView>
 
   // Track last loaded state to avoid redundant reloads
   String _lastLoadedContent = '';
+  String _lastAccessibilityPreviewSource = '';
+  String _lastAccessibilityPreview = '';
   double _lastLoadedFontSize = 0;
   double _lastLoadedLineHeight = 0;
   double _lastLoadedMargin = 0;
@@ -186,6 +190,87 @@ class _ReaderViewState extends State<_ReaderView>
         }
       });
     });
+  }
+
+  String _readerAccessibilityPreview(String content) {
+    if (content == _lastAccessibilityPreviewSource) {
+      return _lastAccessibilityPreview;
+    }
+
+    _lastAccessibilityPreviewSource = content;
+    _lastAccessibilityPreview = readerAccessibilityTextPreview(content);
+    return _lastAccessibilityPreview;
+  }
+
+  void _activateReaderSurface(ReaderState state) {
+    final cubit = context.read<ReaderCubit>();
+    if (state.zenMode) {
+      _zenHintTimer?.cancel();
+      setState(() {
+        _zenExitOverlayVisible = false;
+      });
+      cubit.toggleZenMode();
+      return;
+    }
+
+    cubit.toggleControls();
+  }
+
+  Widget _buildReaderAccessibilitySurface(
+    BuildContext context,
+    ReaderState state,
+  ) {
+    final l10n = context.l10n;
+    final bookTitle = bidiWrappedText(
+      context,
+      bookTitleLabel(context, state.book.title),
+    );
+    final chapterTitle = bidiWrappedText(
+      context,
+      readerChapterTitle(context, state, state.currentChapter),
+    );
+    final preview = bidiWrappedText(
+      context,
+      _readerAccessibilityPreview(state.currentContent),
+    );
+    final totalChapters = state.chapters.length;
+    final overallProgress = totalChapters == 0
+        ? 0.0
+        : ((state.currentChapter + state.scrollProgress) / totalChapters).clamp(
+            0.0,
+            1.0,
+          );
+    final label = [
+      bookTitle,
+      chapterTitle,
+      '${l10n.readerReadingDirection}: ${readerContentDirectionLabel(context, state)}',
+    ].join('. ');
+    final valueParts = <String>[
+      if (state.totalPages > 1)
+        l10n.readerPageOf(
+          currentPage: state.currentPage + 1,
+          totalPages: state.totalPages,
+        ),
+      if (totalChapters > 0)
+        l10n.readerChapterProgress(
+          chapterTitle: chapterTitle,
+          percent: (overallProgress * 100).round(),
+        ),
+      if (preview.isNotEmpty) preview,
+    ];
+
+    return Positioned.fill(
+      child: Semantics(
+        container: true,
+        focusable: true,
+        readOnly: true,
+        multiline: true,
+        label: label,
+        value: valueParts.join('. '),
+        onTap: () => _activateReaderSurface(state),
+        child: const SizedBox.expand(),
+      ),
+    );
   }
 
   // -- JS bridge -----------------------------------------------------------
@@ -1011,6 +1096,9 @@ window.addEventListener('load', function() {
                 child: WebViewWidget(controller: _webController),
               ),
 
+              if (!state.showControls)
+                _buildReaderAccessibilitySurface(context, state),
+
               // Top controls
               if (state.showControls && !state.zenMode)
                 _TopControls(
@@ -1235,6 +1323,7 @@ class _TopControls extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
                   onPressed: () => Navigator.pop(context),
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -1533,20 +1622,17 @@ class _ReaderSettingsSheet extends StatelessWidget {
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: ChoiceChip(
-                          label: Text(
-                            switch (direction) {
-                              ReaderDirectionOverride.auto =>
-                                l10n.readerDirectionAuto,
-                              ReaderDirectionOverride.ltr =>
-                                l10n.readerDirectionLeftToRight,
-                              ReaderDirectionOverride.rtl =>
-                                l10n.readerDirectionRightToLeft,
-                            },
-                          ),
+                          label: Text(switch (direction) {
+                            ReaderDirectionOverride.auto =>
+                              l10n.readerDirectionAuto,
+                            ReaderDirectionOverride.ltr =>
+                              l10n.readerDirectionLeftToRight,
+                            ReaderDirectionOverride.rtl =>
+                              l10n.readerDirectionRightToLeft,
+                          }),
                           selected: isActive,
-                          onSelected: (_) => cubit.setDirectionOverride(
-                            direction,
-                          ),
+                          onSelected: (_) =>
+                              cubit.setDirectionOverride(direction),
                         ),
                       );
                     }).toList(),
@@ -1738,6 +1824,9 @@ class _TocDrawer extends StatelessWidget {
                             IconButton(
                               icon: const Icon(Icons.close),
                               onPressed: onClose,
+                              tooltip: MaterialLocalizations.of(
+                                context,
+                              ).closeButtonTooltip,
                             ),
                           ],
                         ),

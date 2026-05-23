@@ -30,6 +30,12 @@ String readerFontFamilyLabel(BuildContext context, ReaderFontFamily family) {
   };
 }
 
+String readerContentDirectionLabel(BuildContext context, ReaderState state) {
+  return state.isContentRtl
+      ? context.l10n.readerDirectionRightToLeft
+      : context.l10n.readerDirectionLeftToRight;
+}
+
 String readerQuotedSelection(BuildContext context, String text) {
   return context.l10n.readerQuotedSelection(
     text: bidiWrappedText(context, text),
