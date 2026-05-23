@@ -121,6 +121,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get librarySearchHint => 'ابحث في المكتبة…';
 
   @override
+  String get librarySearchAction => 'ابحث في المكتبة';
+
+  @override
+  String get libraryCloseSearch => 'إغلاق البحث';
+
+  @override
   String get libraryErrorFallback => 'حدث خطأ ما';
 
   @override
@@ -128,6 +134,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get libraryFabImport => 'استيراد';
+
+  @override
+  String get librarySwitchToListView => 'التبديل إلى عرض القائمة';
+
+  @override
+  String get librarySwitchToGridView => 'التبديل إلى عرض الشبكة';
 
   @override
   String get librarySortRecent => 'الأحدث';

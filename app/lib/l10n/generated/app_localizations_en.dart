@@ -121,6 +121,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get librarySearchHint => 'Search your library...';
 
   @override
+  String get librarySearchAction => 'Search library';
+
+  @override
+  String get libraryCloseSearch => 'Close search';
+
+  @override
   String get libraryErrorFallback => 'Something went wrong';
 
   @override
@@ -128,6 +134,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get libraryFabImport => 'Import';
+
+  @override
+  String get librarySwitchToListView => 'Switch to list view';
+
+  @override
+  String get librarySwitchToGridView => 'Switch to grid view';
 
   @override
   String get librarySortRecent => 'Recent';
