@@ -95,6 +95,7 @@ class CollectionsScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         heroTag: 'collections_create',
         onPressed: () => _showCreateDialog(context),
+        tooltip: l10n.collectionsCreateShelf,
         child: const Icon(Icons.add_rounded),
       ),
     );
@@ -208,6 +209,7 @@ class _CollectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     // Generate a colour from collection name hash
     final hash = collection.name.hashCode;
@@ -218,59 +220,53 @@ class _CollectionCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Card(
-        child: InkWell(
+        child: ListTile(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(
-                    Icons.collections_bookmark_rounded,
-                    color: iconColor,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        collection.name,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (collection.description != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          collection.description!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.more_horiz_rounded,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  onPressed: onDelete,
-                ),
-              ],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+          minLeadingWidth: 48,
+          horizontalTitleGap: 14,
+          leading: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(14),
             ),
+            child: Icon(
+              Icons.collections_bookmark_rounded,
+              color: iconColor,
+              size: 22,
+            ),
+          ),
+          title: Text(
+            collection.name,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          subtitle: collection.description == null
+              ? null
+              : Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    collection.description!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+          trailing: IconButton(
+            tooltip: l10n.collectionsDeleteShelfTitle,
+            onPressed: onDelete,
+            icon: Icon(Icons.delete_outline_rounded, color: colorScheme.error),
           ),
         ),
       ),
