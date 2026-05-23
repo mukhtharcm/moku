@@ -13,15 +13,19 @@ class SearchCubit extends Cubit<SearchState> {
   final OpdsCatalogService _catalogService;
   final BookService _bookService;
   final db.AppDatabase _database;
+  final Duration _searchDebounce;
   Timer? _debounce;
+  int _searchRevision = 0;
 
   SearchCubit({
     required OpdsCatalogService catalogService,
     required BookService bookService,
     required db.AppDatabase database,
+    Duration searchDebounce = const Duration(milliseconds: 500),
   }) : _catalogService = catalogService,
        _bookService = bookService,
        _database = database,
+       _searchDebounce = searchDebounce,
        super(const SearchState());
 
   Future<void> loadCatalogs() async {
@@ -37,15 +41,22 @@ class SearchCubit extends Cubit<SearchState> {
 
   void search(String query) {
     _debounce?.cancel();
-    emit(state.copyWith(query: query));
+    final revision = ++_searchRevision;
+    emit(state.copyWith(query: query, clearError: true));
 
     if (query.trim().isEmpty) {
-      emit(state.copyWith(status: SearchStatus.initial, results: []));
+      emit(
+        state.copyWith(
+          status: SearchStatus.initial,
+          results: const [],
+          clearError: true,
+        ),
+      );
       return;
     }
 
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      _performSearch(query);
+    _debounce = Timer(_searchDebounce, () {
+      unawaited(_performSearch(query, revision));
     });
   }
 
@@ -53,7 +64,7 @@ class SearchCubit extends Cubit<SearchState> {
     emit(state.copyWith(selectedCatalogId: catalogId, clearError: true));
 
     if (state.query.trim().isNotEmpty) {
-      _performSearch(state.query);
+      unawaited(_performSearch(state.query, ++_searchRevision));
     }
   }
 
@@ -75,7 +86,7 @@ class SearchCubit extends Cubit<SearchState> {
     );
 
     if (state.query.trim().isNotEmpty) {
-      await _performSearch(state.query);
+      await _performSearch(state.query, ++_searchRevision);
     }
   }
 
@@ -94,7 +105,7 @@ class SearchCubit extends Cubit<SearchState> {
     );
 
     if (state.query.trim().isNotEmpty) {
-      await _performSearch(state.query);
+      await _performSearch(state.query, ++_searchRevision);
     }
   }
 
@@ -142,9 +153,12 @@ class SearchCubit extends Cubit<SearchState> {
     }
   }
 
-  Future<void> _performSearch(String query) async {
+  Future<void> _performSearch(String query, int revision) async {
+    if (revision != _searchRevision) return;
+
     final catalog = state.selectedCatalog;
     if (catalog == null) {
+      if (revision != _searchRevision) return;
       emit(state.copyWith(status: SearchStatus.error, clearError: true));
       return;
     }
@@ -153,16 +167,20 @@ class SearchCubit extends Cubit<SearchState> {
 
     try {
       final results = await _catalogService.searchBooks(catalog, query);
+      if (revision != _searchRevision) return;
       emit(state.copyWith(status: SearchStatus.loaded, results: results));
     } on CatalogException catch (e) {
+      if (revision != _searchRevision) return;
       emit(state.copyWith(status: SearchStatus.error, errorCode: e.code));
     } catch (_) {
+      if (revision != _searchRevision) return;
       emit(state.copyWith(status: SearchStatus.error, clearError: true));
     }
   }
 
   void clear() {
     _debounce?.cancel();
+    _searchRevision++;
     emit(
       state.copyWith(
         status: SearchStatus.initial,

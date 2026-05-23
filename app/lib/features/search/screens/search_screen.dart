@@ -103,6 +103,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   previous.selectedCatalogId != current.selectedCatalogId ||
                   previous.query != current.query,
               builder: (context, state) {
+                final hasQuery = state.query.isNotEmpty;
                 final hintCatalog = state.selectedCatalog == null
                     ? l10n.searchGenericCatalogName
                     : catalogTitleLabel(context, state.selectedCatalog!);
@@ -111,15 +112,16 @@ class _SearchScreenState extends State<SearchScreen> {
                   decoration: InputDecoration(
                     hintText: l10n.searchHint(catalogTitle: hintCatalog),
                     prefixIcon: const Icon(Icons.search),
-                    suffixIcon: state.query.isEmpty
-                        ? null
-                        : IconButton(
+                    suffixIcon: hasQuery
+                        ? IconButton(
+                            tooltip: l10n.commonClear,
                             icon: const Icon(Icons.clear),
                             onPressed: () {
                               _searchController.clear();
                               context.read<SearchCubit>().clear();
                             },
-                          ),
+                          )
+                        : null,
                   ),
                   onChanged: (query) =>
                       context.read<SearchCubit>().search(query),
@@ -134,7 +136,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (state.status == SearchStatus.initial) {
+                if (state.query.trim().isEmpty) {
                   return _EmptyPrompt(
                     catalogTitle: state.selectedCatalog == null
                         ? l10n.searchPromptGenericCatalogName
@@ -152,20 +154,11 @@ class _SearchScreenState extends State<SearchScreen> {
                       ? l10n.searchNoCatalogSelected
                       : catalogErrorCodeMessage(context, state.errorCode);
 
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Text(
-                        errorText,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                  );
+                  return _SearchStatusMessage(message: errorText);
                 }
 
                 if (state.results.isEmpty) {
-                  return Center(child: Text(l10n.searchEmptyResults));
+                  return _SearchStatusMessage(message: l10n.searchEmptyResults);
                 }
 
                 return ListView.builder(
@@ -199,7 +192,9 @@ class _SearchScreenState extends State<SearchScreen> {
                           if (!context.mounted) return;
                           messenger.showSnackBar(
                             SnackBar(
-                              content: Text(catalogErrorMessage(context, error)),
+                              content: Text(
+                                catalogErrorMessage(context, error),
+                              ),
                             ),
                           );
                         }
@@ -348,9 +343,7 @@ class _SearchScreenState extends State<SearchScreen> {
               } catch (error) {
                 if (!context.mounted || !ctx.mounted) return;
                 messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(catalogErrorMessage(context, error)),
-                  ),
+                  SnackBar(content: Text(catalogErrorMessage(context, error))),
                 );
               }
             },
@@ -404,32 +397,67 @@ class _EmptyPrompt extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = context.l10n;
+    final title = l10n.searchInitialPromptTitle(catalogTitle: catalogTitle);
+    final body = l10n.searchInitialPromptBody;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.download_for_offline_outlined,
-              size: 64,
-              color: colorScheme.primary.withValues(alpha: 0.5),
+        child: Semantics(
+          container: true,
+          liveRegion: true,
+          child: MergeSemantics(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ExcludeSemantics(
+                  child: Icon(
+                    Icons.download_for_offline_outlined,
+                    size: 64,
+                    color: colorScheme.primary.withValues(alpha: 0.5),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  body,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.searchInitialPromptTitle(catalogTitle: catalogTitle),
-              style: Theme.of(context).textTheme.bodyLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.searchInitialPromptBody,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchStatusMessage extends StatelessWidget {
+  final String message;
+
+  const _SearchStatusMessage({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Semantics(
+          container: true,
+          liveRegion: true,
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
         ),
       ),
     );
