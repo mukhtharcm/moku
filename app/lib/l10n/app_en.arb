@@ -312,6 +312,8 @@
   "readerNoHighlightsYet": "No highlights yet",
   "readerNoHighlightsHint": "Select text while reading to highlight it",
   "readerNoBookmarksYet": "No bookmarks yet",
+  "readerDeleteBookmarkTitle": "Delete Bookmark",
+  "readerDeleteBookmarkMessage": "Are you sure you want to delete this bookmark?",
   "readerQuotedSelection": "\"{text}\"",
   "@readerQuotedSelection": {
     "placeholders": {

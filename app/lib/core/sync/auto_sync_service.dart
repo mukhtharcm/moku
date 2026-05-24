@@ -24,8 +24,8 @@ enum SyncTrigger {
 /// Combines several cheap triggers into one well-behaved scheduler:
 ///   * startup (~5s after launch)
 ///   * app resumed (when data is stale)
-///   * periodic timer (~15m ± jitter)
-///   * dirty bump (debounced 30s for general edits)
+///   * periodic timer (~2m ± jitter while foregrounded)
+///   * dirty bump (debounced 10s for general edits)
 ///   * progress bump (coalesced with a 3m minimum interval, flushed on pause
 ///     or reader close)
 ///   * manual Sync Now (bypasses backoff)
@@ -50,10 +50,10 @@ class AutoSyncService with WidgetsBindingObserver {
 
   // ---- Trigger timings ---------------------------------------------------
   static const Duration _startupDelay = Duration(seconds: 5);
-  static const Duration _periodicInterval = Duration(minutes: 15);
-  static const Duration _periodicJitter = Duration(minutes: 2);
-  static const Duration _foregroundStaleness = Duration(minutes: 2);
-  static const Duration _generalBumpDebounce = Duration(seconds: 30);
+  static const Duration _periodicInterval = Duration(minutes: 2);
+  static const Duration _periodicJitter = Duration(seconds: 20);
+  static const Duration _foregroundStaleness = Duration(seconds: 45);
+  static const Duration _generalBumpDebounce = Duration(seconds: 10);
   static const Duration _progressBumpMinInterval = Duration(minutes: 3);
   static const Duration _suppressionWindow = Duration(seconds: 30);
 
@@ -78,6 +78,7 @@ class AutoSyncService with WidgetsBindingObserver {
   int _consecutiveFailures = 0;
   DateTime? _lastRunAt;
   DateTime? _lastProgressSyncAt;
+  DateTime? _backoffUntil;
 
   Timer? _periodicTimer;
   Timer? _debounceTimer;
@@ -111,7 +112,7 @@ class AutoSyncService with WidgetsBindingObserver {
 
   /// Called from mutation sites after any change that should eventually
   /// propagate to the server (bookmark, highlight, collection, library,
-  /// session, goal, etc.). Debounced 30s so a burst of edits coalesces
+  /// session, goal, etc.). Debounced 10s so a burst of edits coalesces
   /// into one sync.
   void bump() {
     if (!_canAutoSync()) return;
@@ -124,7 +125,7 @@ class AutoSyncService with WidgetsBindingObserver {
 
   /// Called from the reader on every page-turn. Reading-progress updates
   /// happen far more often than any other write; we treat them specially
-  /// so we don't sync every 30s during a long read. Instead we schedule at
+  /// so we don't sync every few seconds during a long read. Instead we schedule at
   /// a minimum interval; [flush] pushes whatever's pending on reader close
   /// or app pause.
   void bumpProgress() {
@@ -150,13 +151,26 @@ class AutoSyncService with WidgetsBindingObserver {
   void flush() {
     if (!_canAutoSync()) return;
     if (!_dirtyGeneral && !_dirtyProgress) return;
-    _run(SyncTrigger.background);
+    _run(SyncTrigger.background, bypassSuppression: true);
+  }
+
+  /// Force an immediate best-effort run for critical local mutations such as
+  /// deletes. This bypasses suppression and one scheduled backoff delay, but
+  /// still respects single-flight and auth/config gates.
+  void flushNow() {
+    if (!_canAutoSync()) return;
+    if (!_dirtyGeneral && !_dirtyProgress) return;
+    _run(SyncTrigger.background, bypassBackoff: true, bypassSuppression: true);
   }
 
   /// Manual "Sync Now" from the settings UI. Bypasses backoff and
   /// staleness checks, but still respects single-flight.
   Future<SyncResult?> syncNow() async {
-    return _run(SyncTrigger.manual, bypassBackoff: true);
+    return _run(
+      SyncTrigger.manual,
+      bypassBackoff: true,
+      bypassSuppression: true,
+    );
   }
 
   // -----------------------------------------------------------------------
@@ -182,11 +196,12 @@ class AutoSyncService with WidgetsBindingObserver {
     _debounceTimer?.cancel();
     _progressTimer?.cancel();
     _backoffTimer?.cancel();
-    _startupTimer = _periodicTimer =
-        _debounceTimer = _progressTimer = _backoffTimer = null;
+    _startupTimer = _periodicTimer = _debounceTimer = _progressTimer =
+        _backoffTimer = null;
     _dirtyGeneral = false;
     _dirtyProgress = false;
     _pendingRerun = false;
+    _backoffUntil = null;
     try {
       WidgetsBinding.instance.removeObserver(this);
     } catch (_) {}
@@ -201,7 +216,8 @@ class AutoSyncService with WidgetsBindingObserver {
 
   void _schedulePeriodic() {
     _periodicTimer?.cancel();
-    final jitterMs = _random.nextInt(_periodicJitter.inMilliseconds * 2) -
+    final jitterMs =
+        _random.nextInt(_periodicJitter.inMilliseconds * 2) -
         _periodicJitter.inMilliseconds;
     final interval = _periodicInterval + Duration(milliseconds: jitterMs);
     _periodicTimer = Timer.periodic(interval, (_) {
@@ -215,7 +231,8 @@ class AutoSyncService with WidgetsBindingObserver {
       case AppLifecycleState.resumed:
         _appInForeground = true;
         if (!_canAutoSync()) return;
-        final stale = _lastRunAt == null ||
+        final stale =
+            _lastRunAt == null ||
             DateTime.now().difference(_lastRunAt!) > _foregroundStaleness;
         if (stale) _run(SyncTrigger.foreground);
         _schedulePeriodic();
@@ -251,6 +268,7 @@ class AutoSyncService with WidgetsBindingObserver {
   Future<SyncResult?> _run(
     SyncTrigger trigger, {
     bool bypassBackoff = false,
+    bool bypassSuppression = false,
   }) async {
     final engine = _engine;
     if (engine == null) return null;
@@ -267,10 +285,18 @@ class AutoSyncService with WidgetsBindingObserver {
       if (!s.config.isEnabled || !s.isAuthenticated) return null;
     }
 
+    final now = DateTime.now();
+    if (!bypassBackoff &&
+        _backoffUntil != null &&
+        now.isBefore(_backoffUntil!)) {
+      return null;
+    }
+
     // Suppression: dedupe startup+foreground colliding.
-    if (!bypassBackoff && _lastRunAt != null) {
+    if (!bypassSuppression && _lastRunAt != null) {
       final since = DateTime.now().difference(_lastRunAt!);
-      if (since < _suppressionWindow && trigger != SyncTrigger.dirtyBump &&
+      if (since < _suppressionWindow &&
+          trigger != SyncTrigger.dirtyBump &&
           trigger != SyncTrigger.progressBump) {
         return null;
       }
@@ -305,6 +331,7 @@ class AutoSyncService with WidgetsBindingObserver {
         _pendingRerun = true;
       } else if (result.isFullSuccess) {
         _consecutiveFailures = 0;
+        _backoffUntil = null;
         _backoffTimer?.cancel();
         if (result.syncedAt != null) {
           await configCubit.updateLastSyncAt(result.syncedAt!);
@@ -315,8 +342,12 @@ class AutoSyncService with WidgetsBindingObserver {
         _onFailure(result);
       }
     } catch (e, st) {
-      developer.log('run failed: $e',
-          name: 'AutoSync', error: e, stackTrace: st);
+      developer.log(
+        'run failed: $e',
+        name: 'AutoSync',
+        error: e,
+        stackTrace: st,
+      );
       _onFailure(null, e.toString());
     } finally {
       _isSyncing = false;
@@ -333,16 +364,21 @@ class AutoSyncService with WidgetsBindingObserver {
 
   void _onFailure(SyncResult? result, [String? message]) {
     _consecutiveFailures += 1;
-    final idx = (_consecutiveFailures - 1).clamp(0, _backoffSchedule.length - 1);
+    final idx = (_consecutiveFailures - 1).clamp(
+      0,
+      _backoffSchedule.length - 1,
+    );
     final delay = _backoffSchedule[idx];
     developer.log(
-        'failure #$_consecutiveFailures — backoff ${delay.inMinutes}m',
-        name: 'AutoSync');
+      'failure #$_consecutiveFailures — backoff ${delay.inMinutes}m',
+      name: 'AutoSync',
+    );
 
     if (message != null) {
       developer.log('failure detail: $message', name: 'AutoSync');
     }
     configCubit.setStatus(SyncStatus.error);
+    _backoffUntil = DateTime.now().add(delay);
 
     _backoffTimer?.cancel();
     _backoffTimer = Timer(delay, () {

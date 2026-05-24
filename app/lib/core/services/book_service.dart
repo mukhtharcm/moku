@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
@@ -123,6 +124,7 @@ class BookService {
     await file.copy(destPath);
 
     final meta = await PdfParser.extractMetadata(filePath);
+    final fileHash = await _computeFileHash(file);
 
     return Book(
       id: bookId,
@@ -131,6 +133,7 @@ class BookService {
       description: meta.subject,
       filePath: PathResolver.toRelative(destPath),
       format: BookFormat.pdf,
+      fileHash: fileHash,
       totalChapters: meta.pageCount,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
@@ -149,6 +152,7 @@ class BookService {
 
     final bytes = await file.readAsBytes();
     final meta = TxtParser.extractMetadata(bytes, filePath);
+    final fileHash = sha256.convert(bytes).toString();
 
     return Book(
       id: bookId,
@@ -156,6 +160,7 @@ class BookService {
       author: meta.author,
       filePath: PathResolver.toRelative(destPath),
       format: BookFormat.txt,
+      fileHash: fileHash,
       totalChapters: meta.chapterCount,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
@@ -174,6 +179,7 @@ class BookService {
 
     final bytes = await file.readAsBytes();
     final meta = CbzParser.extractMetadata(bytes, filePath);
+    final fileHash = sha256.convert(bytes).toString();
 
     // Extract first image as cover
     String? coverPath;
@@ -195,6 +201,7 @@ class BookService {
       coverPath: coverPath,
       filePath: PathResolver.toRelative(destPath),
       format: BookFormat.cbz,
+      fileHash: fileHash,
       totalChapters: meta.pageCount,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
@@ -214,6 +221,7 @@ class BookService {
 
     final bytes = await file.readAsBytes();
     final meta = HtmlParser.extractMetadata(bytes, filePath);
+    final fileHash = sha256.convert(bytes).toString();
 
     return Book(
       id: bookId,
@@ -222,6 +230,7 @@ class BookService {
       language: meta.languageTag,
       filePath: PathResolver.toRelative(destPath),
       format: BookFormat.html,
+      fileHash: fileHash,
       totalChapters: meta.chapterCount,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
@@ -240,6 +249,11 @@ class BookService {
           ),
         )
         .toList();
+  }
+
+  Future<String> _computeFileHash(File file) async {
+    final bytes = await file.readAsBytes();
+    return sha256.convert(bytes).toString();
   }
 }
 

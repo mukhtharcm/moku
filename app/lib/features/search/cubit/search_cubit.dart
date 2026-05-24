@@ -7,12 +7,14 @@ import 'package:drift/drift.dart';
 import '../../../core/database/database.dart' as db;
 import '../../../core/services/book_service.dart';
 import '../../../core/services/opds_catalog_service.dart';
+import '../../../core/sync/auto_sync_service.dart';
 import 'search_state.dart';
 
 class SearchCubit extends Cubit<SearchState> {
   final OpdsCatalogService _catalogService;
   final BookService _bookService;
   final db.AppDatabase _database;
+  final AutoSyncService? _autoSync;
   final Duration _searchDebounce;
   Timer? _debounce;
   int _searchRevision = 0;
@@ -21,10 +23,12 @@ class SearchCubit extends Cubit<SearchState> {
     required OpdsCatalogService catalogService,
     required BookService bookService,
     required db.AppDatabase database,
+    AutoSyncService? autoSync,
     Duration searchDebounce = const Duration(milliseconds: 500),
   }) : _catalogService = catalogService,
        _bookService = bookService,
        _database = database,
+       _autoSync = autoSync,
        _searchDebounce = searchDebounce,
        super(const SearchState());
 
@@ -139,6 +143,7 @@ class SearchCubit extends Cubit<SearchState> {
           updatedAt: imported.updatedAt,
         ),
       );
+      _autoSync?.bump();
     } finally {
       final updated = [...state.downloadingBookIds]..remove(book.id);
       emit(state.copyWith(downloadingBookIds: updated));

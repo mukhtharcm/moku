@@ -9,6 +9,7 @@ import '../../../core/models/book_localizations.dart';
 import '../../../core/models/models.dart';
 import '../../../core/services/path_resolver.dart';
 import '../../../l10n/l10n.dart';
+import '../cubit/collections_cubit.dart';
 import '../../library/widgets/book_cover.dart';
 import '../../library/widgets/book_grid_item.dart';
 import '../../reader/screens/reader_screen.dart';
@@ -114,6 +115,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
 
   void _confirmRemove(BuildContext context, Book book) {
     final l10n = context.l10n;
+    final collectionsCubit = context.read<CollectionsCubit?>();
+    final database = context.read<db.AppDatabase>();
 
     showDialog(
       context: context,
@@ -134,11 +137,19 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
             child: Text(l10n.commonCancel),
           ),
           FilledButton(
-            onPressed: () {
-              context.read<db.AppDatabase>().removeBookFromCollection(
-                widget.collection.id,
-                book.id,
-              );
+            onPressed: () async {
+              if (collectionsCubit != null) {
+                await collectionsCubit.removeBookFromCollection(
+                  widget.collection.id,
+                  book.id,
+                );
+              } else {
+                await database.removeBookFromCollection(
+                  widget.collection.id,
+                  book.id,
+                );
+              }
+              if (!ctx.mounted) return;
               Navigator.pop(ctx);
             },
             child: Text(l10n.commonRemove),
@@ -150,6 +161,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
 
   void _showAddBooksDialog(BuildContext context) async {
     final database = context.read<db.AppDatabase>();
+    final collectionsCubit = context.read<CollectionsCubit?>();
     final allBooks = await database.getAllBooks();
     final collectionBooks = await database.getBooksInCollection(
       widget.collection.id,
@@ -184,10 +196,17 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
             Future<void> addBook(db.Book dbBook) async {
               final titleLabel = bookTitleLabel(sheetContext, dbBook.title);
 
-              await database.addBookToCollection(
-                widget.collection.id,
-                dbBook.id,
-              );
+              if (collectionsCubit != null) {
+                await collectionsCubit.addBookToCollection(
+                  widget.collection.id,
+                  dbBook.id,
+                );
+              } else {
+                await database.addBookToCollection(
+                  widget.collection.id,
+                  dbBook.id,
+                );
+              }
               if (!sheetContext.mounted) return;
 
               setSheetState(() {

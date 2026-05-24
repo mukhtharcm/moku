@@ -203,8 +203,61 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
             context.read<ReaderCubit>().goToChapter(bm.chapterIndex);
             Navigator.pop(context);
           },
+          onLongPress: () => _showBookmarkActions(context, bm),
         );
       },
+    );
+  }
+
+  void _showBookmarkActions(BuildContext context, db.Bookmark bookmark) {
+    final l10n = context.l10n;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: Text(
+                l10n.commonDelete,
+                style: const TextStyle(color: Colors.red),
+              ),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDeleteBookmark(context, bookmark);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteBookmark(BuildContext context, db.Bookmark bookmark) {
+    final l10n = context.l10n;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.readerDeleteBookmarkTitle),
+        content: Text(l10n.readerDeleteBookmarkMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await context.read<ReaderCubit>().deleteBookmark(bookmark.id);
+              _loadData();
+            },
+            child: Text(l10n.commonDelete),
+          ),
+        ],
+      ),
     );
   }
 
