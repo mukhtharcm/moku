@@ -253,6 +253,9 @@ class SyncEngine {
         .toList();
     for (final book in updatedBooks) {
       try {
+        if (book.deletedAt != null) {
+          await _cascadeRemoteBookDelete(book.remoteId!, book.deletedAt!);
+        }
         final record = await pb
             .collection('books')
             .update(book.remoteId!, body: _bookToMap(book, userId));
@@ -503,7 +506,12 @@ class SyncEngine {
             }),
           );
           if (existingRemote != null) {
-            await _attachReadingProgressRemoteLink(progress, existingRemote);
+            await _attachReadingProgressRemoteLink(
+              progress,
+              existingRemote,
+              userId: userId,
+              bookRemoteId: bookRemoteId,
+            );
             continue;
           }
 
@@ -682,6 +690,28 @@ class SyncEngine {
       if (bookRemoteId == null) continue;
 
       try {
+        final existingRemote = await _findRemoteRecordByFilter(
+          'bookmarks',
+          pb.filter(
+            'book = {:book} && user = {:user} && chapter_index = {:chapter} && cfi = {:cfi}',
+            {
+              'book': bookRemoteId,
+              'user': userId,
+              'chapter': bookmark.chapterIndex,
+              'cfi': bookmark.cfi ?? '',
+            },
+          ),
+        );
+        if (existingRemote != null) {
+          await _attachBookmarkRemoteLink(
+            bookmark,
+            existingRemote,
+            userId: userId,
+            bookRemoteId: bookRemoteId,
+          );
+          continue;
+        }
+
         final record = await pb
             .collection('bookmarks')
             .create(
@@ -836,6 +866,29 @@ class SyncEngine {
       if (bookRemoteId == null) continue;
 
       try {
+        final existingRemote = await _findRemoteRecordByFilter(
+          'highlights',
+          pb.filter(
+            'book = {:book} && user = {:user} && chapter_index = {:chapter} && start_cfi = {:start} && end_cfi = {:end}',
+            {
+              'book': bookRemoteId,
+              'user': userId,
+              'chapter': highlight.chapterIndex,
+              'start': highlight.startCfi ?? '',
+              'end': highlight.endCfi ?? '',
+            },
+          ),
+        );
+        if (existingRemote != null) {
+          await _attachHighlightRemoteLink(
+            highlight,
+            existingRemote,
+            userId: userId,
+            bookRemoteId: bookRemoteId,
+          );
+          continue;
+        }
+
         final record = await pb
             .collection('highlights')
             .create(
@@ -1022,6 +1075,12 @@ class SyncEngine {
         .toList();
     for (final collection in updated) {
       try {
+        if (collection.deletedAt != null) {
+          await _cascadeRemoteCollectionDelete(
+            collection.remoteId!,
+            collection.deletedAt!,
+          );
+        }
         final record = await pb
             .collection('collections')
             .update(
@@ -1414,7 +1473,12 @@ class SyncEngine {
           ),
         );
         if (existingRemote != null) {
-          await _attachReadingSessionRemoteLink(session, existingRemote);
+          await _attachReadingSessionRemoteLink(
+            session,
+            existingRemote,
+            userId: userId,
+            bookRemoteId: bookRemoteId,
+          );
           continue;
         }
 
@@ -1495,8 +1559,11 @@ class SyncEngine {
       final startedAt =
           DateTime.tryParse(record.getStringValue('started_at')) ??
           DateTime.now();
-      final windowStart = startedAt.subtract(const Duration(seconds: 60));
-      final windowEnd = startedAt.add(const Duration(seconds: 60));
+      // Only allow a tiny drift window when backfilling a missing remote link.
+      // A broad match here can collapse distinct sessions that happen close
+      // together into a single history row.
+      final windowStart = startedAt.subtract(const Duration(seconds: 1));
+      final windowEnd = startedAt.add(const Duration(seconds: 1));
 
       final existing =
           await (db.select(
@@ -1644,7 +1711,11 @@ class SyncEngine {
           }),
         );
         if (existingRemote != null) {
-          await _attachReadingGoalRemoteLink(goal, existingRemote);
+          await _attachReadingGoalRemoteLink(
+            goal,
+            existingRemote,
+            userId: userId,
+          );
           continue;
         }
 
@@ -1698,6 +1769,7 @@ class SyncEngine {
         )..where((g) => g.id.equals(goal.id))).write(
           ReadingGoalsCompanion(
             updatedAt: Value(remoteUpdated),
+            deletedAt: Value(goal.deletedAt),
             syncPending: const Value(false),
           ),
         );
@@ -1825,6 +1897,9 @@ class SyncEngine {
   /// historical reading sessions so stats/history survive library cleanup.
   Future<void> deleteBook(Book book) async {
     final deletedAt = DateTime.now().toUtc();
+    if (book.remoteId != null) {
+      await _cascadeRemoteBookDelete(book.remoteId!, deletedAt);
+    }
     await _markRemoteDeleted(
       collection: 'books',
       remoteId: book.remoteId,
@@ -1837,6 +1912,9 @@ class SyncEngine {
   /// Delete a collection and its membership links without touching the books.
   Future<void> deleteCollection(BookCollection collection) async {
     final deletedAt = DateTime.now().toUtc();
+    if (collection.remoteId != null) {
+      await _cascadeRemoteCollectionDelete(collection.remoteId!, deletedAt);
+    }
     await _markRemoteDeleted(
       collection: 'collections',
       remoteId: collection.remoteId,
@@ -1942,19 +2020,110 @@ class SyncEngine {
     }
   }
 
+  Future<void> _cascadeRemoteBookDelete(
+    String remoteBookId,
+    DateTime deletedAt,
+  ) async {
+    final timestamp = deletedAt.toUtc().toIso8601String();
+    await _markRemoteRecordsDeletedByFilter(
+      collection: 'reading_progress',
+      filter: pb.filter('book = {:book}', {'book': remoteBookId}),
+      deletedAtIso: timestamp,
+    );
+    await _markRemoteRecordsDeletedByFilter(
+      collection: 'bookmarks',
+      filter: pb.filter('book = {:book}', {'book': remoteBookId}),
+      deletedAtIso: timestamp,
+    );
+    await _markRemoteRecordsDeletedByFilter(
+      collection: 'highlights',
+      filter: pb.filter('book = {:book}', {'book': remoteBookId}),
+      deletedAtIso: timestamp,
+    );
+    await _markRemoteRecordsDeletedByFilter(
+      collection: 'collection_books',
+      filter: pb.filter('book = {:book}', {'book': remoteBookId}),
+      deletedAtIso: timestamp,
+    );
+  }
+
+  Future<void> _cascadeRemoteCollectionDelete(
+    String remoteCollectionId,
+    DateTime deletedAt,
+  ) async {
+    await _markRemoteRecordsDeletedByFilter(
+      collection: 'collection_books',
+      filter: pb.filter('collection = {:collection}', {
+        'collection': remoteCollectionId,
+      }),
+      deletedAtIso: deletedAt.toUtc().toIso8601String(),
+    );
+  }
+
+  Future<void> _markRemoteRecordsDeletedByFilter({
+    required String collection,
+    required String filter,
+    required String deletedAtIso,
+  }) async {
+    try {
+      final records = await pb
+          .collection(collection)
+          .getFullList(filter: filter);
+      for (final record in records) {
+        final existingDeletedAt = _parseRemoteDeletedAt(record);
+        final incomingDeletedAt = DateTime.tryParse(deletedAtIso)?.toUtc();
+        if (existingDeletedAt != null &&
+            incomingDeletedAt != null &&
+            !existingDeletedAt.isBefore(incomingDeletedAt)) {
+          continue;
+        }
+        await pb
+            .collection(collection)
+            .update(record.id, body: {'deleted_at': deletedAtIso});
+      }
+    } catch (e, st) {
+      _reportError(collection, e, st);
+    }
+  }
+
   Future<void> _attachReadingProgressRemoteLink(
     ReadingProgress progress,
-    RecordModel remoteRecord,
-  ) async {
+    RecordModel remoteRecord, {
+    required String userId,
+    required String bookRemoteId,
+  }) async {
     final remoteDeletedAt = _parseRemoteDeletedAt(remoteRecord);
-    if (remoteDeletedAt != null) {
+    final remoteUpdated = _parseRemoteTimestamp(remoteRecord);
+    final shouldPushLocal =
+        remoteDeletedAt != null ||
+        remoteUpdated == null ||
+        !remoteUpdated.isAfter(progress.updatedAt);
+
+    if (shouldPushLocal) {
+      final updated = await pb
+          .collection('reading_progress')
+          .update(
+            remoteRecord.id,
+            body: {
+              'book': bookRemoteId,
+              'user': userId,
+              'current_chapter': progress.currentChapter,
+              'chapter_progress': progress.chapterProgress,
+              'overall_progress': progress.overallProgress,
+              'last_position': progress.lastPosition ?? '',
+              'last_read_at': progress.lastReadAt.toUtc().toIso8601String(),
+              'deleted_at': progress.deletedAt?.toUtc().toIso8601String() ?? '',
+            },
+          );
+      final updatedAt =
+          _parseRemoteTimestamp(updated) ?? _fallbackRemoteTimestamp();
       await (db.update(
         db.readingProgresses,
       )..where((p) => p.id.equals(progress.id))).write(
         ReadingProgressesCompanion(
           remoteId: Value(remoteRecord.id),
-          deletedAt: Value(remoteDeletedAt),
-          updatedAt: Value(remoteDeletedAt),
+          deletedAt: Value(progress.deletedAt),
+          updatedAt: Value(updatedAt),
           syncPending: const Value(false),
         ),
       );
@@ -1968,17 +2137,43 @@ class SyncEngine {
 
   Future<void> _attachReadingSessionRemoteLink(
     ReadingSession session,
-    RecordModel remoteRecord,
-  ) async {
+    RecordModel remoteRecord, {
+    required String userId,
+    required String bookRemoteId,
+  }) async {
     final remoteDeletedAt = _parseRemoteDeletedAt(remoteRecord);
-    if (remoteDeletedAt != null) {
+    final remoteUpdated = _parseRemoteTimestamp(remoteRecord);
+    final shouldPushLocal =
+        remoteDeletedAt != null ||
+        remoteUpdated == null ||
+        !remoteUpdated.isAfter(session.updatedAt);
+
+    if (shouldPushLocal) {
+      final body = <String, dynamic>{
+        'book': bookRemoteId,
+        'user': userId,
+        'book_title': session.bookTitle,
+        'started_at': session.startedAt.toUtc().toIso8601String(),
+        'duration_seconds': session.durationSeconds,
+        'start_chapter': session.startChapter,
+        'end_chapter': session.endChapter,
+        'deleted_at': session.deletedAt?.toUtc().toIso8601String() ?? '',
+      };
+      if (session.endedAt != null) {
+        body['ended_at'] = session.endedAt!.toUtc().toIso8601String();
+      }
+      final updated = await pb
+          .collection('reading_sessions')
+          .update(remoteRecord.id, body: body);
+      final updatedAt =
+          _parseRemoteTimestamp(updated) ?? _fallbackRemoteTimestamp();
       await (db.update(
         db.readingSessions,
       )..where((s) => s.id.equals(session.id))).write(
         ReadingSessionsCompanion(
           remoteId: Value(remoteRecord.id),
-          deletedAt: Value(remoteDeletedAt),
-          updatedAt: Value(remoteDeletedAt),
+          deletedAt: Value(session.deletedAt),
+          updatedAt: Value(updatedAt),
           syncPending: const Value(false),
         ),
       );
@@ -1991,17 +2186,38 @@ class SyncEngine {
 
   Future<void> _attachReadingGoalRemoteLink(
     ReadingGoal goal,
-    RecordModel remoteRecord,
-  ) async {
+    RecordModel remoteRecord, {
+    required String userId,
+  }) async {
     final remoteDeletedAt = _parseRemoteDeletedAt(remoteRecord);
-    if (remoteDeletedAt != null) {
+    final remoteUpdated = _parseRemoteTimestamp(remoteRecord);
+    final shouldPushLocal =
+        remoteDeletedAt != null ||
+        remoteUpdated == null ||
+        !remoteUpdated.isAfter(goal.updatedAt);
+
+    if (shouldPushLocal) {
+      final updated = await pb
+          .collection('reading_goals')
+          .update(
+            remoteRecord.id,
+            body: {
+              'user': userId,
+              'year': goal.year,
+              'books_goal': goal.booksGoal,
+              'minutes_per_day_goal': goal.minutesPerDayGoal,
+              'deleted_at': goal.deletedAt?.toUtc().toIso8601String() ?? '',
+            },
+          );
+      final updatedAt =
+          _parseRemoteTimestamp(updated) ?? _fallbackRemoteTimestamp();
       await (db.update(
         db.readingGoals,
       )..where((g) => g.id.equals(goal.id))).write(
         ReadingGoalsCompanion(
           remoteId: Value(remoteRecord.id),
-          deletedAt: Value(remoteDeletedAt),
-          updatedAt: Value(remoteDeletedAt),
+          deletedAt: Value(goal.deletedAt),
+          updatedAt: Value(updatedAt),
           syncPending: const Value(false),
         ),
       );
@@ -2010,6 +2226,118 @@ class SyncEngine {
 
     await (db.update(db.readingGoals)..where((g) => g.id.equals(goal.id)))
         .write(ReadingGoalsCompanion(remoteId: Value(remoteRecord.id)));
+  }
+
+  Future<void> _attachBookmarkRemoteLink(
+    Bookmark bookmark,
+    RecordModel remoteRecord, {
+    required String userId,
+    required String bookRemoteId,
+  }) async {
+    final remoteDeletedAt = _parseRemoteDeletedAt(remoteRecord);
+    final remoteUpdated = _parseRemoteTimestamp(remoteRecord);
+    final shouldPushLocal =
+        remoteDeletedAt != null ||
+        remoteUpdated == null ||
+        !remoteUpdated.isAfter(bookmark.updatedAt);
+
+    if (shouldPushLocal) {
+      final updated = await pb
+          .collection('bookmarks')
+          .update(
+            remoteRecord.id,
+            body: {
+              'book': bookRemoteId,
+              'user': userId,
+              'chapter_index': bookmark.chapterIndex,
+              'cfi': bookmark.cfi ?? '',
+              'title': bookmark.title,
+              'deleted_at': bookmark.deletedAt?.toUtc().toIso8601String() ?? '',
+            },
+          );
+      final updatedAt =
+          _parseRemoteTimestamp(updated) ?? _fallbackRemoteTimestamp();
+      await (db.update(
+        db.bookmarks,
+      )..where((b) => b.id.equals(bookmark.id))).write(
+        BookmarksCompanion(
+          remoteId: Value(remoteRecord.id),
+          updatedAt: Value(updatedAt),
+          deletedAt: Value(_parseRemoteDeletedAt(updated)),
+          syncPending: const Value(false),
+        ),
+      );
+      return;
+    }
+
+    await (db.update(
+      db.bookmarks,
+    )..where((b) => b.id.equals(bookmark.id))).write(
+      BookmarksCompanion(
+        remoteId: Value(remoteRecord.id),
+        updatedAt: Value(remoteUpdated),
+        deletedAt: Value(remoteDeletedAt),
+        syncPending: const Value(false),
+      ),
+    );
+  }
+
+  Future<void> _attachHighlightRemoteLink(
+    Highlight highlight,
+    RecordModel remoteRecord, {
+    required String userId,
+    required String bookRemoteId,
+  }) async {
+    final remoteDeletedAt = _parseRemoteDeletedAt(remoteRecord);
+    final remoteUpdated = _parseRemoteTimestamp(remoteRecord);
+    final shouldPushLocal =
+        remoteDeletedAt != null ||
+        remoteUpdated == null ||
+        !remoteUpdated.isAfter(highlight.updatedAt);
+
+    if (shouldPushLocal) {
+      final updated = await pb
+          .collection('highlights')
+          .update(
+            remoteRecord.id,
+            body: {
+              'book': bookRemoteId,
+              'user': userId,
+              'chapter_index': highlight.chapterIndex,
+              'start_cfi': highlight.startCfi ?? '',
+              'end_cfi': highlight.endCfi ?? '',
+              'selected_text': highlight.selectedText,
+              'color': highlight.color,
+              'note': highlight.note ?? '',
+              'deleted_at':
+                  highlight.deletedAt?.toUtc().toIso8601String() ?? '',
+            },
+          );
+      final updatedAt =
+          _parseRemoteTimestamp(updated) ?? _fallbackRemoteTimestamp();
+      await (db.update(
+        db.highlights,
+      )..where((h) => h.id.equals(highlight.id))).write(
+        HighlightsCompanion(
+          remoteId: Value(remoteRecord.id),
+          updatedAt: Value(updatedAt),
+          deletedAt: Value(_parseRemoteDeletedAt(updated)),
+          syncPending: const Value(false),
+        ),
+      );
+      return;
+    }
+
+    await (db.update(
+      db.highlights,
+    )..where((h) => h.id.equals(highlight.id))).write(
+      HighlightsCompanion(
+        remoteId: Value(remoteRecord.id),
+        updatedAt: Value(remoteUpdated),
+        deletedAt: Value(remoteDeletedAt),
+        syncPending: const Value(false),
+      ),
+    );
   }
 
   String? _detectRemoteCursorField(RecordModel record) {

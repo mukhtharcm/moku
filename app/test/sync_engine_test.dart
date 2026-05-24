@@ -96,6 +96,46 @@ void main() {
       expect(remoteBookmarks.single.getStringValue('deleted_at'), isEmpty);
     });
 
+    test(
+      'reuses an existing remote bookmark instead of creating a duplicate',
+      () async {
+        final now = DateTime.utc(2026, 5, 24, 10);
+        await seedBook(remoteId: 'remote-book-1');
+        pb.seedRecords('bookmarks', [
+          RecordModel({
+            'id': 'bookmark-remote-1',
+            'book': 'remote-book-1',
+            'user': pb.userId,
+            'chapter_index': 2,
+            'cfi': '/6/2[ch3]',
+            'title': 'Chapter 3',
+            'deleted_at': '',
+            'updated': now.toIso8601String(),
+          }),
+        ]);
+
+        await database.insertBookmark(
+          BookmarksCompanion.insert(
+            id: 'bookmark-1',
+            bookId: 'book-1',
+            chapterIndex: 2,
+            title: 'Chapter 3',
+            createdAt: now.add(const Duration(minutes: 5)),
+            updatedAt: Value(now.add(const Duration(minutes: 5))),
+            cfi: const Value('/6/2[ch3]'),
+          ),
+        );
+
+        final result = await engine.syncAll();
+
+        expect(result.isFullSuccess, isTrue);
+        expect(pb.recordsFor('bookmarks'), hasLength(1));
+        final localBookmark = await database.getBookmarksForBook('book-1');
+        expect(localBookmark.single.remoteId, 'bookmark-remote-1');
+        expect(localBookmark.single.syncPending, isFalse);
+      },
+    );
+
     test('pushes highlight tombstones to the remote backend', () async {
       final now = DateTime.utc(2026, 5, 24, 10);
       await seedBook();
@@ -121,6 +161,187 @@ void main() {
       final remoteHighlights = pb.recordsFor('highlights');
       expect(remoteHighlights, hasLength(1));
       expect(remoteHighlights.single.getStringValue('deleted_at'), isNotEmpty);
+    });
+
+    test(
+      'revives an existing deleted remote highlight instead of creating a clone',
+      () async {
+        final now = DateTime.utc(2026, 5, 24, 10);
+        await seedBook(remoteId: 'remote-book-1');
+        pb.seedRecords('highlights', [
+          RecordModel({
+            'id': 'highlight-remote-1',
+            'book': 'remote-book-1',
+            'user': pb.userId,
+            'chapter_index': 1,
+            'start_cfi': '/6/2[start]',
+            'end_cfi': '/6/2[end]',
+            'selected_text': 'A highlighted passage',
+            'color': '#FFEB3B',
+            'note': '',
+            'deleted_at': now.toIso8601String(),
+            'updated': now.toIso8601String(),
+          }),
+        ]);
+
+        await database.insertHighlight(
+          HighlightsCompanion.insert(
+            id: 'highlight-1',
+            bookId: 'book-1',
+            chapterIndex: 1,
+            startCfi: const Value('/6/2[start]'),
+            endCfi: const Value('/6/2[end]'),
+            selectedText: 'A highlighted passage',
+            createdAt: now.add(const Duration(minutes: 5)),
+            updatedAt: now.add(const Duration(minutes: 5)),
+            color: const Value('#FFEB3B'),
+          ),
+        );
+
+        final result = await engine.syncAll();
+
+        expect(result.isFullSuccess, isTrue);
+        final remoteHighlights = pb.recordsFor('highlights');
+        expect(remoteHighlights, hasLength(1));
+        expect(remoteHighlights.single.id, 'highlight-remote-1');
+        expect(remoteHighlights.single.getStringValue('deleted_at'), isEmpty);
+
+        final localHighlights = await database.getHighlightsForBook('book-1');
+        expect(localHighlights.single.remoteId, 'highlight-remote-1');
+        expect(localHighlights.single.deletedAt, isNull);
+        expect(localHighlights.single.syncPending, isFalse);
+      },
+    );
+
+    test('book tombstones cascade to remote dependent records', () async {
+      final now = DateTime.utc(2026, 5, 24, 10);
+      await seedBook(remoteId: 'book-remote-1');
+
+      pb.seedRecords('books', [
+        RecordModel({
+          'id': 'book-remote-1',
+          'user': pb.userId,
+          'title': 'Seed Book',
+          'author': 'Author',
+          'format': 'epub',
+          'deleted_at': '',
+          'updated': now.toIso8601String(),
+        }),
+      ]);
+      pb.seedRecords('reading_progress', [
+        RecordModel({
+          'id': 'progress-remote-1',
+          'book': 'book-remote-1',
+          'user': pb.userId,
+          'deleted_at': '',
+          'updated': now.toIso8601String(),
+        }),
+      ]);
+      pb.seedRecords('bookmarks', [
+        RecordModel({
+          'id': 'bookmark-remote-1',
+          'book': 'book-remote-1',
+          'user': pb.userId,
+          'title': 'Chapter 1',
+          'chapter_index': 0,
+          'deleted_at': '',
+          'updated': now.toIso8601String(),
+        }),
+      ]);
+      pb.seedRecords('highlights', [
+        RecordModel({
+          'id': 'highlight-remote-1',
+          'book': 'book-remote-1',
+          'user': pb.userId,
+          'selected_text': 'A highlight',
+          'chapter_index': 0,
+          'deleted_at': '',
+          'updated': now.toIso8601String(),
+        }),
+      ]);
+      pb.seedRecords('collection_books', [
+        RecordModel({
+          'id': 'link-remote-1',
+          'book': 'book-remote-1',
+          'collection': 'collection-remote-1',
+          'sort_order': 0,
+          'deleted_at': '',
+          'updated': now.toIso8601String(),
+        }),
+      ]);
+
+      await database.softDeleteBook('book-1');
+      final result = await engine.syncAll();
+
+      expect(result.isFullSuccess, isTrue);
+      expect(
+        pb.recordsFor('books').single.getStringValue('deleted_at'),
+        isNotEmpty,
+      );
+      expect(
+        pb.recordsFor('reading_progress').single.getStringValue('deleted_at'),
+        isNotEmpty,
+      );
+      expect(
+        pb.recordsFor('bookmarks').single.getStringValue('deleted_at'),
+        isNotEmpty,
+      );
+      expect(
+        pb.recordsFor('highlights').single.getStringValue('deleted_at'),
+        isNotEmpty,
+      );
+      expect(
+        pb.recordsFor('collection_books').single.getStringValue('deleted_at'),
+        isNotEmpty,
+      );
+    });
+
+    test('collection tombstones cascade to remote shelf links', () async {
+      final now = DateTime.utc(2026, 5, 24, 10);
+      await database.insertCollection(
+        BookCollectionsCompanion.insert(
+          id: 'collection-1',
+          name: 'Favorites',
+          createdAt: now,
+          updatedAt: now,
+          remoteId: const Value('collection-remote-1'),
+        ),
+        syncPending: false,
+      );
+
+      pb.seedRecords('collections', [
+        RecordModel({
+          'id': 'collection-remote-1',
+          'user': pb.userId,
+          'name': 'Favorites',
+          'description': '',
+          'deleted_at': '',
+          'updated': now.toIso8601String(),
+        }),
+      ]);
+      pb.seedRecords('collection_books', [
+        RecordModel({
+          'id': 'link-remote-1',
+          'book': 'book-remote-1',
+          'collection': 'collection-remote-1',
+          'sort_order': 0,
+          'deleted_at': '',
+          'updated': now.toIso8601String(),
+        }),
+      ]);
+
+      await database.softDeleteCollection('collection-1');
+      final result = await engine.syncAll();
+
+      expect(result.isFullSuccess, isTrue);
+      expect(
+        pb.recordsFor('collections').single.getStringValue('deleted_at'),
+        isNotEmpty,
+      );
+      expect(
+        pb.recordsFor('collection_books').single.getStringValue('deleted_at'),
+        isNotEmpty,
+      );
     });
 
     test(
@@ -168,6 +389,57 @@ void main() {
         expect(progress.remoteId, 'progress-remote-1');
         expect(progress.currentChapter, 5);
         expect(progress.overallProgress, closeTo(0.9, 0.0001));
+      },
+    );
+
+    test(
+      'pushes a newer local reading progress into an existing remote record',
+      () async {
+        final remoteUpdated = DateTime.utc(2026, 5, 24, 10);
+        final localUpdated = DateTime.utc(2026, 5, 24, 11);
+        await seedBook(remoteId: 'book-remote-1');
+        await database.upsertProgress(
+          ReadingProgressesCompanion(
+            id: const Value('progress-local'),
+            bookId: const Value('book-1'),
+            currentChapter: const Value(7),
+            chapterProgress: const Value(0.8),
+            overallProgress: const Value(0.8),
+            lastPosition: const Value('cfi(/6/10)'),
+            lastReadAt: Value(localUpdated),
+            updatedAt: Value(localUpdated),
+          ),
+        );
+
+        pb.seedRecords('reading_progress', [
+          RecordModel({
+            'id': 'progress-remote-1',
+            'book': 'book-remote-1',
+            'user': pb.userId,
+            'current_chapter': 2,
+            'chapter_progress': 0.1,
+            'overall_progress': 0.1,
+            'last_position': 'cfi(/6/2)',
+            'last_read_at': remoteUpdated.toIso8601String(),
+            'deleted_at': '',
+            'updated': remoteUpdated.toIso8601String(),
+          }),
+        ]);
+
+        final result = await engine.syncAll();
+
+        expect(result.isFullSuccess, isTrue);
+        final progress =
+            (await database.select(database.readingProgresses).get()).single;
+        expect(progress.remoteId, 'progress-remote-1');
+        expect(progress.currentChapter, 7);
+        expect(progress.overallProgress, closeTo(0.8, 0.0001));
+        expect(progress.syncPending, isFalse);
+
+        final remote = pb.recordsFor('reading_progress').single;
+        expect(remote.id, 'progress-remote-1');
+        expect(remote.getIntValue('current_chapter'), 7);
+        expect(remote.getDoubleValue('overall_progress'), closeTo(0.8, 0.0001));
       },
     );
 
@@ -223,6 +495,133 @@ void main() {
     );
 
     test(
+      'pushes a newer local reading session into an existing remote record',
+      () async {
+        final startedAt = DateTime.utc(2026, 5, 24, 10);
+        final remoteUpdated = DateTime.utc(2026, 5, 24, 10, 15);
+        final localUpdated = DateTime.utc(2026, 5, 24, 11);
+        await seedBook(remoteId: 'book-remote-1');
+        await database.insertSession(
+          ReadingSessionsCompanion.insert(
+            id: 'session-local',
+            bookId: 'book-1',
+            bookTitle: 'Seed Book',
+            startedAt: startedAt,
+            endedAt: Value(startedAt.add(const Duration(minutes: 20))),
+            durationSeconds: const Value(1200),
+            startChapter: const Value(3),
+            endChapter: const Value(5),
+            updatedAt: Value(localUpdated),
+          ),
+        );
+
+        pb.seedRecords('reading_sessions', [
+          RecordModel({
+            'id': 'session-remote-1',
+            'book': 'book-remote-1',
+            'user': pb.userId,
+            'book_title': 'Seed Book',
+            'started_at': startedAt.toIso8601String(),
+            'ended_at': startedAt
+                .add(const Duration(minutes: 10))
+                .toIso8601String(),
+            'duration_seconds': 600,
+            'start_chapter': 1,
+            'end_chapter': 2,
+            'deleted_at': '',
+            'updated': remoteUpdated.toIso8601String(),
+          }),
+        ]);
+
+        final result = await engine.syncAll();
+
+        expect(result.isFullSuccess, isTrue);
+        final session = (await database.getAllSessions(
+          includeDeleted: true,
+        )).single;
+        expect(session.remoteId, 'session-remote-1');
+        expect(session.durationSeconds, 1200);
+        expect(session.startChapter, 3);
+        expect(session.endChapter, 5);
+        expect(session.syncPending, isFalse);
+
+        final remote = pb.recordsFor('reading_sessions').single;
+        expect(remote.id, 'session-remote-1');
+        expect(remote.getIntValue('duration_seconds'), 1200);
+        expect(remote.getIntValue('start_chapter'), 3);
+        expect(remote.getIntValue('end_chapter'), 5);
+      },
+    );
+
+    test(
+      'does not merge distinct reading sessions that start close together',
+      () async {
+        final firstStart = DateTime.utc(2026, 5, 24, 10, 0, 0);
+        final secondStart = firstStart.add(const Duration(seconds: 45));
+        await seedBook(remoteId: 'book-remote-1');
+
+        await database.insertSession(
+          ReadingSessionsCompanion.insert(
+            id: 'session-local-1',
+            bookId: 'book-1',
+            bookTitle: 'Seed Book',
+            startedAt: firstStart,
+            endedAt: Value(firstStart.add(const Duration(minutes: 5))),
+            durationSeconds: const Value(300),
+            startChapter: const Value(1),
+            endChapter: const Value(1),
+            updatedAt: Value(firstStart),
+            remoteId: const Value('session-remote-1'),
+          ),
+          syncPending: false,
+        );
+
+        pb.seedRecords('reading_sessions', [
+          RecordModel({
+            'id': 'session-remote-1',
+            'book': 'book-remote-1',
+            'user': pb.userId,
+            'book_title': 'Seed Book',
+            'started_at': firstStart.toIso8601String(),
+            'ended_at': firstStart
+                .add(const Duration(minutes: 5))
+                .toIso8601String(),
+            'duration_seconds': 300,
+            'start_chapter': 1,
+            'end_chapter': 1,
+            'deleted_at': '',
+            'updated': firstStart.toIso8601String(),
+          }),
+          RecordModel({
+            'id': 'session-remote-2',
+            'book': 'book-remote-1',
+            'user': pb.userId,
+            'book_title': 'Seed Book',
+            'started_at': secondStart.toIso8601String(),
+            'ended_at': secondStart
+                .add(const Duration(minutes: 12))
+                .toIso8601String(),
+            'duration_seconds': 720,
+            'start_chapter': 2,
+            'end_chapter': 3,
+            'deleted_at': '',
+            'updated': secondStart.toIso8601String(),
+          }),
+        ]);
+
+        final result = await engine.syncAll();
+
+        expect(result.isFullSuccess, isTrue);
+        final sessions = await database.getAllSessions(includeDeleted: true);
+        expect(sessions, hasLength(2));
+        expect(
+          sessions.where((s) => s.remoteId == 'session-remote-2'),
+          hasLength(1),
+        );
+      },
+    );
+
+    test(
       'attaches a remote reading goal to the existing local year entry instead of duplicating it',
       () async {
         final localUpdated = DateTime.utc(2026, 5, 24, 10);
@@ -259,6 +658,54 @@ void main() {
         expect(goal.remoteId, 'goal-remote-1');
         expect(goal.booksGoal, 24);
         expect(goal.minutesPerDayGoal, 45);
+      },
+    );
+
+    test(
+      'revives a deleted remote reading goal when the user recreates it locally',
+      () async {
+        final deletedAt = DateTime.utc(2026, 5, 24, 10);
+        final recreatedAt = DateTime.utc(2026, 5, 24, 11);
+        pb.seedRecords('reading_goals', [
+          RecordModel({
+            'id': 'goal-remote-1',
+            'user': pb.userId,
+            'year': 2026,
+            'books_goal': 12,
+            'minutes_per_day_goal': 30,
+            'deleted_at': deletedAt.toIso8601String(),
+            'updated': deletedAt.toIso8601String(),
+          }),
+        ]);
+
+        await database.upsertGoal(
+          ReadingGoalsCompanion.insert(
+            id: 'goal-local',
+            year: 2026,
+            booksGoal: const Value(24),
+            minutesPerDayGoal: const Value(45),
+            updatedAt: Value(recreatedAt),
+          ),
+        );
+
+        final result = await engine.syncAll();
+
+        expect(result.isFullSuccess, isTrue);
+        final goals = await database.getAllGoals(includeDeleted: true);
+        expect(goals, hasLength(1));
+        final goal = goals.single;
+        expect(goal.id, 'goal-local');
+        expect(goal.remoteId, 'goal-remote-1');
+        expect(goal.deletedAt, isNull);
+        expect(goal.booksGoal, 24);
+        expect(goal.minutesPerDayGoal, 45);
+        expect(goal.syncPending, isFalse);
+
+        final remoteGoal = pb.recordsFor('reading_goals').single;
+        expect(remoteGoal.id, 'goal-remote-1');
+        expect(remoteGoal.getStringValue('deleted_at'), isEmpty);
+        expect(remoteGoal.getIntValue('books_goal'), 24);
+        expect(remoteGoal.getIntValue('minutes_per_day_goal'), 45);
       },
     );
   });
