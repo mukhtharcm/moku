@@ -225,83 +225,87 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _showCatalogManager(BuildContext context) async {
     final l10n = context.l10n;
+    final searchCubit = context.read<SearchCubit>();
 
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (ctx) {
         final theme = Theme.of(ctx);
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-            child: BlocBuilder<SearchCubit, SearchState>(
-              builder: (context, state) {
-                final customCatalogs = state.catalogs
-                    .where((item) => item.isCustom)
-                    .toList();
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.searchCatalogsTitle,
-                      style: theme.textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.searchCatalogsBody,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 16),
-                    ...state.catalogs.map(
-                      (catalog) => ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(
-                          catalog.isCustom
-                              ? Icons.link
-                              : Icons.auto_awesome_outlined,
-                        ),
-                        title: Text(catalogTitleLabel(context, catalog)),
-                        subtitle: Text(catalog.url),
-                        trailing: catalog.isCustom
-                            ? IconButton(
-                                tooltip: l10n.searchRemoveCatalog,
-                                onPressed: () async {
-                                  await context
-                                      .read<SearchCubit>()
-                                      .removeCustomCatalog(catalog.id);
-                                  if (!ctx.mounted) return;
-                                  Navigator.pop(ctx);
-                                  _showCatalogManager(context);
-                                },
-                                icon: const Icon(Icons.delete_outline),
-                              )
-                            : const SizedBox.shrink(),
+        return BlocProvider.value(
+          value: searchCubit,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+              child: BlocBuilder<SearchCubit, SearchState>(
+                builder: (context, state) {
+                  final customCatalogs = state.catalogs
+                      .where((item) => item.isCustom)
+                      .toList();
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.searchCatalogsTitle,
+                        style: theme.textTheme.titleLarge,
                       ),
-                    ),
-                    if (customCatalogs.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          l10n.searchNoCustomCatalogs,
-                          style: theme.textTheme.bodySmall,
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.searchCatalogsBody,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 16),
+                      ...state.catalogs.map(
+                        (catalog) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            catalog.isCustom
+                                ? Icons.link
+                                : Icons.auto_awesome_outlined,
+                          ),
+                          title: Text(catalogTitleLabel(context, catalog)),
+                          subtitle: Text(catalog.url),
+                          trailing: catalog.isCustom
+                              ? IconButton(
+                                  tooltip: l10n.searchRemoveCatalog,
+                                  onPressed: () async {
+                                    await context
+                                        .read<SearchCubit>()
+                                        .removeCustomCatalog(catalog.id);
+                                    if (!ctx.mounted) return;
+                                    Navigator.pop(ctx);
+                                    _showCatalogManager(context);
+                                  },
+                                  icon: const Icon(Icons.delete_outline),
+                                )
+                              : const SizedBox.shrink(),
                         ),
                       ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () async {
-                          Navigator.pop(ctx);
-                          await _showAddCatalogDialog(context);
-                        },
-                        icon: const Icon(Icons.add),
-                        label: Text(l10n.searchAddCustomCatalog),
+                      if (customCatalogs.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            l10n.searchNoCustomCatalogs,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            await _showAddCatalogDialog(context);
+                          },
+                          icon: const Icon(Icons.add),
+                          label: Text(l10n.searchAddCustomCatalog),
+                        ),
                       ),
-                    ),
-                  ],
-                );
-              },
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         );
@@ -310,71 +314,132 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _showAddCatalogDialog(BuildContext context) async {
-    final titleController = TextEditingController();
-    final urlController = TextEditingController();
-    final urlFocusNode = FocusNode();
-    final l10n = context.l10n;
-    final messenger = ScaffoldMessenger.of(context);
+    final searchCubit = context.read<SearchCubit>();
 
     await showDialog<void>(
       context: context,
-      builder: (ctx) {
-        Future<void> submit() async {
-          try {
-            await context.read<SearchCubit>().addCustomCatalog(
-              title: titleController.text,
-              url: urlController.text,
-            );
-            if (!context.mounted || !ctx.mounted) return;
-            Navigator.pop(ctx);
-          } catch (error) {
-            if (!context.mounted || !ctx.mounted) return;
-            messenger.showSnackBar(
-              SnackBar(content: Text(catalogErrorMessage(context, error))),
-            );
-          }
-        }
-
-        return AlertDialog(
-          title: Text(l10n.searchAddCustomCatalogTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(
-                  labelText: l10n.searchCatalogNameLabel,
-                ),
-                textInputAction: TextInputAction.next,
-                onSubmitted: (_) => urlFocusNode.requestFocus(),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: urlController,
-                focusNode: urlFocusNode,
-                decoration: InputDecoration(
-                  labelText: l10n.searchCatalogUrlLabel,
-                ),
-                keyboardType: TextInputType.url,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => submit(),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(l10n.commonCancel),
-            ),
-            FilledButton(onPressed: submit, child: Text(l10n.commonAdd)),
-          ],
-        );
-      },
+      builder: (_) => BlocProvider.value(
+        value: searchCubit,
+        child: const _AddCatalogDialog(),
+      ),
     );
+  }
+}
 
-    titleController.dispose();
-    urlController.dispose();
-    urlFocusNode.dispose();
+class _AddCatalogDialog extends StatefulWidget {
+  const _AddCatalogDialog();
+
+  @override
+  State<_AddCatalogDialog> createState() => _AddCatalogDialogState();
+}
+
+class _AddCatalogDialogState extends State<_AddCatalogDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _urlController;
+  late final FocusNode _urlFocusNode;
+
+  bool _isSubmitting = false;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController();
+    _urlController = TextEditingController();
+    _urlFocusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _urlController.dispose();
+    _urlFocusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_isSubmitting) return;
+
+    setState(() {
+      _isSubmitting = true;
+      _errorText = null;
+    });
+
+    try {
+      await context.read<SearchCubit>().addCustomCatalog(
+        title: _titleController.text,
+        url: _urlController.text,
+      );
+      if (!mounted) return;
+      FocusScope.of(context).unfocus();
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _errorText = catalogErrorMessage(context, error);
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    return AlertDialog(
+      title: Text(l10n.searchAddCustomCatalogTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _titleController,
+            enabled: !_isSubmitting,
+            decoration: InputDecoration(labelText: l10n.searchCatalogNameLabel),
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _urlFocusNode.requestFocus(),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _urlController,
+            focusNode: _urlFocusNode,
+            enabled: !_isSubmitting,
+            decoration: InputDecoration(
+              labelText: l10n.searchCatalogUrlLabel,
+              errorText: _errorText,
+            ),
+            keyboardType: TextInputType.url,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _submit(),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSubmitting
+              ? null
+              : () {
+                  FocusScope.of(context).unfocus();
+                  Navigator.pop(context);
+                },
+          child: Text(l10n.commonCancel),
+        ),
+        FilledButton(
+          onPressed: _isSubmitting ? null : _submit,
+          child: _isSubmitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(l10n.commonAdd),
+        ),
+      ],
+    );
   }
 }
 

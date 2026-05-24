@@ -116,6 +116,128 @@ void main() {
     expect(find.text('No downloadable books found'), findsOneWidget);
   });
 
+  testWidgets('add catalog dialog shows inline error text when adding fails', (
+    tester,
+  ) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    final catalogService = _FakeOpdsCatalogService(
+      catalogs: const [
+        CatalogSource(
+          id: 'open-library',
+          title: '',
+          url: 'https://openlibrary.org/opds/',
+          kind: CatalogKind.openLibrary,
+          protocol: CatalogProtocol.opds2,
+        ),
+      ],
+      onSearch: (_, _) async => const [],
+      onAddCustomCatalog: ({required title, required url}) async {
+        throw const CatalogException(CatalogErrorCode.catalogAccessDenied);
+      },
+    );
+    final cubit = SearchCubit(
+      catalogService: catalogService,
+      bookService: BookService(),
+      database: database,
+      searchDebounce: Duration.zero,
+    )..loadCatalogs();
+
+    addTearDown(() async {
+      await cubit.close();
+      await database.close();
+    });
+
+    await tester.pumpWidget(_buildTestApp(cubit));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Manage catalogs'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add Custom Catalog'));
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'Blocked Feed');
+    await tester.enterText(
+      fields.at(1),
+      'https://catalog.feedbooks.com/catalog/index.json',
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('This catalog denied access from the app.'),
+      findsOneWidget,
+    );
+    expect(find.text('Add Custom Catalog'), findsOneWidget);
+  });
+
+  testWidgets('add catalog dialog closes after a successful add', (
+    tester,
+  ) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    final catalogService = _FakeOpdsCatalogService(
+      catalogs: const [
+        CatalogSource(
+          id: 'open-library',
+          title: '',
+          url: 'https://openlibrary.org/opds/',
+          kind: CatalogKind.openLibrary,
+          protocol: CatalogProtocol.opds2,
+        ),
+      ],
+      onSearch: (_, _) async => const [],
+      onAddCustomCatalog: ({required title, required url}) async {
+        return CatalogSource(
+          id: 'custom-mobile-gutenberg',
+          title: title,
+          url: url,
+          kind: CatalogKind.custom,
+          protocol: CatalogProtocol.opds1,
+          searchTemplate:
+              'https://m.gutenberg.org/ebooks/search.opds/?query={searchTerms}',
+        );
+      },
+    );
+    final cubit = SearchCubit(
+      catalogService: catalogService,
+      bookService: BookService(),
+      database: database,
+      searchDebounce: Duration.zero,
+    )..loadCatalogs();
+
+    addTearDown(() async {
+      await cubit.close();
+      await database.close();
+    });
+
+    await tester.pumpWidget(_buildTestApp(cubit));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Manage catalogs'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add Custom Catalog'));
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'Mobile Gutenberg');
+    await tester.enterText(
+      fields.at(1),
+      'https://m.gutenberg.org/ebooks/search.opds/',
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text('Catalog URL'), findsNothing);
+    expect(cubit.state.selectedCatalogId, 'custom-mobile-gutenberg');
+    expect(
+      cubit.state.catalogs.any(
+        (catalog) => catalog.id == 'custom-mobile-gutenberg',
+      ),
+      isTrue,
+    );
+  });
+
   test('downloaded ids are tracked after a successful import', () async {
     final database = AppDatabase(NativeDatabase.memory());
     final tempFile = File(
@@ -185,23 +307,43 @@ Widget _buildTestApp(SearchCubit cubit) {
 }
 
 class _FakeOpdsCatalogService extends OpdsCatalogService {
-  final List<CatalogSource> catalogs;
+  final List<CatalogSource> _catalogs;
   final Future<List<CatalogBook>> Function(CatalogSource catalog, String query)
   onSearch;
   final Future<String> Function(CatalogAcquisition acquisition)? onDownload;
+  final Future<CatalogSource> Function({
+    required String title,
+    required String url,
+  })?
+  onAddCustomCatalog;
 
   _FakeOpdsCatalogService({
-    required this.catalogs,
+    required List<CatalogSource> catalogs,
     required this.onSearch,
     this.onDownload,
-  });
+    this.onAddCustomCatalog,
+  }) : _catalogs = List<CatalogSource>.from(catalogs);
 
   @override
-  Future<List<CatalogSource>> loadCatalogs() async => catalogs;
+  Future<List<CatalogSource>> loadCatalogs() async =>
+      List<CatalogSource>.unmodifiable(_catalogs);
 
   @override
   Future<List<CatalogBook>> searchBooks(CatalogSource catalog, String query) =>
       onSearch(catalog, query);
+
+  @override
+  Future<CatalogSource> addCustomCatalog({
+    required String title,
+    required String url,
+  }) async {
+    if (onAddCustomCatalog == null) {
+      throw UnimplementedError('addCustomCatalog was not configured');
+    }
+    final catalog = await onAddCustomCatalog!(title: title, url: url);
+    _catalogs.add(catalog);
+    return catalog;
+  }
 
   @override
   Future<String> downloadAcquisition(
