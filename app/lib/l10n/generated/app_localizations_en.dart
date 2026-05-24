@@ -278,6 +278,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not find a usable search template for this catalog.';
 
   @override
+  String get searchBrowseEmpty => 'Nothing to browse here yet.';
+
+  @override
   String get searchEmptyResults => 'No downloadable books found';
 
   @override

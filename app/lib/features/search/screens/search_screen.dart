@@ -33,193 +33,231 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          l10n.searchTitle,
-          style: GoogleFonts.literata(
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
+    return BlocListener<SearchCubit, SearchState>(
+      listenWhen: (previous, current) => previous.query != current.query,
+      listener: (context, state) {
+        if (_searchController.text != state.query) {
+          _searchController.value = TextEditingValue(
+            text: state.query,
+            selection: TextSelection.collapsed(offset: state.query.length),
+          );
+        }
+      },
+      child: BlocBuilder<SearchCubit, SearchState>(
+        builder: (context, state) {
+          return Scaffold(
+            appBar: AppBar(
+              automaticallyImplyLeading: false,
+              leading: state.isAtCatalogList
+                  ? null
+                  : IconButton(
+                      tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                      onPressed: () => context.read<SearchCubit>().back(),
+                      icon: const Icon(Icons.arrow_back),
+                    ),
+              title: Text(
+                _appBarTitle(context, state),
+                style: GoogleFonts.literata(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              actions: [
+                IconButton(
+                  tooltip: l10n.searchManageCatalogs,
+                  onPressed: () => _showCatalogManager(context),
+                  icon: const Icon(Icons.library_add_outlined),
+                ),
+              ],
+            ),
+            body: _buildBody(context, state),
+          );
+        },
+      ),
+    );
+  }
+
+  String _appBarTitle(BuildContext context, SearchState state) {
+    final pageTitle = state.currentBrowsePage?.title.trim();
+    if (pageTitle != null && pageTitle.isNotEmpty) return pageTitle;
+    final catalog = state.selectedCatalog;
+    if (catalog != null) return catalogTitleLabel(context, catalog);
+    return context.l10n.searchTitle;
+  }
+
+  Widget _buildBody(BuildContext context, SearchState state) {
+    if (state.catalogs.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state.isAtCatalogList) {
+      return _CatalogListView(
+        catalogs: state.catalogs,
+        onOpenCatalog: (catalog) => context.read<SearchCubit>().openCatalog(catalog.id),
+      );
+    }
+
+    final catalog = state.selectedCatalog;
+    if (catalog == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        if (catalog.supportsSearch)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: TextField(
+              controller: _searchController,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: context.l10n.searchHint(
+                  catalogTitle: catalogTitleLabel(context, catalog),
+                ),
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: state.query.isNotEmpty
+                    ? IconButton(
+                        tooltip: context.l10n.commonClear,
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          context.read<SearchCubit>().search('');
+                        },
+                      )
+                    : null,
+              ),
+              onChanged: (query) => context.read<SearchCubit>().search(query),
+              onSubmitted: (query) =>
+                  context.read<SearchCubit>().submitSearch(query),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.folder_outlined,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    context.l10n.searchErrorCatalogNotSearchable,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
           ),
+        Expanded(
+          child: state.isShowingSearchResults
+              ? _buildSearchResults(context, state)
+              : _buildBrowsePage(context, state),
         ),
-        actions: [
-          IconButton(
-            tooltip: l10n.searchManageCatalogs,
-            onPressed: () => _showCatalogManager(context),
-            icon: const Icon(Icons.library_add_outlined),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: BlocBuilder<SearchCubit, SearchState>(
-              buildWhen: (previous, current) =>
-                  previous.catalogs != current.catalogs ||
-                  previous.selectedCatalogId != current.selectedCatalogId,
-              builder: (context, state) {
-                final selected = state.selectedCatalog;
-                return DropdownButtonFormField<String>(
-                  initialValue: selected?.id,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: l10n.searchCatalogLabel,
-                    prefixIcon: const Icon(Icons.public),
-                  ),
-                  selectedItemBuilder: (context) => state.catalogs
-                      .map(
-                        (catalog) => Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            catalogTitleLabel(context, catalog),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  items: state.catalogs
-                      .map(
-                        (catalog) => DropdownMenuItem(
-                          value: catalog.id,
-                          child: CatalogDropdownItem(catalog: catalog),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      context.read<SearchCubit>().selectCatalog(value);
-                    }
-                  },
-                );
-              },
+      ],
+    );
+  }
+
+  Widget _buildBrowsePage(BuildContext context, SearchState state) {
+    if (state.status == SearchStatus.loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state.status == SearchStatus.error) {
+      return _SearchStatusMessage(
+        icon: Icons.error_outline_rounded,
+        message: catalogErrorCodeMessage(context, state.errorCode),
+      );
+    }
+
+    final page = state.currentBrowsePage;
+    if (page == null || page.isEmpty) {
+      return _SearchStatusMessage(
+        icon: Icons.folder_off_outlined,
+        message: context.l10n.searchBrowseEmpty,
+      );
+    }
+
+    final children = <Widget>[
+      for (final entry in page.navigationEntries)
+        _CatalogNavigationTile(
+          entry: entry,
+          onTap: () => context.read<SearchCubit>().openBrowseEntry(entry),
+        ),
+      for (final book in page.books)
+        _buildResultCard(context, state, book),
+    ];
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      children: children,
+    );
+  }
+
+  Widget _buildSearchResults(BuildContext context, SearchState state) {
+    if (state.status == SearchStatus.loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state.status == SearchStatus.error && state.results.isEmpty) {
+      return _SearchStatusMessage(
+        icon: Icons.error_outline_rounded,
+        message: catalogErrorCodeMessage(context, state.errorCode),
+      );
+    }
+
+    if (state.results.isEmpty) {
+      return _SearchStatusMessage(
+        icon: Icons.search_off_rounded,
+        message: context.l10n.searchEmptyResults,
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        for (final book in state.results) _buildResultCard(context, state, book),
+      ],
+    );
+  }
+
+  Widget _buildResultCard(
+    BuildContext context,
+    SearchState state,
+    CatalogBook book,
+  ) {
+    final isDownloading = state.downloadingBookIds.contains(book.id);
+    final isDownloaded = state.downloadedBookIds.contains(book.id);
+    return _SearchResultCard(
+      book: book,
+      isDownloading: isDownloading,
+      isDownloaded: isDownloaded,
+      onDownload: () async {
+        final cubit = context.read<SearchCubit>();
+        final messenger = ScaffoldMessenger.of(context);
+        final bookTitle = bookTitleLabel(context, book.title);
+        try {
+          await cubit.downloadBook(book);
+          if (!context.mounted) return;
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                context.l10n.searchBookAdded(
+                  title: bidiWrappedText(context, bookTitle),
+                ),
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: BlocBuilder<SearchCubit, SearchState>(
-              buildWhen: (previous, current) =>
-                  previous.selectedCatalogId != current.selectedCatalogId ||
-                  previous.query != current.query,
-              builder: (context, state) {
-                final hasQuery = state.query.isNotEmpty;
-                final hintCatalog = state.selectedCatalog == null
-                    ? l10n.searchGenericCatalogName
-                    : catalogTitleLabel(context, state.selectedCatalog!);
-                return TextField(
-                  controller: _searchController,
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    hintText: l10n.searchHint(catalogTitle: hintCatalog),
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: hasQuery
-                        ? IconButton(
-                            tooltip: l10n.commonClear,
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              context.read<SearchCubit>().clear();
-                            },
-                          )
-                        : null,
-                  ),
-                  onChanged: (query) =>
-                      context.read<SearchCubit>().search(query),
-                  onSubmitted: (query) =>
-                      context.read<SearchCubit>().submitSearch(query),
-                );
-              },
-            ),
-          ),
-          Expanded(
-            child: BlocBuilder<SearchCubit, SearchState>(
-              builder: (context, state) {
-                if (state.catalogs.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (state.query.trim().isEmpty) {
-                  return _EmptyPrompt(
-                    catalogTitle: state.selectedCatalog == null
-                        ? l10n.searchPromptGenericCatalogName
-                        : catalogTitleLabel(context, state.selectedCatalog!),
-                  );
-                }
-
-                if (state.status == SearchStatus.loading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (state.status == SearchStatus.error &&
-                    state.results.isEmpty) {
-                  final errorText = state.selectedCatalog == null
-                      ? l10n.searchNoCatalogSelected
-                      : catalogErrorCodeMessage(context, state.errorCode);
-
-                  return _SearchStatusMessage(
-                    icon: Icons.error_outline_rounded,
-                    message: errorText,
-                  );
-                }
-
-                if (state.results.isEmpty) {
-                  return _SearchStatusMessage(
-                    icon: Icons.search_off_rounded,
-                    message: l10n.searchEmptyResults,
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: state.results.length,
-                  itemBuilder: (context, index) {
-                    final book = state.results[index];
-                    final isDownloading = state.downloadingBookIds.contains(
-                      book.id,
-                    );
-                    final isDownloaded = state.downloadedBookIds.contains(
-                      book.id,
-                    );
-                    return _SearchResultCard(
-                      book: book,
-                      isDownloading: isDownloading,
-                      isDownloaded: isDownloaded,
-                      onDownload: () async {
-                        final cubit = context.read<SearchCubit>();
-                        final messenger = ScaffoldMessenger.of(context);
-                        final bookTitle = bookTitleLabel(context, book.title);
-                        try {
-                          await cubit.downloadBook(book);
-                          if (!context.mounted) return;
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                l10n.searchBookAdded(
-                                  title: bidiWrappedText(context, bookTitle),
-                                ),
-                              ),
-                            ),
-                          );
-                        } catch (error) {
-                          if (!context.mounted) return;
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                catalogErrorMessage(context, error),
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+          );
+        } catch (error) {
+          if (!context.mounted) return;
+          messenger.showSnackBar(
+            SnackBar(content: Text(catalogErrorMessage(context, error))),
+          );
+        }
+      },
     );
   }
 
@@ -443,91 +481,6 @@ class _AddCatalogDialogState extends State<_AddCatalogDialog> {
   }
 }
 
-class CatalogDropdownItem extends StatelessWidget {
-  final CatalogSource catalog;
-
-  const CatalogDropdownItem({super.key, required this.catalog});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          catalogTitleLabel(context, catalog),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        if (catalog.isCustom)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              context.l10n.searchCatalogTypeCustom,
-              style: Theme.of(
-                context,
-              ).textTheme.labelSmall?.copyWith(color: colorScheme.primary),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _EmptyPrompt extends StatelessWidget {
-  final String catalogTitle;
-
-  const _EmptyPrompt({required this.catalogTitle});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final l10n = context.l10n;
-    final title = l10n.searchInitialPromptTitle(catalogTitle: catalogTitle);
-    final body = l10n.searchInitialPromptBody;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Semantics(
-          container: true,
-          liveRegion: true,
-          child: MergeSemantics(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ExcludeSemantics(
-                  child: Icon(
-                    Icons.download_for_offline_outlined,
-                    size: 64,
-                    color: colorScheme.primary.withValues(alpha: 0.5),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  body,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _SearchStatusMessage extends StatelessWidget {
   final IconData icon;
   final String message;
@@ -563,6 +516,62 @@ class _SearchStatusMessage extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CatalogListView extends StatelessWidget {
+  final List<CatalogSource> catalogs;
+  final ValueChanged<CatalogSource> onOpenCatalog;
+
+  const _CatalogListView({
+    required this.catalogs,
+    required this.onOpenCatalog,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      children: [
+        for (final catalog in catalogs)
+          Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: ListTile(
+              onTap: () => onOpenCatalog(catalog),
+              leading: Icon(
+                catalog.isCustom ? Icons.link : Icons.auto_awesome_outlined,
+              ),
+              title: Text(catalogTitleLabel(context, catalog)),
+              subtitle: catalog.isCustom ? Text(catalog.url) : null,
+              trailing: const Icon(Icons.chevron_right),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _CatalogNavigationTile extends StatelessWidget {
+  final CatalogNavigationEntry entry;
+  final VoidCallback onTap;
+
+  const _CatalogNavigationTile({
+    required this.entry,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        onTap: onTap,
+        leading: const Icon(Icons.folder_outlined),
+        title: Text(entry.title),
+        subtitle: entry.subtitle == null ? null : Text(entry.subtitle!),
+        trailing: const Icon(Icons.chevron_right),
       ),
     );
   }

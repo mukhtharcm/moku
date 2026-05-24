@@ -104,6 +104,7 @@
   "searchErrorCatalogMissingSearchLink": "This catalog does not expose a usable search link.",
   "searchErrorCatalogSearchDescriptionFailed": "Could not load the catalog search description.",
   "searchErrorCatalogSearchTemplateMissing": "Could not find a usable search template for this catalog.",
+  "searchBrowseEmpty": "Nothing to browse here yet.",
   "searchEmptyResults": "No downloadable books found",
   "searchNoCatalogSelected": "Choose a catalog to start searching",
   "searchBookAdded": "{title} added to your library",

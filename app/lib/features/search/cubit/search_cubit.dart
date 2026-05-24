@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/database/database.dart' as db;
 import '../../../core/services/book_service.dart';
@@ -34,24 +34,164 @@ class SearchCubit extends Cubit<SearchState> {
 
   Future<void> loadCatalogs() async {
     final catalogs = await _catalogService.loadCatalogs();
+    final selectedCatalogId = state.selectedCatalogId;
+    final hasSelected = catalogs.any((catalog) => catalog.id == selectedCatalogId);
     emit(
       state.copyWith(
         catalogs: catalogs,
-        selectedCatalogId: state.selectedCatalogId ?? catalogs.firstOrNull?.id,
+        clearSelectedCatalog: selectedCatalogId != null && !hasSelected,
+        browseStack: selectedCatalogId != null && !hasSelected
+            ? const []
+            : state.browseStack,
+        results: selectedCatalogId != null && !hasSelected ? const [] : state.results,
+        query: selectedCatalogId != null && !hasSelected ? '' : state.query,
+        status: selectedCatalogId != null && !hasSelected
+            ? SearchStatus.initial
+            : state.status,
+        clearError: true,
+      ),
+    );
+  }
+
+  Future<void> openCatalog(String catalogId) async {
+    final catalog = state.catalogs.firstWhereOrNull((item) => item.id == catalogId);
+    if (catalog == null) return;
+
+    _debounce?.cancel();
+    _searchRevision++;
+    emit(
+      state.copyWith(
+        selectedCatalogId: catalogId,
+        browseStack: const [],
+        results: const [],
+        query: '',
+        status: SearchStatus.loading,
+        clearError: true,
+      ),
+    );
+
+    try {
+      final page = await _catalogService.loadCatalogPage(catalog);
+      emit(
+        state.copyWith(
+          selectedCatalogId: catalogId,
+          browseStack: [page],
+          results: const [],
+          query: '',
+          status: SearchStatus.loaded,
+          clearError: true,
+        ),
+      );
+    } on CatalogException catch (error) {
+      emit(
+        state.copyWith(
+          selectedCatalogId: catalogId,
+          browseStack: const [],
+          results: const [],
+          query: '',
+          status: SearchStatus.error,
+          errorCode: error.code,
+        ),
+      );
+    } catch (_) {
+      emit(
+        state.copyWith(
+          selectedCatalogId: catalogId,
+          browseStack: const [],
+          results: const [],
+          query: '',
+          status: SearchStatus.error,
+          clearError: true,
+        ),
+      );
+    }
+  }
+
+  Future<void> openBrowseEntry(CatalogNavigationEntry entry) async {
+    final catalog = state.selectedCatalog;
+    if (catalog == null) return;
+
+    _debounce?.cancel();
+    _searchRevision++;
+    emit(
+      state.copyWith(
+        query: '',
+        results: const [],
+        status: SearchStatus.loading,
+        clearError: true,
+      ),
+    );
+
+    try {
+      final page = await _catalogService.loadCatalogPage(catalog, pageUri: entry.uri);
+      emit(
+        state.copyWith(
+          browseStack: [...state.browseStack, page],
+          query: '',
+          results: const [],
+          status: SearchStatus.loaded,
+          clearError: true,
+        ),
+      );
+    } on CatalogException catch (error) {
+      emit(state.copyWith(status: SearchStatus.error, errorCode: error.code));
+    } catch (_) {
+      emit(state.copyWith(status: SearchStatus.error, clearError: true));
+    }
+  }
+
+  void back() {
+    _debounce?.cancel();
+    _searchRevision++;
+
+    if (state.query.trim().isNotEmpty) {
+      emit(
+        state.copyWith(
+          query: '',
+          results: const [],
+          status: SearchStatus.loaded,
+          clearError: true,
+        ),
+      );
+      return;
+    }
+
+    if (state.browseStack.length > 1) {
+      emit(
+        state.copyWith(
+          browseStack: state.browseStack.sublist(0, state.browseStack.length - 1),
+          status: SearchStatus.loaded,
+          clearError: true,
+        ),
+      );
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        clearSelectedCatalog: true,
+        browseStack: const [],
+        results: const [],
+        query: '',
+        status: SearchStatus.initial,
         clearError: true,
       ),
     );
   }
 
   void search(String query) {
+    final catalog = state.selectedCatalog;
+    if (catalog == null || !catalog.supportsSearch) return;
+
     _debounce?.cancel();
+    final normalized = query.trim();
     final revision = ++_searchRevision;
     emit(state.copyWith(query: query, clearError: true));
 
-    if (query.trim().isEmpty) {
+    if (normalized.isEmpty) {
       emit(
         state.copyWith(
-          status: SearchStatus.initial,
+          status: SearchStatus.loaded,
           results: const [],
           clearError: true,
         ),
@@ -60,11 +200,14 @@ class SearchCubit extends Cubit<SearchState> {
     }
 
     _debounce = Timer(_searchDebounce, () {
-      unawaited(_performSearch(query, revision));
+      unawaited(_performSearch(normalized, revision));
     });
   }
 
   Future<void> submitSearch([String? query]) async {
+    final catalog = state.selectedCatalog;
+    if (catalog == null || !catalog.supportsSearch) return;
+
     _debounce?.cancel();
     final normalized = (query ?? state.query).trim();
     final revision = ++_searchRevision;
@@ -73,7 +216,7 @@ class SearchCubit extends Cubit<SearchState> {
     if (normalized.isEmpty) {
       emit(
         state.copyWith(
-          status: SearchStatus.initial,
+          status: SearchStatus.loaded,
           results: const [],
           clearError: true,
         ),
@@ -84,53 +227,31 @@ class SearchCubit extends Cubit<SearchState> {
     await _performSearch(normalized, revision);
   }
 
-  void selectCatalog(String catalogId) {
-    emit(state.copyWith(selectedCatalogId: catalogId, clearError: true));
-
-    if (state.query.trim().isNotEmpty) {
-      unawaited(_performSearch(state.query, ++_searchRevision));
-    }
-  }
-
   Future<void> addCustomCatalog({
     required String title,
     required String url,
   }) async {
-    final added = await _catalogService.addCustomCatalog(
-      title: title,
-      url: url,
-    );
+    final added = await _catalogService.addCustomCatalog(title: title, url: url);
     final catalogs = await _catalogService.loadCatalogs();
-    emit(
-      state.copyWith(
-        catalogs: catalogs,
-        selectedCatalogId: added.id,
-        clearError: true,
-      ),
-    );
-
-    if (state.query.trim().isNotEmpty) {
-      await _performSearch(state.query, ++_searchRevision);
-    }
+    emit(state.copyWith(catalogs: catalogs, clearError: true));
+    await openCatalog(added.id);
   }
 
   Future<void> removeCustomCatalog(String catalogId) async {
-    final selectedId = state.selectedCatalogId;
+    final isCurrentCatalog = state.selectedCatalogId == catalogId;
     await _catalogService.removeCustomCatalog(catalogId);
     final catalogs = await _catalogService.loadCatalogs();
     emit(
       state.copyWith(
         catalogs: catalogs,
-        selectedCatalogId: selectedId == catalogId
-            ? catalogs.firstOrNull?.id
-            : selectedId,
+        clearSelectedCatalog: isCurrentCatalog,
+        browseStack: isCurrentCatalog ? const [] : state.browseStack,
+        results: isCurrentCatalog ? const [] : state.results,
+        query: isCurrentCatalog ? '' : state.query,
+        status: isCurrentCatalog ? SearchStatus.initial : state.status,
         clearError: true,
       ),
     );
-
-    if (state.query.trim().isNotEmpty) {
-      await _performSearch(state.query, ++_searchRevision);
-    }
   }
 
   Future<void> downloadBook(CatalogBook book) async {
@@ -196,26 +317,13 @@ class SearchCubit extends Cubit<SearchState> {
       final results = await _catalogService.searchBooks(catalog, query);
       if (revision != _searchRevision) return;
       emit(state.copyWith(status: SearchStatus.loaded, results: results));
-    } on CatalogException catch (e) {
+    } on CatalogException catch (error) {
       if (revision != _searchRevision) return;
-      emit(state.copyWith(status: SearchStatus.error, errorCode: e.code));
+      emit(state.copyWith(status: SearchStatus.error, errorCode: error.code));
     } catch (_) {
       if (revision != _searchRevision) return;
       emit(state.copyWith(status: SearchStatus.error, clearError: true));
     }
-  }
-
-  void clear() {
-    _debounce?.cancel();
-    _searchRevision++;
-    emit(
-      state.copyWith(
-        status: SearchStatus.initial,
-        results: const [],
-        query: '',
-        clearError: true,
-      ),
-    );
   }
 
   @override
@@ -227,5 +335,10 @@ class SearchCubit extends Cubit<SearchState> {
 }
 
 extension<T> on List<T> {
-  T? get firstOrNull => isEmpty ? null : first;
+  T? firstWhereOrNull(bool Function(T item) predicate) {
+    for (final item in this) {
+      if (predicate(item)) return item;
+    }
+    return null;
+  }
 }

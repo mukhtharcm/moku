@@ -58,6 +58,9 @@ class CatalogSource extends Equatable {
   });
 
   bool get isCustom => kind == CatalogKind.custom;
+  bool get supportsSearch =>
+      kind == CatalogKind.openLibrary ||
+      (searchTemplate != null && searchTemplate!.trim().isNotEmpty);
 
   Uri get uri => Uri.parse(url);
 
@@ -89,6 +92,42 @@ class CatalogSource extends Equatable {
 
   @override
   List<Object?> get props => [id, title, url, kind, protocol, searchTemplate];
+}
+
+class CatalogNavigationEntry extends Equatable {
+  final String id;
+  final String title;
+  final String? subtitle;
+  final Uri uri;
+
+  const CatalogNavigationEntry({
+    required this.id,
+    required this.title,
+    required this.uri,
+    this.subtitle,
+  });
+
+  @override
+  List<Object?> get props => [id, title, subtitle, uri];
+}
+
+class CatalogBrowsePage extends Equatable {
+  final String title;
+  final Uri? uri;
+  final List<CatalogNavigationEntry> navigationEntries;
+  final List<CatalogBook> books;
+
+  const CatalogBrowsePage({
+    required this.title,
+    this.uri,
+    this.navigationEntries = const [],
+    this.books = const [],
+  });
+
+  bool get isEmpty => navigationEntries.isEmpty && books.isEmpty;
+
+  @override
+  List<Object?> get props => [title, uri, navigationEntries, books];
 }
 
 class CatalogAcquisition extends Equatable {
@@ -258,6 +297,24 @@ class OpdsCatalogService {
     }
   }
 
+  Future<CatalogBrowsePage> loadCatalogPage(
+    CatalogSource catalog, {
+    Uri? pageUri,
+  }) async {
+    final uri = pageUri ?? catalog.uri;
+
+    switch (catalog.kind) {
+      case CatalogKind.openLibrary:
+        return _browseOpds2(catalog, uri);
+      case CatalogKind.gutenberg:
+      case CatalogKind.custom:
+        return switch (catalog.protocol) {
+          CatalogProtocol.opds1 => _browseOpds1(catalog, uri),
+          CatalogProtocol.opds2 => _browseOpds2(catalog, uri),
+        };
+    }
+  }
+
   Future<String> downloadAcquisition(
     CatalogAcquisition acquisition, {
     required String suggestedName,
@@ -408,6 +465,106 @@ class OpdsCatalogService {
     return _parseOpds1Feed(catalog: catalog, baseUri: uri, document: document);
   }
 
+  Future<CatalogBrowsePage> _browseOpds1(CatalogSource catalog, Uri uri) async {
+    final response = await _client
+        .get(uri, headers: {'User-Agent': 'Moku/1.0'})
+        .timeout(const Duration(seconds: 8));
+    if (response.statusCode != 200) {
+      throw CatalogException(
+        _statusToCatalogErrorCode(
+          response.statusCode,
+          fallback: CatalogErrorCode.catalogLoadFailed,
+        ),
+        statusCode: response.statusCode,
+      );
+    }
+
+    final document = XmlDocument.parse(response.body);
+    final books = <CatalogBook>[];
+    final navigationEntries = <CatalogNavigationEntry>[];
+
+    for (final entry in document.descendants.whereType<XmlElement>().where(
+      (element) => element.name.local == 'entry',
+    )) {
+      final acquisitions = _parseOpds1Acquisitions(entry, uri);
+      final title = _childText(entry, 'title');
+      if (title == null || title.isEmpty) continue;
+
+      if (acquisitions.isNotEmpty) {
+        final authorElement = _firstChild(entry, 'author');
+        final authorName = authorElement == null
+            ? null
+            : _childText(authorElement, 'name');
+
+        books.add(
+          CatalogBook(
+            id: _childText(entry, 'id') ?? acquisitions.first.url.toString(),
+            title: title,
+            author: authorName?.trim() ?? '',
+            description: _childText(entry, 'content'),
+            coverUrl: _extractOpds1Cover(entry, uri)?.toString(),
+            yearLabel: _childText(entry, 'published')?.split('-').first,
+            externalUrl: _extractOpds1AlternateLink(entry, uri)?.toString(),
+            catalogId: catalog.id,
+            catalogTitle: catalog.title,
+            acquisitions: acquisitions,
+          ),
+        );
+        continue;
+      }
+
+      final subsectionUri = _extractOpds1SubsectionCatalogUri(entry, uri);
+      if (subsectionUri == null) continue;
+
+      navigationEntries.add(
+        CatalogNavigationEntry(
+          id: _childText(entry, 'id') ?? subsectionUri.toString(),
+          title: title,
+          subtitle: _childText(entry, 'summary') ?? _childText(entry, 'content'),
+          uri: subsectionUri,
+        ),
+      );
+    }
+
+    return CatalogBrowsePage(
+      title: _extractOpds1FeedTitle(document) ?? catalog.title,
+      uri: uri,
+      navigationEntries: navigationEntries,
+      books: books,
+    );
+  }
+
+  Future<CatalogBrowsePage> _browseOpds2(CatalogSource catalog, Uri uri) async {
+    final response = await _client
+        .get(uri, headers: {'User-Agent': 'Moku/1.0'})
+        .timeout(const Duration(seconds: 8));
+    if (response.statusCode != 200) {
+      throw CatalogException(
+        _statusToCatalogErrorCode(
+          response.statusCode,
+          fallback: CatalogErrorCode.catalogLoadFailed,
+        ),
+        statusCode: response.statusCode,
+      );
+    }
+
+    final jsonMap = json.decode(response.body) as Map<String, dynamic>;
+    final books = catalog.kind == CatalogKind.openLibrary
+        ? await _parseOpenLibraryFeed(
+            catalog: catalog,
+            baseUri: uri,
+            jsonMap: jsonMap,
+          )
+        : _parseOpds2Feed(catalog: catalog, baseUri: uri, jsonMap: jsonMap);
+
+    return CatalogBrowsePage(
+      title: _extractOpds2FeedTitle(jsonMap) ?? catalog.title,
+      uri: uri,
+      navigationEntries: _extractOpds2NavigationEntries(jsonMap, uri),
+      books: books,
+    );
+  }
+
   Future<CatalogSource> _prepareCustomCatalog({
     required String title,
     required String rootUrl,
@@ -430,9 +587,6 @@ class OpdsCatalogService {
     if (contentType.contains('application/opds+json') || body.startsWith('{')) {
       final jsonMap = json.decode(response.body) as Map<String, dynamic>;
       final searchTemplate = _extractOpds2SearchTemplate(jsonMap, rootUri);
-      if (searchTemplate == null) {
-        throw const CatalogException(CatalogErrorCode.opds2MissingSearchLink);
-      }
       return CatalogSource(
         id: 'custom-${DateTime.now().millisecondsSinceEpoch}',
         title: title,
@@ -445,25 +599,19 @@ class OpdsCatalogService {
 
     final document = XmlDocument.parse(response.body);
     final openSearchUri = _extractOpds1OpenSearchUri(document, rootUri);
-    if (openSearchUri == null) {
-      throw const CatalogException(
-        CatalogErrorCode.opds1MissingSearchDescription,
-      );
-    }
-
-    final openSearchResponse = await _client.get(openSearchUri);
-    if (openSearchResponse.statusCode != 200) {
-      throw const CatalogException(
-        CatalogErrorCode.catalogSearchDescriptionFailed,
-      );
-    }
-
-    final openSearchDocument = XmlDocument.parse(openSearchResponse.body);
-    final searchTemplate = _extractOpenSearchTemplate(openSearchDocument);
-    if (searchTemplate == null) {
-      throw const CatalogException(
-        CatalogErrorCode.catalogSearchTemplateMissing,
-      );
+    String? resolvedSearchTemplate;
+    if (openSearchUri != null) {
+      final openSearchResponse = await _client.get(openSearchUri);
+      if (openSearchResponse.statusCode == 200) {
+        final openSearchDocument = XmlDocument.parse(openSearchResponse.body);
+        final searchTemplate = _extractOpenSearchTemplate(openSearchDocument);
+        if (searchTemplate != null) {
+          resolvedSearchTemplate = _resolveTemplateAgainstBase(
+            rootUri,
+            searchTemplate,
+          );
+        }
+      }
     }
 
     return CatalogSource(
@@ -472,7 +620,7 @@ class OpdsCatalogService {
       url: rootUri.toString(),
       kind: CatalogKind.custom,
       protocol: CatalogProtocol.opds1,
-      searchTemplate: _resolveTemplateAgainstBase(rootUri, searchTemplate),
+      searchTemplate: resolvedSearchTemplate,
     );
   }
 
@@ -782,6 +930,18 @@ class OpdsCatalogService {
     return null;
   }
 
+  String? _extractOpds2FeedTitle(Map<String, dynamic> jsonMap) {
+    final metadata = jsonMap['metadata'];
+    if (metadata is Map<String, dynamic>) {
+      final title = metadata['title'];
+      if (title is String && title.trim().isNotEmpty) return title.trim();
+    }
+
+    final title = jsonMap['title'];
+    if (title is String && title.trim().isNotEmpty) return title.trim();
+    return null;
+  }
+
   Uri? _extractOpds1OpenSearchUri(XmlDocument document, Uri baseUri) {
     for (final link in document.descendants.whereType<XmlElement>().where(
       (element) => element.name.local == 'link',
@@ -928,6 +1088,83 @@ class OpdsCatalogService {
     return results;
   }
 
+  List<CatalogNavigationEntry> _extractOpds2NavigationEntries(
+    Map<String, dynamic> jsonMap,
+    Uri baseUri,
+  ) {
+    final entries = <CatalogNavigationEntry>[];
+    final seen = <String>{};
+
+    void addEntry({
+      required String title,
+      required Uri uri,
+      String? subtitle,
+      String? id,
+    }) {
+      final trimmedTitle = title.trim();
+      if (trimmedTitle.isEmpty) return;
+      final key = uri.toString();
+      if (!seen.add(key)) return;
+      entries.add(
+        CatalogNavigationEntry(
+          id: id ?? key,
+          title: trimmedTitle,
+          subtitle: subtitle?.trim().isEmpty ?? true ? null : subtitle?.trim(),
+          uri: uri,
+        ),
+      );
+    }
+
+    final navigation = jsonMap['navigation'];
+    if (navigation is List) {
+      for (final item in navigation.whereType<Map<String, dynamic>>()) {
+        final title = (item['title'] as String?)?.trim();
+        final href = (item['href'] as String?)?.trim();
+        final links = item['links'] as List<dynamic>? ?? const [];
+        final target = href?.isNotEmpty == true
+            ? baseUri.resolve(href!)
+            : _extractBrowsableOpds2Link(links, baseUri);
+        if (title == null || title.isEmpty || target == null) continue;
+        addEntry(
+          title: title,
+          uri: target,
+          id: item['id'] as String?,
+          subtitle: _extractDescription(item['summary']),
+        );
+      }
+    }
+
+    for (final link in (jsonMap['links'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()) {
+      if (!_isBrowsableOpds2Link(link)) continue;
+      final target = _resolveHref(link['href'] as String?, baseUri);
+      final title = (link['title'] as String?)?.trim();
+      if (target == null || title == null || title.isEmpty) continue;
+      addEntry(title: title, uri: target);
+    }
+
+    final groups = jsonMap['groups'];
+    if (groups is List) {
+      for (final group in groups.whereType<Map<String, dynamic>>()) {
+        final metadata =
+            group['metadata'] as Map<String, dynamic>? ?? const {};
+        final title = (metadata['title'] as String?)?.trim();
+        final target = _extractBrowsableOpds2Link(
+          group['links'] as List<dynamic>? ?? const [],
+          baseUri,
+        );
+        if (title == null || title.isEmpty || target == null) continue;
+        addEntry(
+          title: title,
+          uri: target,
+          subtitle: _extractDescription(metadata['description']),
+        );
+      }
+    }
+
+    return entries;
+  }
+
   String _extractOpds2Author(Object? raw) {
     if (raw is String) return raw;
     if (raw is Map<String, dynamic>) return (raw['name'] as String?) ?? '';
@@ -1019,6 +1256,29 @@ class OpdsCatalogService {
     return null;
   }
 
+  Uri? _extractBrowsableOpds2Link(List<dynamic> links, Uri baseUri) {
+    for (final link in links.whereType<Map<String, dynamic>>()) {
+      if (!_isBrowsableOpds2Link(link)) continue;
+      final uri = _resolveHref(link['href'] as String?, baseUri);
+      if (uri != null) return uri;
+    }
+    return null;
+  }
+
+  bool _isBrowsableOpds2Link(Map<String, dynamic> link) {
+    final relValues = _asRelList(link['rel']);
+    if (relValues.contains('self') || relValues.contains('search')) {
+      return false;
+    }
+    if (relValues.any(_isAcquisitionRelation)) return false;
+    if (relValues.any((item) => item == 'cover' || item.contains('/image'))) {
+      return false;
+    }
+
+    final type = (link['type'] as String?)?.toLowerCase() ?? '';
+    return type.contains('opds+json') || type.contains('opds-catalog');
+  }
+
   Uri? _extractOpds1Cover(XmlElement entry, Uri baseUri) {
     for (final link in entry.children.whereType<XmlElement>()) {
       if (link.name.local != 'link') continue;
@@ -1063,8 +1323,16 @@ class OpdsCatalogService {
       }
 
       final resolved = baseUri.resolve(href);
-      if (!resolved.path.endsWith('.opds')) continue;
       return resolved;
+    }
+    return null;
+  }
+
+  String? _extractOpds1FeedTitle(XmlDocument document) {
+    for (final element in document.descendants.whereType<XmlElement>()) {
+      if (element.name.local != 'title') continue;
+      final text = element.innerText.trim();
+      if (text.isNotEmpty) return text;
     }
     return null;
   }
@@ -1152,6 +1420,11 @@ class OpdsCatalogService {
         .toString()
         .replaceAll(openToken, '{')
         .replaceAll(closeToken, '}');
+  }
+
+  Uri? _resolveHref(String? href, Uri baseUri) {
+    if (href == null || href.trim().isEmpty) return null;
+    return baseUri.resolve(href.trim());
   }
 
   CatalogErrorCode _statusToCatalogErrorCode(

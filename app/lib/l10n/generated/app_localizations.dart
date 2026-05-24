@@ -590,6 +590,12 @@ abstract class AppLocalizations {
   /// **'Could not find a usable search template for this catalog.'**
   String get searchErrorCatalogSearchTemplateMissing;
 
+  /// No description provided for @searchBrowseEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to browse here yet.'**
+  String get searchBrowseEmpty;
+
   /// No description provided for @searchEmptyResults.
   ///
   /// In en, this message translates to:

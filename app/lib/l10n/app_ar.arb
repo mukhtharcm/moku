@@ -83,6 +83,7 @@
   "searchErrorCatalogMissingSearchLink": "لا يوفّر هذا الفهرس رابط بحث صالحًا.",
   "searchCatalogsTitle": "الفهارس",
   "searchEmptyResults": "لم نعثر على كتب قابلة للتنزيل",
+  "searchBrowseEmpty": "لا يوجد ما يمكن تصفحه هنا بعد.",
   "searchErrorCatalogSearchDescriptionFailed": "تعذّر تحميل وصف البحث لهذا الفهرس.",
   "searchNoCatalogSelected": "اختر فهرسًا لبدء البحث",
   "searchBookAdded": "أُضيف {title} إلى مكتبتك",

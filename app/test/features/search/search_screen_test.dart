@@ -15,11 +15,125 @@ import 'package:moku/features/search/screens/search_screen.dart';
 import 'package:moku/l10n/l10n.dart';
 
 void main() {
+  testWidgets('catalogs render as folders and searchable catalogs can search', (
+    tester,
+  ) async {
+    final searchCompleter = Completer<List<CatalogBook>>();
+    final searchQueries = <String>[];
+    final database = AppDatabase(NativeDatabase.memory());
+    final catalogService = _FakeOpdsCatalogService(
+      catalogs: const [
+        CatalogSource(
+          id: 'open-library',
+          title: '',
+          url: 'https://openlibrary.org/opds/',
+          kind: CatalogKind.openLibrary,
+          protocol: CatalogProtocol.opds2,
+        ),
+      ],
+      onSearch: (_, query) {
+        searchQueries.add(query);
+        return searchCompleter.future;
+      },
+      onLoadCatalogPage: (_, pageUri) async =>
+          const CatalogBrowsePage(title: ''),
+    );
+    final cubit = SearchCubit(
+      catalogService: catalogService,
+      bookService: BookService(),
+      database: database,
+      searchDebounce: Duration.zero,
+    )..loadCatalogs();
+
+    addTearDown(() async {
+      await cubit.close();
+      await database.close();
+    });
+
+    await tester.pumpWidget(_buildTestApp(cubit));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open Library'), findsOneWidget);
+
+    await tester.tap(find.text('Open Library'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Search Open Library...'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).first, 'Alice');
+    await tester.pump();
+
+    expect(find.byTooltip('Clear'), findsOneWidget);
+    expect(searchQueries, ['Alice']);
+    expect(cubit.state.status, SearchStatus.loading);
+
+    await tester.tap(find.byTooltip('Clear'));
+    await tester.pump();
+
+    expect(cubit.state.query, isEmpty);
+    expect(cubit.state.status, SearchStatus.loaded);
+    expect(find.text('Nothing to browse here yet.'), findsOneWidget);
+
+    searchCompleter.complete(const []);
+    await tester.pump();
+
+    expect(cubit.state.query, isEmpty);
+    expect(cubit.state.status, SearchStatus.loaded);
+    expect(cubit.state.results, isEmpty);
+    expect(find.text('Nothing to browse here yet.'), findsOneWidget);
+  });
+
+  testWidgets('browse-only catalogs open into navigation entries', (
+    tester,
+  ) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    final catalogService = _FakeOpdsCatalogService(
+      catalogs: const [
+        CatalogSource(
+          id: 'gopds',
+          title: 'GoPDS Library',
+          url: 'https://books.gorkos.net/opds',
+          kind: CatalogKind.custom,
+          protocol: CatalogProtocol.opds1,
+        ),
+      ],
+      onSearch: (_, query) async => const [],
+      onLoadCatalogPage: (_, pageUri) async => CatalogBrowsePage(
+        title: 'GoPDS Library',
+        navigationEntries: [
+          CatalogNavigationEntry(
+            id: 'authors',
+            title: 'Authors A-D',
+            uri: Uri.parse('https://books.gorkos.net/opds?authors=a-d'),
+          ),
+        ],
+      ),
+    );
+    final cubit = SearchCubit(
+      catalogService: catalogService,
+      bookService: BookService(),
+      database: database,
+      searchDebounce: Duration.zero,
+    )..loadCatalogs();
+
+    addTearDown(() async {
+      await cubit.close();
+      await database.close();
+    });
+
+    await tester.pumpWidget(_buildTestApp(cubit));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('GoPDS Library'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Authors A-D'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+  });
+
   testWidgets(
-    'clear action is labeled and stale search responses are ignored',
+    'add catalog dialog shows inline error text when adding fails',
     (tester) async {
-      final searchCompleter = Completer<List<CatalogBook>>();
-      final searchQueries = <String>[];
       final database = AppDatabase(NativeDatabase.memory());
       final catalogService = _FakeOpdsCatalogService(
         catalogs: const [
@@ -31,9 +145,11 @@ void main() {
             protocol: CatalogProtocol.opds2,
           ),
         ],
-        onSearch: (_, query) {
-          searchQueries.add(query);
-          return searchCompleter.future;
+        onSearch: (_, query) async => const [],
+        onLoadCatalogPage: (_, pageUri) async =>
+            const CatalogBrowsePage(title: ''),
+        onAddCustomCatalog: ({required title, required url}) async {
+          throw const CatalogException(CatalogErrorCode.catalogAccessDenied);
         },
       );
       final cubit = SearchCubit(
@@ -51,125 +167,27 @@ void main() {
       await tester.pumpWidget(_buildTestApp(cubit));
       await tester.pumpAndSettle();
 
-      expect(find.text('Search Open Library'), findsOneWidget);
+      await tester.tap(find.byTooltip('Manage catalogs'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add Custom Catalog'));
+      await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField).first, 'Alice');
-      await tester.pump();
+      final fields = find.byType(TextField);
+      await tester.enterText(fields.at(0), 'Blocked Feed');
+      await tester.enterText(
+        fields.at(1),
+        'https://catalog.feedbooks.com/catalog/index.json',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.pumpAndSettle();
 
-      expect(find.byTooltip('Clear'), findsOneWidget);
-      expect(searchQueries, ['Alice']);
-      expect(cubit.state.status, SearchStatus.loading);
-
-      await tester.tap(find.byTooltip('Clear'));
-      await tester.pump();
-
-      expect(cubit.state.query, isEmpty);
-      expect(cubit.state.status, SearchStatus.initial);
-      expect(find.text('Search Open Library'), findsOneWidget);
-      expect(find.text('No downloadable books found'), findsNothing);
-
-      searchCompleter.complete(const []);
-      await tester.pump();
-
-      expect(cubit.state.query, isEmpty);
-      expect(cubit.state.status, SearchStatus.initial);
-      expect(cubit.state.results, isEmpty);
-      expect(find.text('Search Open Library'), findsOneWidget);
-      expect(find.text('No downloadable books found'), findsNothing);
+      expect(
+        find.text('This catalog denied access from the app.'),
+        findsOneWidget,
+      );
+      expect(find.text('Add Custom Catalog'), findsOneWidget);
     },
   );
-
-  testWidgets('empty search results stay visible after a completed search', (
-    tester,
-  ) async {
-    final database = AppDatabase(NativeDatabase.memory());
-    final catalogService = _FakeOpdsCatalogService(
-      catalogs: const [
-        CatalogSource(
-          id: 'open-library',
-          title: '',
-          url: 'https://openlibrary.org/opds/',
-          kind: CatalogKind.openLibrary,
-          protocol: CatalogProtocol.opds2,
-        ),
-      ],
-      onSearch: (_, query) async => const [],
-    );
-    final cubit = SearchCubit(
-      catalogService: catalogService,
-      bookService: BookService(),
-      database: database,
-      searchDebounce: Duration.zero,
-    )..loadCatalogs();
-
-    addTearDown(() async {
-      await cubit.close();
-      await database.close();
-    });
-
-    await tester.pumpWidget(_buildTestApp(cubit));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(find.byType(TextField).first, 'Alice');
-    await tester.pumpAndSettle();
-
-    expect(find.text('No downloadable books found'), findsOneWidget);
-  });
-
-  testWidgets('add catalog dialog shows inline error text when adding fails', (
-    tester,
-  ) async {
-    final database = AppDatabase(NativeDatabase.memory());
-    final catalogService = _FakeOpdsCatalogService(
-      catalogs: const [
-        CatalogSource(
-          id: 'open-library',
-          title: '',
-          url: 'https://openlibrary.org/opds/',
-          kind: CatalogKind.openLibrary,
-          protocol: CatalogProtocol.opds2,
-        ),
-      ],
-      onSearch: (_, _) async => const [],
-      onAddCustomCatalog: ({required title, required url}) async {
-        throw const CatalogException(CatalogErrorCode.catalogAccessDenied);
-      },
-    );
-    final cubit = SearchCubit(
-      catalogService: catalogService,
-      bookService: BookService(),
-      database: database,
-      searchDebounce: Duration.zero,
-    )..loadCatalogs();
-
-    addTearDown(() async {
-      await cubit.close();
-      await database.close();
-    });
-
-    await tester.pumpWidget(_buildTestApp(cubit));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byTooltip('Manage catalogs'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Add Custom Catalog'));
-    await tester.pumpAndSettle();
-
-    final fields = find.byType(TextField);
-    await tester.enterText(fields.at(0), 'Blocked Feed');
-    await tester.enterText(
-      fields.at(1),
-      'https://catalog.feedbooks.com/catalog/index.json',
-    );
-    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('This catalog denied access from the app.'),
-      findsOneWidget,
-    );
-    expect(find.text('Add Custom Catalog'), findsOneWidget);
-  });
 
   testWidgets('add catalog dialog closes after a successful add', (
     tester,
@@ -185,7 +203,17 @@ void main() {
           protocol: CatalogProtocol.opds2,
         ),
       ],
-      onSearch: (_, _) async => const [],
+      onSearch: (_, query) async => const [],
+      onLoadCatalogPage: (catalog, pageUri) async => CatalogBrowsePage(
+        title: catalog.title,
+        navigationEntries: [
+          CatalogNavigationEntry(
+            id: 'authors',
+            title: 'Authors',
+            uri: Uri.parse('https://m.gutenberg.org/authors'),
+          ),
+        ],
+      ),
       onAddCustomCatalog: ({required title, required url}) async {
         return CatalogSource(
           id: 'custom-mobile-gutenberg',
@@ -228,7 +256,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(AlertDialog), findsNothing);
-    expect(find.text('Catalog URL'), findsNothing);
+    expect(find.text('Authors'), findsOneWidget);
     expect(cubit.state.selectedCatalogId, 'custom-mobile-gutenberg');
     expect(
       cubit.state.catalogs.any(
@@ -272,6 +300,8 @@ void main() {
         ),
       ],
       onSearch: (_, query) async => [resultBook],
+      onLoadCatalogPage: (_, pageUri) async =>
+          const CatalogBrowsePage(title: ''),
       onDownload: (_) async => tempFile.path,
     );
     final cubit = SearchCubit(
@@ -310,6 +340,8 @@ class _FakeOpdsCatalogService extends OpdsCatalogService {
   final List<CatalogSource> _catalogs;
   final Future<List<CatalogBook>> Function(CatalogSource catalog, String query)
   onSearch;
+  final Future<CatalogBrowsePage> Function(CatalogSource catalog, Uri? pageUri)
+  onLoadCatalogPage;
   final Future<String> Function(CatalogAcquisition acquisition)? onDownload;
   final Future<CatalogSource> Function({
     required String title,
@@ -320,6 +352,7 @@ class _FakeOpdsCatalogService extends OpdsCatalogService {
   _FakeOpdsCatalogService({
     required List<CatalogSource> catalogs,
     required this.onSearch,
+    required this.onLoadCatalogPage,
     this.onDownload,
     this.onAddCustomCatalog,
   }) : _catalogs = List<CatalogSource>.from(catalogs);
@@ -331,6 +364,12 @@ class _FakeOpdsCatalogService extends OpdsCatalogService {
   @override
   Future<List<CatalogBook>> searchBooks(CatalogSource catalog, String query) =>
       onSearch(catalog, query);
+
+  @override
+  Future<CatalogBrowsePage> loadCatalogPage(
+    CatalogSource catalog, {
+    Uri? pageUri,
+  }) => onLoadCatalogPage(catalog, pageUri);
 
   @override
   Future<CatalogSource> addCustomCatalog({

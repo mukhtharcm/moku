@@ -275,6 +275,9 @@ class AppLocalizationsAr extends AppLocalizations {
       'تعذّر العثور على قالب بحث صالح لهذا الفهرس.';
 
   @override
+  String get searchBrowseEmpty => 'لا يوجد ما يمكن تصفحه هنا بعد.';
+
+  @override
   String get searchEmptyResults => 'لم نعثر على كتب قابلة للتنزيل';
 
   @override

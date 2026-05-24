@@ -69,6 +69,45 @@ void main() {
     },
   );
 
+  test(
+    'adds a browse-only OPDS1 custom catalog without requiring search metadata',
+    () async {
+      final client = MockClient((request) async {
+        if (request.url.toString() == 'https://books.gorkos.net/opds') {
+          return http.Response(
+            '''<?xml version="1.0" encoding="utf-8"?>
+          <feed xmlns="http://www.w3.org/2005/Atom">
+            <title>GoPDS Library</title>
+            <entry>
+              <id>authors-a-d</id>
+              <title>Authors A-D (986)</title>
+              <link rel="subsection" type="application/atom+xml;profile=opds-catalog;kind=acquisition" href="/opds?authors=a-d&amp;page=1&amp;limit=100" />
+            </entry>
+          </feed>''',
+            200,
+            headers: {'content-type': 'application/atom+xml; charset=UTF-8'},
+          );
+        }
+
+        return http.Response('not found', 404);
+      });
+
+      final service = OpdsCatalogService(client: client);
+      addTearDown(service.dispose);
+
+      final catalog = await service.addCustomCatalog(
+        title: 'GoPDS Library',
+        url: 'books.gorkos.net/opds',
+      );
+
+      expect(catalog.kind, CatalogKind.custom);
+      expect(catalog.protocol, CatalogProtocol.opds1);
+      expect(catalog.url, 'https://books.gorkos.net/opds');
+      expect(catalog.searchTemplate, isNull);
+      expect(catalog.supportsSearch, isFalse);
+    },
+  );
+
   test('maps 401 catalog responses to authentication required', () async {
     final service = OpdsCatalogService(
       client: MockClient(
@@ -200,4 +239,54 @@ void main() {
       expect(books.single.preferredAcquisition.format, BookFormat.epub);
     },
   );
+
+  test('loads OPDS1 browse pages with navigation entries', () async {
+    final client = MockClient((request) async {
+      if (request.url.toString() == 'https://books.gorkos.net/opds') {
+        return http.Response(
+          '''<?xml version="1.0" encoding="utf-8"?>
+        <feed xmlns="http://www.w3.org/2005/Atom">
+          <title>GoPDS Library</title>
+          <entry>
+            <id>authors-a-d</id>
+            <title>Authors A-D (986)</title>
+            <summary>Browse authors A through D</summary>
+            <link rel="subsection" type="application/atom+xml;profile=opds-catalog;kind=acquisition" href="/opds?authors=a-d&amp;page=1&amp;limit=100" />
+          </entry>
+          <entry>
+            <id>browse-category</id>
+            <title>Browse by Category (1120)</title>
+            <link rel="subsection" type="application/atom+xml;profile=opds-catalog;kind=acquisition" href="/opds?categories=a-z&amp;page=1&amp;limit=100" />
+          </entry>
+        </feed>''',
+          200,
+          headers: {'content-type': 'application/atom+xml; charset=UTF-8'},
+        );
+      }
+
+      return http.Response('not found', 404);
+    });
+
+    final service = OpdsCatalogService(client: client);
+    addTearDown(service.dispose);
+
+    const catalog = CatalogSource(
+      id: 'custom-gopds',
+      title: 'GoPDS Library',
+      url: 'https://books.gorkos.net/opds',
+      kind: CatalogKind.custom,
+      protocol: CatalogProtocol.opds1,
+    );
+
+    final page = await service.loadCatalogPage(catalog);
+
+    expect(page.title, 'GoPDS Library');
+    expect(page.books, isEmpty);
+    expect(page.navigationEntries, hasLength(2));
+    expect(page.navigationEntries.first.title, 'Authors A-D (986)');
+    expect(
+      page.navigationEntries.first.uri.toString(),
+      'https://books.gorkos.net/opds?authors=a-d&page=1&limit=100',
+    );
+  });
 }

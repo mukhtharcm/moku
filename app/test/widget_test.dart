@@ -1,63 +1,17 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moku/core/services/opds_catalog_service.dart';
-import 'package:moku/features/search/screens/search_screen.dart';
-import 'package:moku/l10n/l10n.dart';
 
 void main() {
-  testWidgets(
-    'CatalogDropdownItem renders inside dropdowns without layout exceptions',
-    (WidgetTester tester) async {
-      const catalog = CatalogSource(
-        id: 'custom',
-        title: 'Pocket Catalog',
-        url: 'https://example.com/opds',
-        kind: CatalogKind.custom,
-        protocol: CatalogProtocol.opds2,
-      );
+  test('browse-only catalogs are supported without being searchable', () {
+    const catalog = CatalogSource(
+      id: 'custom',
+      title: 'GoPDS Library',
+      url: 'https://books.gorkos.net/opds',
+      kind: CatalogKind.custom,
+      protocol: CatalogProtocol.opds1,
+    );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: Align(
-              alignment: Alignment.topCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 24),
-                child: SizedBox(
-                  width: 320,
-                  child: DropdownButtonFormField<String>(
-                    initialValue: catalog.id,
-                    isExpanded: true,
-                    selectedItemBuilder: (context) => const [
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('Pocket Catalog'),
-                      ),
-                    ],
-                    items: [
-                      DropdownMenuItem<String>(
-                        value: catalog.id,
-                        child: CatalogDropdownItem(catalog: catalog),
-                      ),
-                    ],
-                    onChanged: (_) {},
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Pocket Catalog'), findsWidgets);
-      expect(find.text('Custom'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(catalog.isCustom, isTrue);
+    expect(catalog.supportsSearch, isFalse);
+  });
 }
