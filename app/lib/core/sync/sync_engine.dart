@@ -495,6 +495,18 @@ class SyncEngine {
 
       if (progress.remoteId == null && progress.deletedAt == null) {
         try {
+          final existingRemote = await _findRemoteRecordByFilter(
+            'reading_progress',
+            pb.filter('book = {:book} && user = {:user}', {
+              'book': bookRemoteId,
+              'user': userId,
+            }),
+          );
+          if (existingRemote != null) {
+            await _attachReadingProgressRemoteLink(progress, existingRemote);
+            continue;
+          }
+
           final record = await pb
               .collection('reading_progress')
               .create(
@@ -565,20 +577,23 @@ class SyncEngine {
       );
       if (localBookId == null) continue;
 
-      final existing = await (db.select(
-        db.readingProgresses,
-      )..where((p) => p.remoteId.equals(record.id))).getSingleOrNull();
+      final existing =
+          await (db.select(
+            db.readingProgresses,
+          )..where((p) => p.remoteId.equals(record.id))).getSingleOrNull() ??
+          await db.getProgressForBook(localBookId, includeDeleted: true);
 
       final now = DateTime.now();
       final remoteUpdated = _parseRemoteTimestamp(record);
       final remoteDeletedAt = _parseRemoteDeletedAt(record);
       if (existing != null) {
         if (remoteDeletedAt != null) {
-          if (existing.deletedAt == null) {
+          if (existing.deletedAt == null || existing.remoteId == null) {
             await (db.update(
               db.readingProgresses,
             )..where((p) => p.id.equals(existing.id))).write(
               ReadingProgressesCompanion(
+                remoteId: Value(record.id),
                 deletedAt: Value(remoteDeletedAt),
                 updatedAt: Value(remoteDeletedAt),
                 syncPending: const Value(false),
@@ -588,6 +603,11 @@ class SyncEngine {
           continue;
         }
         if (existing.deletedAt != null) {
+          if (existing.syncPending && existing.remoteId == null) {
+            await (db.update(db.readingProgresses)
+                  ..where((p) => p.id.equals(existing.id)))
+                .write(ReadingProgressesCompanion(remoteId: Value(record.id)));
+          }
           continue;
         }
         final shouldApply = remoteUpdated != null
@@ -599,6 +619,7 @@ class SyncEngine {
             db.readingProgresses,
           )..where((p) => p.id.equals(existing.id))).write(
             ReadingProgressesCompanion(
+              remoteId: Value(record.id),
               currentChapter: Value(record.getIntValue('current_chapter')),
               chapterProgress: Value(record.getDoubleValue('chapter_progress')),
               overallProgress: Value(record.getDoubleValue('overall_progress')),
@@ -611,6 +632,10 @@ class SyncEngine {
               syncPending: const Value(false),
             ),
           );
+        } else if (existing.remoteId == null) {
+          await (db.update(db.readingProgresses)
+                ..where((p) => p.id.equals(existing.id)))
+              .write(ReadingProgressesCompanion(remoteId: Value(record.id)));
         }
       } else {
         if (remoteDeletedAt != null) continue;
@@ -1377,6 +1402,22 @@ class SyncEngine {
       if (bookRemoteId == null) continue;
 
       try {
+        final existingRemote = await _findRemoteRecordByFilter(
+          'reading_sessions',
+          pb.filter(
+            'book = {:book} && user = {:user} && started_at = {:start}',
+            {
+              'book': bookRemoteId,
+              'user': userId,
+              'start': session.startedAt.toUtc(),
+            },
+          ),
+        );
+        if (existingRemote != null) {
+          await _attachReadingSessionRemoteLink(session, existingRemote);
+          continue;
+        }
+
         final body = <String, dynamic>{
           'book': bookRemoteId,
           'user': userId,
@@ -1446,19 +1487,42 @@ class SyncEngine {
   Future<void> _pullReadingSessions() async {
     final records = await _fetchRemoteRecords('reading_sessions');
     for (final record in records) {
-      final existing = await (db.select(
-        db.readingSessions,
-      )..where((s) => s.remoteId.equals(record.id))).getSingleOrNull();
+      final localBookId = await _findLocalBookIdByRemoteId(
+        record.getStringValue('book'),
+      );
+      if (localBookId == null) continue;
+
+      final startedAt =
+          DateTime.tryParse(record.getStringValue('started_at')) ??
+          DateTime.now();
+      final windowStart = startedAt.subtract(const Duration(seconds: 60));
+      final windowEnd = startedAt.add(const Duration(seconds: 60));
+
+      final existing =
+          await (db.select(
+            db.readingSessions,
+          )..where((s) => s.remoteId.equals(record.id))).getSingleOrNull() ??
+          await (db.select(db.readingSessions)..where(
+                (s) =>
+                    s.bookId.equals(localBookId) &
+                    s.startedAt.isBetweenValues(windowStart, windowEnd),
+              ))
+              .getSingleOrNull();
       final remoteDeletedAt = _parseRemoteDeletedAt(record);
       final remoteUpdated = _parseRemoteTimestamp(record);
 
       if (existing != null) {
         if (remoteDeletedAt != null) {
-          if (existing.deletedAt == null) {
-            await db.softDeleteSession(
-              existing.id,
-              deletedAt: remoteDeletedAt,
-              markPending: false,
+          if (existing.deletedAt == null || existing.remoteId == null) {
+            await (db.update(
+              db.readingSessions,
+            )..where((s) => s.id.equals(existing.id))).write(
+              ReadingSessionsCompanion(
+                remoteId: Value(record.id),
+                deletedAt: Value(remoteDeletedAt),
+                updatedAt: Value(remoteDeletedAt),
+                syncPending: const Value(false),
+              ),
             );
           }
           continue;
@@ -1466,8 +1530,19 @@ class SyncEngine {
 
         if (existing.deletedAt != null) {
           if (existing.syncPending) {
+            if (existing.remoteId == null) {
+              await (db.update(db.readingSessions)
+                    ..where((s) => s.id.equals(existing.id)))
+                  .write(ReadingSessionsCompanion(remoteId: Value(record.id)));
+            }
             continue;
           }
+          if (existing.remoteId == null) {
+            await (db.update(db.readingSessions)
+                  ..where((s) => s.id.equals(existing.id)))
+                .write(ReadingSessionsCompanion(remoteId: Value(record.id)));
+          }
+          continue;
         }
 
         final shouldApply = remoteUpdated != null
@@ -1483,7 +1558,14 @@ class SyncEngine {
                         record.getStringValue('ended_at'),
                       )?.toUtc() ||
                   existing.deletedAt != null;
-        if (!shouldApply) continue;
+        if (!shouldApply) {
+          if (existing.remoteId == null) {
+            await (db.update(db.readingSessions)
+                  ..where((s) => s.id.equals(existing.id)))
+                .write(ReadingSessionsCompanion(remoteId: Value(record.id)));
+          }
+          continue;
+        }
 
         final endedAtStr = record.getStringValue('ended_at');
         final endedAt = endedAtStr.isNotEmpty
@@ -1493,6 +1575,7 @@ class SyncEngine {
           db.readingSessions,
         )..where((s) => s.id.equals(existing.id))).write(
           ReadingSessionsCompanion(
+            remoteId: Value(record.id),
             bookTitle: Value(record.getStringValue('book_title')),
             endedAt: Value(endedAt),
             durationSeconds: Value(record.getIntValue('duration_seconds')),
@@ -1506,26 +1589,7 @@ class SyncEngine {
         continue;
       }
 
-      final localBookId = await _findLocalBookIdByRemoteId(
-        record.getStringValue('book'),
-      );
-      if (localBookId == null || remoteDeletedAt != null) continue;
-
-      final startedAt =
-          DateTime.tryParse(record.getStringValue('started_at')) ??
-          DateTime.now();
-
-      // Duplicate guard: skip if a session for same book started within ±60 s
-      final windowStart = startedAt.subtract(const Duration(seconds: 60));
-      final windowEnd = startedAt.add(const Duration(seconds: 60));
-      final duplicate =
-          await (db.select(db.readingSessions)..where(
-                (s) =>
-                    s.bookId.equals(localBookId) &
-                    s.startedAt.isBetweenValues(windowStart, windowEnd),
-              ))
-              .getSingleOrNull();
-      if (duplicate != null) continue;
+      if (remoteDeletedAt != null) continue;
 
       final book = await db.getBookById(localBookId);
       final endedAtStr = record.getStringValue('ended_at');
@@ -1572,6 +1636,18 @@ class SyncEngine {
       (g) => g.remoteId == null && g.deletedAt == null,
     )) {
       try {
+        final existingRemote = await _findRemoteRecordByFilter(
+          'reading_goals',
+          pb.filter('year = {:year} && user = {:user}', {
+            'year': goal.year,
+            'user': userId,
+          }),
+        );
+        if (existingRemote != null) {
+          await _attachReadingGoalRemoteLink(goal, existingRemote);
+          continue;
+        }
+
         final remoteRecord = await pb
             .collection('reading_goals')
             .create(
@@ -1634,9 +1710,14 @@ class SyncEngine {
   Future<void> _pullReadingGoals() async {
     final records = await _fetchRemoteRecords('reading_goals');
     for (final record in records) {
-      final existing = await (db.select(
-        db.readingGoals,
-      )..where((g) => g.remoteId.equals(record.id))).getSingleOrNull();
+      final existing =
+          await (db.select(
+            db.readingGoals,
+          )..where((g) => g.remoteId.equals(record.id))).getSingleOrNull() ??
+          await db.getGoalForYear(
+            record.getIntValue('year'),
+            includeDeleted: true,
+          );
       final remoteUpdated = _parseRemoteTimestamp(record);
       final remoteDeletedAt = _parseRemoteDeletedAt(record);
       final year = record.getIntValue('year');
@@ -1645,16 +1726,29 @@ class SyncEngine {
 
       if (existing != null) {
         if (remoteDeletedAt != null) {
-          if (existing.deletedAt == null) {
-            await db.softDeleteGoal(
-              existing.id,
-              deletedAt: remoteDeletedAt,
-              markPending: false,
+          if (existing.deletedAt == null || existing.remoteId == null) {
+            await (db.update(
+              db.readingGoals,
+            )..where((g) => g.id.equals(existing.id))).write(
+              ReadingGoalsCompanion(
+                remoteId: Value(record.id),
+                deletedAt: Value(remoteDeletedAt),
+                updatedAt: Value(remoteDeletedAt),
+                syncPending: const Value(false),
+              ),
             );
           }
           continue;
         }
-        if (existing.deletedAt != null && existing.syncPending) {
+        if (existing.deletedAt != null) {
+          if (existing.remoteId == null) {
+            await (db.update(db.readingGoals)
+                  ..where((g) => g.id.equals(existing.id)))
+                .write(ReadingGoalsCompanion(remoteId: Value(record.id)));
+          }
+          if (existing.syncPending) {
+            continue;
+          }
           continue;
         }
         final shouldApply = remoteUpdated != null
@@ -1662,36 +1756,43 @@ class SyncEngine {
             : (!existing.syncPending &&
                   (!_readingGoalMatchesRecord(existing, record) ||
                       existing.deletedAt != null));
-        if (!shouldApply) continue;
+        if (!shouldApply) {
+          if (existing.remoteId == null) {
+            await (db.update(db.readingGoals)
+                  ..where((g) => g.id.equals(existing.id)))
+                .write(ReadingGoalsCompanion(remoteId: Value(record.id)));
+          }
+          continue;
+        }
         await (db.update(
           db.readingGoals,
         )..where((g) => g.id.equals(existing.id))).write(
           ReadingGoalsCompanion(
+            remoteId: Value(record.id),
             year: Value(year),
             booksGoal: Value(booksGoal),
             minutesPerDayGoal: Value(minutesPerDayGoal),
             updatedAt: Value(remoteUpdated ?? _fallbackRemoteTimestamp()),
             deletedAt: const Value(null),
             syncPending: const Value(false),
-            remoteId: Value(record.id),
           ),
         );
         continue;
+      } else {
+        if (remoteDeletedAt != null) continue;
+        await db.upsertGoal(
+          ReadingGoalsCompanion.insert(
+            id: 'rg_${record.id.substring(0, 11)}',
+            year: year,
+            booksGoal: Value(booksGoal),
+            minutesPerDayGoal: Value(minutesPerDayGoal),
+            updatedAt: Value(remoteUpdated ?? _fallbackRemoteTimestamp()),
+            deletedAt: const Value(null),
+            remoteId: Value(record.id),
+          ),
+          syncPending: false,
+        );
       }
-
-      if (remoteDeletedAt != null) continue;
-      await db.upsertGoal(
-        ReadingGoalsCompanion.insert(
-          id: 'rg_${record.id.substring(0, 11)}',
-          year: year,
-          booksGoal: Value(booksGoal),
-          minutesPerDayGoal: Value(minutesPerDayGoal),
-          updatedAt: Value(remoteUpdated ?? _fallbackRemoteTimestamp()),
-          deletedAt: const Value(null),
-          remoteId: Value(record.id),
-        ),
-        syncPending: false,
-      );
     }
   }
 
@@ -1827,6 +1928,88 @@ class SyncEngine {
   Future<String?> _getBookRemoteId(String localBookId) async {
     final book = await db.getBookById(localBookId);
     return book?.remoteId;
+  }
+
+  Future<RecordModel?> _findRemoteRecordByFilter(
+    String collection,
+    String filter,
+  ) async {
+    try {
+      return await pb.collection(collection).getFirstListItem(filter);
+    } on ClientException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  Future<void> _attachReadingProgressRemoteLink(
+    ReadingProgress progress,
+    RecordModel remoteRecord,
+  ) async {
+    final remoteDeletedAt = _parseRemoteDeletedAt(remoteRecord);
+    if (remoteDeletedAt != null) {
+      await (db.update(
+        db.readingProgresses,
+      )..where((p) => p.id.equals(progress.id))).write(
+        ReadingProgressesCompanion(
+          remoteId: Value(remoteRecord.id),
+          deletedAt: Value(remoteDeletedAt),
+          updatedAt: Value(remoteDeletedAt),
+          syncPending: const Value(false),
+        ),
+      );
+      return;
+    }
+
+    await (db.update(db.readingProgresses)
+          ..where((p) => p.id.equals(progress.id)))
+        .write(ReadingProgressesCompanion(remoteId: Value(remoteRecord.id)));
+  }
+
+  Future<void> _attachReadingSessionRemoteLink(
+    ReadingSession session,
+    RecordModel remoteRecord,
+  ) async {
+    final remoteDeletedAt = _parseRemoteDeletedAt(remoteRecord);
+    if (remoteDeletedAt != null) {
+      await (db.update(
+        db.readingSessions,
+      )..where((s) => s.id.equals(session.id))).write(
+        ReadingSessionsCompanion(
+          remoteId: Value(remoteRecord.id),
+          deletedAt: Value(remoteDeletedAt),
+          updatedAt: Value(remoteDeletedAt),
+          syncPending: const Value(false),
+        ),
+      );
+      return;
+    }
+
+    await (db.update(db.readingSessions)..where((s) => s.id.equals(session.id)))
+        .write(ReadingSessionsCompanion(remoteId: Value(remoteRecord.id)));
+  }
+
+  Future<void> _attachReadingGoalRemoteLink(
+    ReadingGoal goal,
+    RecordModel remoteRecord,
+  ) async {
+    final remoteDeletedAt = _parseRemoteDeletedAt(remoteRecord);
+    if (remoteDeletedAt != null) {
+      await (db.update(
+        db.readingGoals,
+      )..where((g) => g.id.equals(goal.id))).write(
+        ReadingGoalsCompanion(
+          remoteId: Value(remoteRecord.id),
+          deletedAt: Value(remoteDeletedAt),
+          updatedAt: Value(remoteDeletedAt),
+          syncPending: const Value(false),
+        ),
+      );
+      return;
+    }
+
+    await (db.update(db.readingGoals)..where((g) => g.id.equals(goal.id)))
+        .write(ReadingGoalsCompanion(remoteId: Value(remoteRecord.id)));
   }
 
   String? _detectRemoteCursorField(RecordModel record) {

@@ -190,6 +190,8 @@
   "collectionDetailRemoveMessage": "إزالة «{title}» من «{collectionName}»؟",
   "readerNoHighlightsHint": "حدّد نصًا أثناء القراءة لتضيف إليه تمييزًا",
   "readerNoBookmarksYet": "لا توجد إشارات مرجعية بعد",
+  "readerDeleteBookmarkTitle": "حذف الإشارة المرجعية",
+  "readerDeleteBookmarkMessage": "هل تريد حذف هذه الإشارة المرجعية؟",
   "readerBookmarksTab": "الإشارات المرجعية ({count})",
   "readerNoHighlightsYet": "لا توجد تمييزات بعد",
   "readerHighlightsTab": "التمييزات ({count})",

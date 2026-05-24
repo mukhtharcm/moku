@@ -394,6 +394,11 @@ class ReaderCubit extends Cubit<ReaderState> {
     _autoSync?.bump();
   }
 
+  Future<void> deleteBookmark(String id) async {
+    await _database.softDeleteBookmark(id);
+    _autoSync?.bump();
+  }
+
   // --- Highlight methods ---
 
   Future<void> loadHighlightsForChapter() async {

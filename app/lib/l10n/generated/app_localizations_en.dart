@@ -661,6 +661,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerNoBookmarksYet => 'No bookmarks yet';
 
   @override
+  String get readerDeleteBookmarkTitle => 'Delete Bookmark';
+
+  @override
+  String get readerDeleteBookmarkMessage =>
+      'Are you sure you want to delete this bookmark?';
+
+  @override
   String readerQuotedSelection({required Object text}) {
     return '\"$text\"';
   }

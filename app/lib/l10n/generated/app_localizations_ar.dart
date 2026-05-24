@@ -659,6 +659,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get readerNoBookmarksYet => 'لا توجد إشارات مرجعية بعد';
 
   @override
+  String get readerDeleteBookmarkTitle => 'حذف الإشارة المرجعية';
+
+  @override
+  String get readerDeleteBookmarkMessage => 'هل تريد حذف هذه الإشارة المرجعية؟';
+
+  @override
   String readerQuotedSelection({required Object text}) {
     return '«$text»';
   }

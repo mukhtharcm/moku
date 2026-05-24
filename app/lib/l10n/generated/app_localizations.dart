@@ -1268,6 +1268,18 @@ abstract class AppLocalizations {
   /// **'No bookmarks yet'**
   String get readerNoBookmarksYet;
 
+  /// No description provided for @readerDeleteBookmarkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Bookmark'**
+  String get readerDeleteBookmarkTitle;
+
+  /// No description provided for @readerDeleteBookmarkMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this bookmark?'**
+  String get readerDeleteBookmarkMessage;
+
   /// No description provided for @readerQuotedSelection.
   ///
   /// In en, this message translates to:
