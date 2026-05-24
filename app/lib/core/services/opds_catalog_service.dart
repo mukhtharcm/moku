@@ -334,9 +334,11 @@ class OpdsCatalogService {
     String query,
   ) async {
     final uri = Uri.parse('https://openlibrary.org/opds/search').replace(
-      queryParameters: {'query': query, 'mode': 'open_access', 'limit': '20'},
+      queryParameters: {'query': query, 'mode': 'open_access', 'limit': '8'},
     );
-    final response = await _client.get(uri);
+    final response = await _client
+        .get(uri, headers: {'User-Agent': 'Moku/1.0'})
+        .timeout(const Duration(seconds: 8));
     if (response.statusCode != 200) {
       throw CatalogException(
         CatalogErrorCode.searchFailed,
@@ -344,7 +346,11 @@ class OpdsCatalogService {
       );
     }
     final jsonMap = json.decode(response.body) as Map<String, dynamic>;
-    return _parseOpds2Feed(catalog: catalog, baseUri: uri, jsonMap: jsonMap);
+    return _parseOpenLibraryFeed(
+      catalog: catalog,
+      baseUri: uri,
+      jsonMap: jsonMap,
+    );
   }
 
   Future<List<CatalogBook>> _searchOpds2(
@@ -456,6 +462,83 @@ class OpdsCatalogService {
     );
   }
 
+  Future<List<CatalogBook>> _parseOpenLibraryFeed({
+    required CatalogSource catalog,
+    required Uri baseUri,
+    required Map<String, dynamic> jsonMap,
+  }) async {
+    final publications = <Map<String, dynamic>>[
+      ..._readPublications(jsonMap['publications']),
+      ..._readGroupPublications(jsonMap['groups']),
+    ].take(8).toList();
+
+    final resolved = await Future.wait(
+      publications.map(
+        (publication) => _parseOpenLibraryPublication(
+          catalog: catalog,
+          baseUri: baseUri,
+          publication: publication,
+        ),
+      ),
+    );
+
+    return resolved.whereType<CatalogBook>().toList();
+  }
+
+  Future<CatalogBook?> _parseOpenLibraryPublication({
+    required CatalogSource catalog,
+    required Uri baseUri,
+    required Map<String, dynamic> publication,
+  }) async {
+    final metadata =
+        publication['metadata'] as Map<String, dynamic>? ?? const {};
+    final links = publication['links'] as List<dynamic>? ?? const [];
+    final images = publication['images'] as List<dynamic>? ?? const [];
+    final title = (metadata['title'] as String?)?.trim();
+    if (title == null || title.isEmpty) return null;
+
+    var acquisitions = _parseOpds2Acquisitions(links, baseUri);
+    Uri? externalUrl = _extractAlternateLink(links, baseUri);
+
+    if (acquisitions.isEmpty) {
+      final manifestUrls = _extractPublicationManifestUrls(links, baseUri);
+      for (final manifestUri in manifestUrls) {
+        final manifest = await _loadOpdsPublicationManifest(manifestUri);
+        if (manifest == null) continue;
+
+        acquisitions = _parseOpdsPublicationManifestAcquisitions(
+          manifest,
+          manifestUri,
+        );
+        externalUrl ??= _extractAlternateLink(
+          manifest['links'] as List<dynamic>? ?? const [],
+          manifestUri,
+        );
+
+        if (acquisitions.isNotEmpty) break;
+      }
+    }
+
+    if (acquisitions.isEmpty) return null;
+
+    return CatalogBook(
+      id:
+          (publication['id'] as String?) ??
+          (metadata['identifier'] as String?) ??
+          acquisitions.first.url.toString(),
+      title: title,
+      author: _extractOpds2Author(metadata['author']).trim(),
+      description: _extractDescription(metadata['description']),
+      coverUrl: _extractOpds2Cover(images, links, baseUri)?.toString(),
+      yearLabel: _extractYear(metadata),
+      subjects: _extractSubjects(metadata['subject']),
+      externalUrl: externalUrl?.toString(),
+      catalogId: catalog.id,
+      catalogTitle: catalog.title,
+      acquisitions: acquisitions,
+    );
+  }
+
   List<CatalogBook> _parseOpds2Feed({
     required CatalogSource catalog,
     required Uri baseUri,
@@ -499,6 +582,19 @@ class OpdsCatalogService {
         })
         .whereType<CatalogBook>()
         .toList();
+  }
+
+  Future<Map<String, dynamic>?> _loadOpdsPublicationManifest(Uri uri) async {
+    try {
+      final response = await _client
+          .get(uri, headers: {'User-Agent': 'Moku/1.0'})
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode != 200) return null;
+      final decoded = json.decode(response.body);
+      if (decoded is Map<String, dynamic>) return decoded;
+    } catch (_) {}
+
+    return null;
   }
 
   List<CatalogBook> _parseOpds1Feed({
@@ -568,6 +664,19 @@ class OpdsCatalogService {
 
     acquisitions.sort(_compareAcquisitions);
     return acquisitions;
+  }
+
+  List<CatalogAcquisition> _parseOpdsPublicationManifestAcquisitions(
+    Map<String, dynamic> manifest,
+    Uri baseUri,
+  ) {
+    final candidates = <dynamic>[
+      ...(manifest['links'] as List<dynamic>? ?? const []),
+      ...(manifest['readingOrder'] as List<dynamic>? ?? const []),
+      ...(manifest['resources'] as List<dynamic>? ?? const []),
+    ];
+
+    return _parseOpds2Acquisitions(candidates, baseUri);
   }
 
   List<CatalogAcquisition> _parseOpds1Acquisitions(
@@ -648,6 +757,21 @@ class OpdsCatalogService {
         .map((element) => element.getAttribute('template'))
         .whereType<String>()
         .firstOrNull;
+  }
+
+  List<Uri> _extractPublicationManifestUrls(List<dynamic> links, Uri baseUri) {
+    return links
+        .whereType<Map<String, dynamic>>()
+        .where((link) {
+          final type = (link['type'] as String?)?.trim().toLowerCase();
+          return type == 'application/opds-publication+json';
+        })
+        .map((link) => link['href'] as String?)
+        .whereType<String>()
+        .where((href) => href.isNotEmpty)
+        .map(baseUri.resolve)
+        .toSet()
+        .toList();
   }
 
   String? _normalizeUrl(String raw) {

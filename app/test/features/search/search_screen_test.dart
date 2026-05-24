@@ -85,6 +85,52 @@ void main() {
       expect(find.text('No downloadable books found'), findsNothing);
     },
   );
+
+  testWidgets('empty search results stay visible after a completed search', (
+    tester,
+  ) async {
+    final database = AppDatabase(NativeDatabase.memory());
+    final catalogService = _FakeOpdsCatalogService(
+      catalogs: const [
+        CatalogSource(
+          id: 'open-library',
+          title: '',
+          url: 'https://openlibrary.org/opds/',
+          kind: CatalogKind.openLibrary,
+          protocol: CatalogProtocol.opds2,
+        ),
+      ],
+      onSearch: (_, query) async => const [],
+    );
+    final cubit = SearchCubit(
+      catalogService: catalogService,
+      bookService: BookService(),
+      database: database,
+      searchDebounce: Duration.zero,
+    )..loadCatalogs();
+
+    addTearDown(() async {
+      await cubit.close();
+      await database.close();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: BlocProvider<SearchCubit>.value(
+          value: cubit,
+          child: const SearchScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, 'Alice');
+    await tester.pumpAndSettle();
+
+    expect(find.text('No downloadable books found'), findsOneWidget);
+  });
 }
 
 class _FakeOpdsCatalogService extends OpdsCatalogService {

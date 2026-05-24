@@ -109,6 +109,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     : catalogTitleLabel(context, state.selectedCatalog!);
                 return TextField(
                   controller: _searchController,
+                  textInputAction: TextInputAction.search,
                   decoration: InputDecoration(
                     hintText: l10n.searchHint(catalogTitle: hintCatalog),
                     prefixIcon: const Icon(Icons.search),
@@ -125,6 +126,8 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                   onChanged: (query) =>
                       context.read<SearchCubit>().search(query),
+                  onSubmitted: (query) =>
+                      context.read<SearchCubit>().submitSearch(query),
                 );
               },
             ),
@@ -154,11 +157,17 @@ class _SearchScreenState extends State<SearchScreen> {
                       ? l10n.searchNoCatalogSelected
                       : catalogErrorCodeMessage(context, state.errorCode);
 
-                  return _SearchStatusMessage(message: errorText);
+                  return _SearchStatusMessage(
+                    icon: Icons.error_outline_rounded,
+                    message: errorText,
+                  );
                 }
 
                 if (state.results.isEmpty) {
-                  return _SearchStatusMessage(message: l10n.searchEmptyResults);
+                  return _SearchStatusMessage(
+                    icon: Icons.search_off_rounded,
+                    message: l10n.searchEmptyResults,
+                  );
                 }
 
                 return ListView.builder(
@@ -441,22 +450,38 @@ class _EmptyPrompt extends StatelessWidget {
 }
 
 class _SearchStatusMessage extends StatelessWidget {
+  final IconData icon;
   final String message;
 
-  const _SearchStatusMessage({required this.message});
+  const _SearchStatusMessage({required this.icon, required this.message});
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Semantics(
           container: true,
           liveRegion: true,
-          child: Text(
-            message,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ExcludeSemantics(
+                child: Icon(
+                  icon,
+                  size: 52,
+                  color: colorScheme.primary.withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
           ),
         ),
       ),

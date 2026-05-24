@@ -64,6 +64,26 @@ class SearchCubit extends Cubit<SearchState> {
     });
   }
 
+  Future<void> submitSearch([String? query]) async {
+    _debounce?.cancel();
+    final normalized = (query ?? state.query).trim();
+    final revision = ++_searchRevision;
+    emit(state.copyWith(query: query ?? state.query, clearError: true));
+
+    if (normalized.isEmpty) {
+      emit(
+        state.copyWith(
+          status: SearchStatus.initial,
+          results: const [],
+          clearError: true,
+        ),
+      );
+      return;
+    }
+
+    await _performSearch(normalized, revision);
+  }
+
   void selectCatalog(String catalogId) {
     emit(state.copyWith(selectedCatalogId: catalogId, clearError: true));
 

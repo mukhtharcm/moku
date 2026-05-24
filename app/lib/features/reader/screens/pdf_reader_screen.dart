@@ -220,6 +220,9 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
                     children: [
                       IconButton(
                         icon: Icon(Icons.arrow_back, color: fgColor),
+                        tooltip: MaterialLocalizations.of(
+                          context,
+                        ).backButtonTooltip,
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                       Expanded(
@@ -239,6 +242,9 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
                           _darkMode ? Icons.light_mode : Icons.dark_mode,
                           color: fgColor,
                         ),
+                        tooltip: _darkMode
+                            ? l10n.readerSwitchToLightMode
+                            : l10n.readerSwitchToDarkMode,
                         onPressed: () {
                           setState(() => _darkMode = !_darkMode);
                         },
@@ -285,14 +291,20 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
                           inactiveTrackColor: fgColor.withValues(alpha: 0.2),
                           thumbColor: theme.colorScheme.primary,
                         ),
-                        child: Slider(
-                          value: _currentPage.toDouble(),
-                          min: 1,
-                          max: _totalPages.toDouble(),
-                          onChanged: (value) {
-                            final page = value.round();
-                            _controller.goToPage(pageNumber: page);
-                          },
+                        child: Semantics(
+                          label: l10n.readerPageOf(
+                            currentPage: _currentPage,
+                            totalPages: _totalPages,
+                          ),
+                          child: Slider(
+                            value: _currentPage.toDouble(),
+                            min: 1,
+                            max: _totalPages.toDouble(),
+                            onChanged: (value) {
+                              final page = value.round();
+                              _controller.goToPage(pageNumber: page);
+                            },
+                          ),
                         ),
                       ),
                       // Page info

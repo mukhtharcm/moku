@@ -82,6 +82,7 @@ class _ReaderViewState extends State<_ReaderView>
 
   // Zen exit overlay
   bool _zenExitOverlayVisible = false;
+  bool _bookmarkToastVisible = false;
 
   // Track last loaded state to avoid redundant reloads
   String _lastLoadedContent = '';
@@ -102,6 +103,7 @@ class _ReaderViewState extends State<_ReaderView>
   late AnimationController _zenHintController;
   late Animation<double> _zenHintOpacity;
   Timer? _zenHintTimer;
+  Timer? _bookmarkToastTimer;
 
   @override
   void initState() {
@@ -167,6 +169,7 @@ class _ReaderViewState extends State<_ReaderView>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _zenHintTimer?.cancel();
+    _bookmarkToastTimer?.cancel();
     _zenHintController.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _cubit.finalizeSession();
@@ -189,6 +192,20 @@ class _ReaderViewState extends State<_ReaderView>
           });
         }
       });
+    });
+  }
+
+  void _showBookmarkToast() {
+    _bookmarkToastTimer?.cancel();
+    setState(() {
+      _bookmarkToastVisible = true;
+    });
+    _bookmarkToastTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _bookmarkToastVisible = false;
+        });
+      }
     });
   }
 
@@ -1115,11 +1132,16 @@ window.addEventListener('load', function() {
               if (state.showControls && !state.zenMode)
                 _BottomControls(
                   state: state,
+                  bookmarkConfirmed: _bookmarkToastVisible,
                   onToc: () => context.read<ReaderCubit>().toggleToc(),
                   onSettings: () => _showSettingsSheet(context),
-                  onBookmark: () => context.read<ReaderCubit>().addBookmark(
-                    readerChapterTitle(context, state, state.currentChapter),
-                  ),
+                  onBookmark: () async {
+                    await context.read<ReaderCubit>().addBookmark(
+                      readerChapterTitle(context, state, state.currentChapter),
+                    );
+                    if (!context.mounted) return;
+                    _showBookmarkToast();
+                  },
                   onAnnotations: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1155,6 +1177,54 @@ window.addEventListener('load', function() {
                       );
                     }
                   },
+                ),
+
+              if (_bookmarkToastVisible && !state.zenMode)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 132,
+                  child: SafeArea(
+                    top: false,
+                    child: Semantics(
+                      liveRegion: true,
+                      label: context.l10n.readerBookmarkAdded,
+                      child: IgnorePointer(
+                        child: Center(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.78),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.bookmark_added_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    context.l10n.readerBookmarkAdded,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
 
               // Selection highlight FAB
@@ -1374,6 +1444,7 @@ class _TopControls extends StatelessWidget {
 
 class _BottomControls extends StatelessWidget {
   final ReaderState state;
+  final bool bookmarkConfirmed;
   final VoidCallback onToc;
   final VoidCallback onSettings;
   final VoidCallback onBookmark;
@@ -1383,6 +1454,7 @@ class _BottomControls extends StatelessWidget {
 
   const _BottomControls({
     required this.state,
+    required this.bookmarkConfirmed,
     required this.onToc,
     required this.onSettings,
     required this.onBookmark,
@@ -1517,12 +1589,18 @@ class _BottomControls extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(
-                        Icons.bookmark_add_outlined,
-                        color: Colors.white,
+                      icon: Icon(
+                        bookmarkConfirmed
+                            ? Icons.bookmark_added_rounded
+                            : Icons.bookmark_add_outlined,
+                        color: bookmarkConfirmed
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.white,
                       ),
                       onPressed: onBookmark,
-                      tooltip: l10n.readerBookmark,
+                      tooltip: bookmarkConfirmed
+                          ? l10n.readerBookmarkAdded
+                          : l10n.readerBookmark,
                     ),
                     IconButton(
                       icon: const Icon(

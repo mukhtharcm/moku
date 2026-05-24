@@ -256,6 +256,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                     children: [
                       IconButton(
                         icon: const Icon(Icons.arrow_back, color: fgColor),
+                        tooltip: MaterialLocalizations.of(
+                          context,
+                        ).backButtonTooltip,
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                       Expanded(
@@ -311,14 +314,20 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                           inactiveTrackColor: fgColor.withValues(alpha: 0.3),
                           thumbColor: theme.colorScheme.primary,
                         ),
-                        child: Slider(
-                          value: (_currentPage + 1).toDouble(),
-                          min: 1,
-                          max: _totalPages.toDouble(),
-                          onChanged: (value) {
-                            final page = value.round() - 1;
-                            _pageController.jumpToPage(page);
-                          },
+                        child: Semantics(
+                          label: l10n.readerPageOf(
+                            currentPage: _currentPage + 1,
+                            totalPages: _totalPages,
+                          ),
+                          child: Slider(
+                            value: (_currentPage + 1).toDouble(),
+                            min: 1,
+                            max: _totalPages.toDouble(),
+                            onChanged: (value) {
+                              final page = value.round() - 1;
+                              _pageController.jumpToPage(page);
+                            },
+                          ),
                         ),
                       ),
                       Text(

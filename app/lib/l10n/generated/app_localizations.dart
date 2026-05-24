@@ -1280,6 +1280,12 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to delete this bookmark?'**
   String get readerDeleteBookmarkMessage;
 
+  /// No description provided for @readerBookmarkAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmark added'**
+  String get readerBookmarkAdded;
+
   /// No description provided for @readerQuotedSelection.
   ///
   /// In en, this message translates to:
@@ -1369,6 +1375,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Zen Mode'**
   String get readerZenMode;
+
+  /// No description provided for @readerSwitchToLightMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to light mode'**
+  String get readerSwitchToLightMode;
+
+  /// No description provided for @readerSwitchToDarkMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to dark mode'**
+  String get readerSwitchToDarkMode;
 
   /// No description provided for @readerTableOfContents.
   ///
@@ -1504,6 +1522,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sessions'**
   String get statsSessions;
+
+  /// No description provided for @statsSessionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0 {No sessions} =1 {1 session} other {{count} sessions}}'**
+  String statsSessionCount({required int count});
 
   /// No description provided for @statsRecentSessions.
   ///

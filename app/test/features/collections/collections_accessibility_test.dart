@@ -130,6 +130,23 @@ void main() {
     expect(find.byTooltip('Add books'), findsNothing);
   });
 
+  testWidgets('empty shelves screen shows one create action', (tester) async {
+    final database = db.AppDatabase(NativeDatabase.memory());
+    final cubit = CollectionsCubit(database: database)..loadCollections();
+    addTearDown(() async {
+      await database.close();
+      await cubit.close();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 1));
+    });
+
+    await _pumpCollectionsScreen(tester, database: database, cubit: cubit);
+
+    expect(find.text('Create Shelf'), findsOneWidget);
+    expect(find.byTooltip('Create Shelf'), findsNothing);
+  });
+
   testWidgets(
     'add-books sheet lets users add a book by tapping the labeled row content',
     (tester) async {

@@ -668,6 +668,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Are you sure you want to delete this bookmark?';
 
   @override
+  String get readerBookmarkAdded => 'Bookmark added';
+
+  @override
   String readerQuotedSelection({required Object text}) {
     return '\"$text\"';
   }
@@ -719,6 +722,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readerZenMode => 'Zen Mode';
+
+  @override
+  String get readerSwitchToLightMode => 'Switch to light mode';
+
+  @override
+  String get readerSwitchToDarkMode => 'Switch to dark mode';
 
   @override
   String get readerTableOfContents => 'Table of Contents';
@@ -794,6 +803,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statsSessions => 'Sessions';
+
+  @override
+  String statsSessionCount({required int count}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sessions',
+      one: '1 session',
+      zero: 'No sessions',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get statsRecentSessions => 'Recent Sessions';

@@ -83,6 +83,9 @@ class _SummaryCards extends StatelessWidget {
     final timeLabel = h > 0
         ? l10n.statsDurationHoursMinutes(hours: h, minutes: m)
         : l10n.statsDurationMinutes(minutes: m);
+    final sessionCountLabel = l10n.statsSessionCount(
+      count: state.totalSessions,
+    );
 
     return Row(
       children: [
@@ -109,7 +112,8 @@ class _SummaryCards extends StatelessWidget {
             icon: Icons.library_books_rounded,
             iconColor: Colors.purple,
             value: '${state.totalSessions}',
-            label: l10n.statsSessions,
+            label: sessionCountLabel,
+            visualLabel: l10n.statsSessions,
           ),
         ),
       ],
@@ -122,12 +126,14 @@ class _StatCard extends StatelessWidget {
   final Color iconColor;
   final String value;
   final String label;
+  final String? visualLabel;
 
   const _StatCard({
     required this.icon,
     required this.iconColor,
     required this.value,
     required this.label,
+    this.visualLabel,
   });
 
   @override
@@ -150,7 +156,7 @@ class _StatCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Text(label, style: theme.textTheme.bodySmall),
+              Text(visualLabel ?? label, style: theme.textTheme.bodySmall),
             ],
           ),
         ),

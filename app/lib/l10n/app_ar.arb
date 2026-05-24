@@ -192,6 +192,7 @@
   "readerNoBookmarksYet": "لا توجد إشارات مرجعية بعد",
   "readerDeleteBookmarkTitle": "حذف الإشارة المرجعية",
   "readerDeleteBookmarkMessage": "هل تريد حذف هذه الإشارة المرجعية؟",
+  "readerBookmarkAdded": "تمت إضافة الإشارة المرجعية",
   "readerBookmarksTab": "الإشارات المرجعية ({count})",
   "readerNoHighlightsYet": "لا توجد تمييزات بعد",
   "readerHighlightsTab": "التمييزات ({count})",
@@ -206,6 +207,8 @@
   "readerHighlightWithNote": "تمييز مع ملاحظة",
   "readerTableOfContents": "جدول المحتويات",
   "readerZenMode": "وضع التركيز",
+  "readerSwitchToLightMode": "التبديل إلى الوضع الفاتح",
+  "readerSwitchToDarkMode": "التبديل إلى الوضع الداكن",
   "readerSettings": "إعدادات القراءة",
   "readerDeleteHighlightMessage": "هل تريد حذف هذا التمييز؟",
   "readerBookmark": "إشارة مرجعية",
@@ -228,6 +231,14 @@
   "readerLoadFailed": "تعذّر فتح هذا الكتاب: {error}",
   "readerExitZenMode": "إنهاء وضع التركيز",
   "statsSessions": "جلسات القراءة",
+  "statsSessionCount": "{count, plural, =0 {لا توجد جلسات قراءة} =1 {جلسة قراءة واحدة} =2 {جلستا قراءة} few {{count} جلسات قراءة} many {{count} جلسة قراءة} other {{count} جلسة قراءة}}",
+  "@statsSessionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "readerPageOf": "الصفحة {currentPage} من {totalPages}",
   "statsLoadFailed": "تعذّر تحميل الإحصاءات: {error}",
   "statsRecentSessions": "جلسات القراءة الأخيرة",

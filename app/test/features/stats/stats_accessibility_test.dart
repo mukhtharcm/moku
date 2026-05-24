@@ -81,8 +81,13 @@ void main() {
           ),
         );
         expect(
-          tester.getSemantics(find.bySemanticsLabel(l10n.statsSessions)),
-          _matchesReadOnlyNode(label: l10n.statsSessions, value: '2'),
+          tester.getSemantics(
+            find.bySemanticsLabel(l10n.statsSessionCount(count: 2)),
+          ),
+          _matchesReadOnlyNode(
+            label: l10n.statsSessionCount(count: 2),
+            value: '2',
+          ),
         );
         expect(
           tester.getSemantics(find.bySemanticsLabel(l10n.statsRecentSessions)),

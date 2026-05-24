@@ -92,11 +92,23 @@ class CollectionsScreen extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'collections_create',
-        onPressed: () => _showCreateDialog(context),
-        tooltip: l10n.collectionsCreateShelf,
-        child: const Icon(Icons.add_rounded),
+      floatingActionButton: BlocBuilder<CollectionsCubit, CollectionsState>(
+        buildWhen: (previous, current) =>
+            previous.status != current.status ||
+            previous.collections != current.collections,
+        builder: (context, state) {
+          if (state.status == CollectionsStatus.loading ||
+              state.collections.isEmpty) {
+            return const SizedBox.shrink();
+          }
+
+          return FloatingActionButton(
+            heroTag: 'collections_create',
+            onPressed: () => _showCreateDialog(context),
+            tooltip: l10n.collectionsCreateShelf,
+            child: const Icon(Icons.add_rounded),
+          );
+        },
       ),
     );
   }

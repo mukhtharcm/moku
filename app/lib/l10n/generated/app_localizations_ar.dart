@@ -665,6 +665,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get readerDeleteBookmarkMessage => 'هل تريد حذف هذه الإشارة المرجعية؟';
 
   @override
+  String get readerBookmarkAdded => 'تمت إضافة الإشارة المرجعية';
+
+  @override
   String readerQuotedSelection({required Object text}) {
     return '«$text»';
   }
@@ -714,6 +717,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get readerZenMode => 'وضع التركيز';
+
+  @override
+  String get readerSwitchToLightMode => 'التبديل إلى الوضع الفاتح';
+
+  @override
+  String get readerSwitchToDarkMode => 'التبديل إلى الوضع الداكن';
 
   @override
   String get readerTableOfContents => 'جدول المحتويات';
@@ -789,6 +798,21 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get statsSessions => 'جلسات القراءة';
+
+  @override
+  String statsSessionCount({required int count}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count جلسة قراءة',
+      many: '$count جلسة قراءة',
+      few: '$count جلسات قراءة',
+      two: 'جلستا قراءة',
+      one: 'جلسة قراءة واحدة',
+      zero: 'لا توجد جلسات قراءة',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get statsRecentSessions => 'جلسات القراءة الأخيرة';
