@@ -25,9 +25,10 @@ String catalogTitleForId(
   return switch (catalogId) {
     'open-library' => l10n.searchCatalogOpenLibraryTitle,
     'project-gutenberg' => l10n.searchCatalogProjectGutenbergTitle,
-    _ => fallbackTitle.trim().isEmpty
-        ? l10n.searchGenericCatalogName
-        : fallbackTitle,
+    _ =>
+      fallbackTitle.trim().isEmpty
+          ? l10n.searchGenericCatalogName
+          : fallbackTitle,
   };
 }
 
@@ -39,17 +40,16 @@ String catalogErrorMessage(BuildContext context, Object error) {
   return context.l10n.searchErrorFallback;
 }
 
-String catalogErrorCodeMessage(
-  BuildContext context,
-  CatalogErrorCode? code,
-) {
+String catalogErrorCodeMessage(BuildContext context, CatalogErrorCode? code) {
   final l10n = context.l10n;
 
   return switch (code) {
     CatalogErrorCode.invalidCatalogInput => l10n.searchErrorInvalidCatalogInput,
     CatalogErrorCode.duplicateCatalog => l10n.searchErrorDuplicateCatalog,
-    CatalogErrorCode.downloadRedirectLoop =>
-      l10n.searchErrorDownloadRedirected,
+    CatalogErrorCode.catalogAuthenticationRequired =>
+      l10n.searchErrorCatalogAuthenticationRequired,
+    CatalogErrorCode.catalogAccessDenied => l10n.searchErrorCatalogAccessDenied,
+    CatalogErrorCode.downloadRedirectLoop => l10n.searchErrorDownloadRedirected,
     CatalogErrorCode.downloadFailed => l10n.searchErrorDownloadFailed,
     CatalogErrorCode.catalogNotSearchable =>
       l10n.searchErrorCatalogNotSearchable,

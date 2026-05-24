@@ -530,6 +530,18 @@ abstract class AppLocalizations {
   /// **'That catalog has already been added.'**
   String get searchErrorDuplicateCatalog;
 
+  /// No description provided for @searchErrorCatalogAuthenticationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This catalog requires sign-in or other authentication.'**
+  String get searchErrorCatalogAuthenticationRequired;
+
+  /// No description provided for @searchErrorCatalogAccessDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'This catalog denied access from the app.'**
+  String get searchErrorCatalogAccessDenied;
+
   /// No description provided for @searchErrorDownloadRedirected.
   ///
   /// In en, this message translates to:
@@ -673,6 +685,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Downloading...'**
   String get searchDownloading;
+
+  /// No description provided for @searchDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded'**
+  String get searchDownloaded;
 
   /// No description provided for @searchDownloadFormat.
   ///

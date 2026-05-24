@@ -241,6 +241,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'That catalog has already been added.';
 
   @override
+  String get searchErrorCatalogAuthenticationRequired =>
+      'This catalog requires sign-in or other authentication.';
+
+  @override
+  String get searchErrorCatalogAccessDenied =>
+      'This catalog denied access from the app.';
+
+  @override
   String get searchErrorDownloadRedirected =>
       'The download redirected too many times.';
 
@@ -323,6 +331,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchDownloading => 'Downloading...';
+
+  @override
+  String get searchDownloaded => 'Downloaded';
 
   @override
   String searchDownloadFormat({required Object formatName}) {

@@ -17,6 +17,8 @@ enum CatalogProtocol { opds1, opds2 }
 enum CatalogErrorCode {
   invalidCatalogInput,
   duplicateCatalog,
+  catalogAuthenticationRequired,
+  catalogAccessDenied,
   downloadRedirectLoop,
   downloadFailed,
   searchFailed,
@@ -341,7 +343,10 @@ class OpdsCatalogService {
         .timeout(const Duration(seconds: 8));
     if (response.statusCode != 200) {
       throw CatalogException(
-        CatalogErrorCode.searchFailed,
+        _statusToCatalogErrorCode(
+          response.statusCode,
+          fallback: CatalogErrorCode.searchFailed,
+        ),
         statusCode: response.statusCode,
       );
     }
@@ -366,7 +371,10 @@ class OpdsCatalogService {
     final response = await _client.get(uri);
     if (response.statusCode != 200) {
       throw CatalogException(
-        CatalogErrorCode.searchFailed,
+        _statusToCatalogErrorCode(
+          response.statusCode,
+          fallback: CatalogErrorCode.searchFailed,
+        ),
         statusCode: response.statusCode,
       );
     }
@@ -388,7 +396,10 @@ class OpdsCatalogService {
     final response = await _client.get(uri);
     if (response.statusCode != 200) {
       throw CatalogException(
-        CatalogErrorCode.searchFailed,
+        _statusToCatalogErrorCode(
+          response.statusCode,
+          fallback: CatalogErrorCode.searchFailed,
+        ),
         statusCode: response.statusCode,
       );
     }
@@ -405,7 +416,10 @@ class OpdsCatalogService {
     final response = await _client.get(rootUri);
     if (response.statusCode != 200) {
       throw CatalogException(
-        CatalogErrorCode.catalogLoadFailed,
+        _statusToCatalogErrorCode(
+          response.statusCode,
+          fallback: CatalogErrorCode.catalogLoadFailed,
+        ),
         statusCode: response.statusCode,
       );
     }
@@ -458,7 +472,7 @@ class OpdsCatalogService {
       url: rootUri.toString(),
       kind: CatalogKind.custom,
       protocol: CatalogProtocol.opds1,
-      searchTemplate: rootUri.resolve(searchTemplate).toString(),
+      searchTemplate: _resolveTemplateAgainstBase(rootUri, searchTemplate),
     );
   }
 
@@ -597,42 +611,85 @@ class OpdsCatalogService {
     return null;
   }
 
-  List<CatalogBook> _parseOpds1Feed({
+  Future<List<CatalogBook>> _parseOpds1Feed({
     required CatalogSource catalog,
     required Uri baseUri,
     required XmlDocument document,
-  }) {
+    int depth = 0,
+    int maxResults = 8,
+  }) async {
     final results = <CatalogBook>[];
     for (final entry in document.descendants.whereType<XmlElement>().where(
       (element) => element.name.local == 'entry',
     )) {
+      if (results.length >= maxResults) break;
+
       final acquisitions = _parseOpds1Acquisitions(entry, baseUri);
-      if (acquisitions.isEmpty) continue;
+      if (acquisitions.isNotEmpty) {
+        final title = _childText(entry, 'title');
+        if (title == null || title.isEmpty) continue;
 
-      final title = _childText(entry, 'title');
-      if (title == null || title.isEmpty) continue;
+        final authorElement = _firstChild(entry, 'author');
+        final authorName = authorElement == null
+            ? null
+            : _childText(authorElement, 'name');
 
-      final authorElement = _firstChild(entry, 'author');
-      final authorName = authorElement == null
-          ? null
-          : _childText(authorElement, 'name');
+        results.add(
+          CatalogBook(
+            id: _childText(entry, 'id') ?? acquisitions.first.url.toString(),
+            title: title,
+            author: authorName?.trim() ?? '',
+            description: _childText(entry, 'content'),
+            coverUrl: _extractOpds1Cover(entry, baseUri)?.toString(),
+            yearLabel: _childText(entry, 'published')?.split('-').first,
+            externalUrl: _extractOpds1AlternateLink(entry, baseUri)?.toString(),
+            catalogId: catalog.id,
+            catalogTitle: catalog.title,
+            acquisitions: acquisitions,
+          ),
+        );
+        continue;
+      }
 
-      results.add(
-        CatalogBook(
-          id: _childText(entry, 'id') ?? acquisitions.first.url.toString(),
-          title: title,
-          author: authorName?.trim() ?? '',
-          description: _childText(entry, 'content'),
-          coverUrl: _extractOpds1Cover(entry, baseUri)?.toString(),
-          yearLabel: _childText(entry, 'published')?.split('-').first,
-          externalUrl: _extractOpds1AlternateLink(entry, baseUri)?.toString(),
-          catalogId: catalog.id,
-          catalogTitle: catalog.title,
-          acquisitions: acquisitions,
-        ),
+      final subsectionUri = _extractOpds1SubsectionCatalogUri(entry, baseUri);
+      if (subsectionUri == null || depth >= 1) continue;
+
+      final nestedResults = await _loadOpds1NestedFeed(
+        catalog: catalog,
+        uri: subsectionUri,
+        depth: depth + 1,
+        maxResults: maxResults - results.length,
       );
+      results.addAll(nestedResults);
     }
     return results;
+  }
+
+  Future<List<CatalogBook>> _loadOpds1NestedFeed({
+    required CatalogSource catalog,
+    required Uri uri,
+    required int depth,
+    required int maxResults,
+  }) async {
+    if (maxResults <= 0) return const [];
+
+    try {
+      final response = await _client
+          .get(uri, headers: {'User-Agent': 'Moku/1.0'})
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode != 200) return const [];
+
+      final document = XmlDocument.parse(response.body);
+      return _parseOpds1Feed(
+        catalog: catalog,
+        baseUri: uri,
+        document: document,
+        depth: depth,
+        maxResults: maxResults,
+      );
+    } catch (_) {
+      return const [];
+    }
   }
 
   List<CatalogAcquisition> _parseOpds2Acquisitions(
@@ -719,7 +776,7 @@ class OpdsCatalogService {
       final href = link['href'] as String?;
       if (href == null || href.isEmpty) continue;
       if (relValues.contains('search')) {
-        return baseUri.resolve(href).toString();
+        return _resolveTemplateAgainstBase(baseUri, href);
       }
     }
     return null;
@@ -992,6 +1049,26 @@ class OpdsCatalogService {
     return null;
   }
 
+  Uri? _extractOpds1SubsectionCatalogUri(XmlElement entry, Uri baseUri) {
+    for (final link in entry.children.whereType<XmlElement>()) {
+      if (link.name.local != 'link') continue;
+      final rel = link.getAttribute('rel') ?? '';
+      final type = link.getAttribute('type') ?? '';
+      final href = link.getAttribute('href');
+      if (rel != 'subsection' ||
+          !type.contains('opds-catalog') ||
+          href == null ||
+          href.isEmpty) {
+        continue;
+      }
+
+      final resolved = baseUri.resolve(href);
+      if (!resolved.path.endsWith('.opds')) continue;
+      return resolved;
+    }
+    return null;
+  }
+
   XmlElement? _firstChild(XmlElement parent, String localName) {
     for (final child in parent.children.whereType<XmlElement>()) {
       if (child.name.local == localName) return child;
@@ -1062,6 +1139,30 @@ class OpdsCatalogService {
     }
 
     return null;
+  }
+
+  String _resolveTemplateAgainstBase(Uri baseUri, String template) {
+    const openToken = '__moku_open__';
+    const closeToken = '__moku_close__';
+    final protectedTemplate = template
+        .replaceAll('{', openToken)
+        .replaceAll('}', closeToken);
+    return baseUri
+        .resolve(protectedTemplate)
+        .toString()
+        .replaceAll(openToken, '{')
+        .replaceAll(closeToken, '}');
+  }
+
+  CatalogErrorCode _statusToCatalogErrorCode(
+    int statusCode, {
+    required CatalogErrorCode fallback,
+  }) {
+    return switch (statusCode) {
+      401 => CatalogErrorCode.catalogAuthenticationRequired,
+      403 => CatalogErrorCode.catalogAccessDenied,
+      _ => fallback,
+    };
   }
 
   void dispose() {

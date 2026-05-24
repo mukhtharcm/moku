@@ -178,9 +178,13 @@ class _SearchScreenState extends State<SearchScreen> {
                     final isDownloading = state.downloadingBookIds.contains(
                       book.id,
                     );
+                    final isDownloaded = state.downloadedBookIds.contains(
+                      book.id,
+                    );
                     return _SearchResultCard(
                       book: book,
                       isDownloading: isDownloading,
+                      isDownloaded: isDownloaded,
                       onDownload: () async {
                         final cubit = context.read<SearchCubit>();
                         final messenger = ScaffoldMessenger.of(context);
@@ -308,59 +312,69 @@ class _SearchScreenState extends State<SearchScreen> {
   Future<void> _showAddCatalogDialog(BuildContext context) async {
     final titleController = TextEditingController();
     final urlController = TextEditingController();
+    final urlFocusNode = FocusNode();
     final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
 
     await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.searchAddCustomCatalogTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: InputDecoration(
-                labelText: l10n.searchCatalogNameLabel,
+      builder: (ctx) {
+        Future<void> submit() async {
+          try {
+            await context.read<SearchCubit>().addCustomCatalog(
+              title: titleController.text,
+              url: urlController.text,
+            );
+            if (!context.mounted || !ctx.mounted) return;
+            Navigator.pop(ctx);
+          } catch (error) {
+            if (!context.mounted || !ctx.mounted) return;
+            messenger.showSnackBar(
+              SnackBar(content: Text(catalogErrorMessage(context, error))),
+            );
+          }
+        }
+
+        return AlertDialog(
+          title: Text(l10n.searchAddCustomCatalogTitle),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: l10n.searchCatalogNameLabel,
+                ),
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => urlFocusNode.requestFocus(),
               ),
-              textInputAction: TextInputAction.next,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlController,
-              decoration: InputDecoration(
-                labelText: l10n.searchCatalogUrlLabel,
+              const SizedBox(height: 12),
+              TextField(
+                controller: urlController,
+                focusNode: urlFocusNode,
+                decoration: InputDecoration(
+                  labelText: l10n.searchCatalogUrlLabel,
+                ),
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => submit(),
               ),
-              keyboardType: TextInputType.url,
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.commonCancel),
             ),
+            FilledButton(onPressed: submit, child: Text(l10n.commonAdd)),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () async {
-              try {
-                await context.read<SearchCubit>().addCustomCatalog(
-                  title: titleController.text,
-                  url: urlController.text,
-                );
-                if (!context.mounted || !ctx.mounted) return;
-                Navigator.pop(ctx);
-              } catch (error) {
-                if (!context.mounted || !ctx.mounted) return;
-                messenger.showSnackBar(
-                  SnackBar(content: Text(catalogErrorMessage(context, error))),
-                );
-              }
-            },
-            child: Text(l10n.commonAdd),
-          ),
-        ],
-      ),
+        );
+      },
     );
+
+    titleController.dispose();
+    urlController.dispose();
+    urlFocusNode.dispose();
   }
 }
 
@@ -492,11 +506,13 @@ class _SearchStatusMessage extends StatelessWidget {
 class _SearchResultCard extends StatelessWidget {
   final CatalogBook book;
   final bool isDownloading;
+  final bool isDownloaded;
   final Future<void> Function() onDownload;
 
   const _SearchResultCard({
     required this.book,
     required this.isDownloading,
+    required this.isDownloaded,
     required this.onDownload,
   });
 
@@ -613,17 +629,25 @@ class _SearchResultCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: isDownloading ? null : onDownload,
+                    onPressed: (isDownloading || isDownloaded)
+                        ? null
+                        : onDownload,
                     icon: isDownloading
                         ? const SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.download),
+                        : Icon(
+                            isDownloaded
+                                ? Icons.check_circle_outline
+                                : Icons.download,
+                          ),
                     label: Text(
                       isDownloading
                           ? l10n.searchDownloading
+                          : isDownloaded
+                          ? l10n.searchDownloaded
                           : l10n.searchDownloadFormat(
                               formatName: preferredFormatLabel,
                             ),

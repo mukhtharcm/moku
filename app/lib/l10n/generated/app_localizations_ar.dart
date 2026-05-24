@@ -238,6 +238,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get searchErrorDuplicateCatalog => 'هذا الفهرس مضاف بالفعل.';
 
   @override
+  String get searchErrorCatalogAuthenticationRequired =>
+      'يتطلّب هذا الفهرس تسجيل الدخول أو نوعًا آخر من المصادقة.';
+
+  @override
+  String get searchErrorCatalogAccessDenied =>
+      'رفض هذا الفهرس الوصول من التطبيق.';
+
+  @override
   String get searchErrorDownloadRedirected =>
       'أُعيد توجيه التنزيل مرات كثيرة جدًا.';
 
@@ -320,6 +328,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get searchDownloading => 'جارٍ التنزيل…';
+
+  @override
+  String get searchDownloaded => 'تم التنزيل';
 
   @override
   String searchDownloadFormat({required Object formatName}) {

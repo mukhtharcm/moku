@@ -94,6 +94,8 @@
   "searchErrorFallback": "Something went wrong.",
   "searchErrorInvalidCatalogInput": "Enter a valid catalog name and URL.",
   "searchErrorDuplicateCatalog": "That catalog has already been added.",
+  "searchErrorCatalogAuthenticationRequired": "This catalog requires sign-in or other authentication.",
+  "searchErrorCatalogAccessDenied": "This catalog denied access from the app.",
   "searchErrorDownloadRedirected": "The download redirected too many times.",
   "searchErrorDownloadFailed": "The download failed.",
   "searchErrorCatalogNotSearchable": "This catalog does not provide a searchable OPDS feed.",
@@ -133,6 +135,7 @@
   "searchCatalogTypeCustom": "Custom",
   "searchOpenSourcePage": "Open source page",
   "searchDownloading": "Downloading...",
+  "searchDownloaded": "Downloaded",
   "searchDownloadFormat": "Download {formatName}",
   "@searchDownloadFormat": {
     "placeholders": {

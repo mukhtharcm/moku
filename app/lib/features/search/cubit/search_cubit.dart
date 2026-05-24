@@ -164,6 +164,8 @@ class SearchCubit extends Cubit<SearchState> {
         ),
       );
       _autoSync?.bump();
+      final downloaded = {...state.downloadedBookIds, book.id}.toList();
+      emit(state.copyWith(downloadedBookIds: downloaded, clearError: true));
     } finally {
       final updated = [...state.downloadingBookIds]..remove(book.id);
       emit(state.copyWith(downloadingBookIds: updated));
