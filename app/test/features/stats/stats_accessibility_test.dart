@@ -24,6 +24,8 @@ void main() {
           durationSeconds: 3600,
           startChapter: 1,
           endChapter: 2,
+          updatedAt: today,
+          syncPending: false,
         ),
         ReadingSession(
           id: 'session-2',
@@ -33,6 +35,8 @@ void main() {
           durationSeconds: 1800,
           startChapter: 3,
           endChapter: 4,
+          updatedAt: yesterday,
+          syncPending: false,
         ),
       ]);
       addTearDown(database.close);
@@ -218,5 +222,7 @@ class _FakeAppDatabase extends AppDatabase {
   _FakeAppDatabase(this.sessions) : super(NativeDatabase.memory());
 
   @override
-  Future<List<ReadingSession>> getAllSessions() async => sessions;
+  Future<List<ReadingSession>> getAllSessions({
+    bool includeDeleted = false,
+  }) async => sessions;
 }

@@ -375,7 +375,7 @@ class ReaderCubit extends Cubit<ReaderState> {
     );
     // Progress updates come as often as every page turn. Use the throttled
     // progress bump (min 3 min interval, flushed on close/pause) rather
-    // than the general 30s-debounce bump to avoid a sync storm.
+    // than the general dirty-write debounce to avoid a sync storm.
     _autoSync?.bumpProgress();
   }
 
@@ -388,6 +388,7 @@ class ReaderCubit extends Cubit<ReaderState> {
         chapterIndex: state.currentChapter,
         title: title,
         createdAt: now,
+        updatedAt: Value(now),
       ),
     );
     _autoSync?.bump();
@@ -426,7 +427,7 @@ class ReaderCubit extends Cubit<ReaderState> {
   }
 
   Future<void> deleteHighlight(String id) async {
-    await _database.deleteHighlight(id);
+    await _database.softDeleteHighlight(id);
     _autoSync?.bump();
     await loadHighlightsForChapter();
   }

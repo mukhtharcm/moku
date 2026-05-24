@@ -23,7 +23,7 @@ func init() {
 
 		collection.Fields.Add(
 			&core.TextField{Name: "title", Required: true, Max: 500},
-			&core.TextField{Name: "author", Required: true, Max: 500},
+			&core.TextField{Name: "author", Max: 500},
 			&core.TextField{Name: "description"},
 			&core.FileField{
 				Name:      "cover_image",

@@ -74,6 +74,7 @@ class MokuApp extends StatelessWidget {
               catalogService: opdsCatalogService,
               bookService: bookService,
               database: database,
+              autoSync: autoSyncService,
             )..loadCatalogs(),
           ),
           BlocProvider.value(value: syncConfigCubit),

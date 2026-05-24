@@ -244,6 +244,7 @@ db.Book _testDbBook({
     totalChapters: 0,
     createdAt: now,
     updatedAt: now,
+    syncPending: false,
   );
 }
 
@@ -273,7 +274,8 @@ class _FakeCollectionDetailDatabase extends db.AppDatabase {
       StreamController<List<db.Book>>.broadcast();
 
   @override
-  Future<List<db.Book>> getAllBooks() async => List.of(_libraryBooks);
+  Future<List<db.Book>> getAllBooks({bool includeDeleted = false}) async =>
+      List.of(_libraryBooks);
 
   @override
   Future<List<db.Book>> getBooksInCollection(String collectionId) async =>
@@ -286,13 +288,16 @@ class _FakeCollectionDetailDatabase extends db.AppDatabase {
   }
 
   @override
-  Future<int> addBookToCollection(String collectionId, String bookId) async {
+  Future<void> addBookToCollection(
+    String collectionId,
+    String bookId, {
+    bool markPending = true,
+  }) async {
     final book = _libraryBooks.firstWhere(
       (candidate) => candidate.id == bookId,
     );
     _collectionBooks.add(book);
     _updates.add(List.of(_collectionBooks));
-    return 1;
   }
 
   @override

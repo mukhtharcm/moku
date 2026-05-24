@@ -53,11 +53,7 @@ class LibraryCubit extends Cubit<LibraryState> {
         );
       },
       onError: (error) {
-        emit(
-          state.copyWith(
-            status: LibraryStatus.error,
-          ),
-        );
+        emit(state.copyWith(status: LibraryStatus.error));
       },
     );
   }
@@ -115,11 +111,15 @@ class LibraryCubit extends Cubit<LibraryState> {
   /// storage accumulation.
   Future<void> deleteBook(String bookId) async {
     // Fetch file paths before deleting the DB record
-    final bookRecord = await _database.getBookById(bookId);
+    final bookRecord = await _database.getBookById(
+      bookId,
+      includeDeleted: true,
+    );
 
-    // Delete from database first
-    await _database.deleteBook(bookId);
+    // Tombstone in the database first so sync can propagate the delete.
+    await _database.softDeleteBook(bookId);
     _autoSync?.bump();
+    _autoSync?.flushNow();
 
     // Clean up files from disk (best-effort — never throw on failure)
     if (bookRecord != null) {

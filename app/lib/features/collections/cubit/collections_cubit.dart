@@ -15,10 +15,12 @@ class CollectionsCubit extends Cubit<CollectionsState> {
   StreamSubscription? _subscription;
   static const _uuid = Uuid();
 
-  CollectionsCubit({required db.AppDatabase database, AutoSyncService? autoSync})
-      : _database = database,
-        _autoSync = autoSync,
-        super(const CollectionsState());
+  CollectionsCubit({
+    required db.AppDatabase database,
+    AutoSyncService? autoSync,
+  }) : _database = database,
+       _autoSync = autoSync,
+       super(const CollectionsState());
 
   void loadCollections() {
     emit(state.copyWith(status: CollectionsStatus.loading));
@@ -26,25 +28,27 @@ class CollectionsCubit extends Cubit<CollectionsState> {
     _subscription = _database.watchAllCollections().listen(
       (dbCollections) {
         final collections = dbCollections
-            .map((c) => BookCollection(
-                  id: c.id,
-                  name: c.name,
-                  description: c.description,
-                  coverPath: c.coverPath,
-                  createdAt: c.createdAt,
-                  updatedAt: c.updatedAt,
-                  remoteId: c.remoteId,
-                ))
+            .map(
+              (c) => BookCollection(
+                id: c.id,
+                name: c.name,
+                description: c.description,
+                coverPath: c.coverPath,
+                createdAt: c.createdAt,
+                updatedAt: c.updatedAt,
+                remoteId: c.remoteId,
+              ),
+            )
             .toList();
-        emit(state.copyWith(
-          status: CollectionsStatus.loaded,
-          collections: collections,
-        ));
+        emit(
+          state.copyWith(
+            status: CollectionsStatus.loaded,
+            collections: collections,
+          ),
+        );
       },
       onError: (e) {
-        emit(state.copyWith(
-          status: CollectionsStatus.error,
-        ));
+        emit(state.copyWith(status: CollectionsStatus.error));
       },
     );
   }
@@ -64,8 +68,9 @@ class CollectionsCubit extends Cubit<CollectionsState> {
   }
 
   Future<void> deleteCollection(String id) async {
-    await _database.deleteCollection(id);
+    await _database.softDeleteCollection(id);
     _autoSync?.bump();
+    _autoSync?.flushNow();
   }
 
   Future<void> addBookToCollection(String collectionId, String bookId) async {
@@ -74,7 +79,9 @@ class CollectionsCubit extends Cubit<CollectionsState> {
   }
 
   Future<void> removeBookFromCollection(
-      String collectionId, String bookId) async {
+    String collectionId,
+    String bookId,
+  ) async {
     await _database.removeBookFromCollection(collectionId, bookId);
     _autoSync?.bump();
   }

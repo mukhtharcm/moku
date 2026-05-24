@@ -165,6 +165,32 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncPendingMeta = const VerificationMeta(
+    'syncPending',
+  );
+  @override
+  late final GeneratedColumn<bool> syncPending = GeneratedColumn<bool>(
+    'sync_pending',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sync_pending" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _remoteIdMeta = const VerificationMeta(
     'remoteId',
   );
@@ -193,6 +219,8 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
     fileHash,
     createdAt,
     updatedAt,
+    deletedAt,
+    syncPending,
     remoteId,
   ];
   @override
@@ -315,6 +343,21 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_pending')) {
+      context.handle(
+        _syncPendingMeta,
+        syncPending.isAcceptableOrUnknown(
+          data['sync_pending']!,
+          _syncPendingMeta,
+        ),
+      );
+    }
     if (data.containsKey('remote_id')) {
       context.handle(
         _remoteIdMeta,
@@ -390,6 +433,14 @@ class $BooksTable extends Books with TableInfo<$BooksTable, Book> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      syncPending: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sync_pending'],
+      )!,
       remoteId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}remote_id'],
@@ -419,6 +470,8 @@ class Book extends DataClass implements Insertable<Book> {
   final String? fileHash;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final bool syncPending;
   final String? remoteId;
   const Book({
     required this.id,
@@ -436,6 +489,8 @@ class Book extends DataClass implements Insertable<Book> {
     this.fileHash,
     required this.createdAt,
     required this.updatedAt,
+    this.deletedAt,
+    required this.syncPending,
     this.remoteId,
   });
   @override
@@ -470,6 +525,10 @@ class Book extends DataClass implements Insertable<Book> {
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['sync_pending'] = Variable<bool>(syncPending);
     if (!nullToAbsent || remoteId != null) {
       map['remote_id'] = Variable<String>(remoteId);
     }
@@ -505,6 +564,10 @@ class Book extends DataClass implements Insertable<Book> {
           : Value(fileHash),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      syncPending: Value(syncPending),
       remoteId: remoteId == null && nullToAbsent
           ? const Value.absent()
           : Value(remoteId),
@@ -532,6 +595,8 @@ class Book extends DataClass implements Insertable<Book> {
       fileHash: serializer.fromJson<String?>(json['fileHash']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      syncPending: serializer.fromJson<bool>(json['syncPending']),
       remoteId: serializer.fromJson<String?>(json['remoteId']),
     );
   }
@@ -554,6 +619,8 @@ class Book extends DataClass implements Insertable<Book> {
       'fileHash': serializer.toJson<String?>(fileHash),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'syncPending': serializer.toJson<bool>(syncPending),
       'remoteId': serializer.toJson<String?>(remoteId),
     };
   }
@@ -574,6 +641,8 @@ class Book extends DataClass implements Insertable<Book> {
     Value<String?> fileHash = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    bool? syncPending,
     Value<String?> remoteId = const Value.absent(),
   }) => Book(
     id: id ?? this.id,
@@ -591,6 +660,8 @@ class Book extends DataClass implements Insertable<Book> {
     fileHash: fileHash.present ? fileHash.value : this.fileHash,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    syncPending: syncPending ?? this.syncPending,
     remoteId: remoteId.present ? remoteId.value : this.remoteId,
   );
   Book copyWithCompanion(BooksCompanion data) {
@@ -616,6 +687,10 @@ class Book extends DataClass implements Insertable<Book> {
       fileHash: data.fileHash.present ? data.fileHash.value : this.fileHash,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      syncPending: data.syncPending.present
+          ? data.syncPending.value
+          : this.syncPending,
       remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
     );
   }
@@ -638,6 +713,8 @@ class Book extends DataClass implements Insertable<Book> {
           ..write('fileHash: $fileHash, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('remoteId: $remoteId')
           ..write(')'))
         .toString();
@@ -660,6 +737,8 @@ class Book extends DataClass implements Insertable<Book> {
     fileHash,
     createdAt,
     updatedAt,
+    deletedAt,
+    syncPending,
     remoteId,
   );
   @override
@@ -681,6 +760,8 @@ class Book extends DataClass implements Insertable<Book> {
           other.fileHash == this.fileHash &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.syncPending == this.syncPending &&
           other.remoteId == this.remoteId);
 }
 
@@ -700,6 +781,8 @@ class BooksCompanion extends UpdateCompanion<Book> {
   final Value<String?> fileHash;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<bool> syncPending;
   final Value<String?> remoteId;
   final Value<int> rowid;
   const BooksCompanion({
@@ -718,6 +801,8 @@ class BooksCompanion extends UpdateCompanion<Book> {
     this.fileHash = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -737,6 +822,8 @@ class BooksCompanion extends UpdateCompanion<Book> {
     this.fileHash = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -761,6 +848,8 @@ class BooksCompanion extends UpdateCompanion<Book> {
     Expression<String>? fileHash,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<bool>? syncPending,
     Expression<String>? remoteId,
     Expression<int>? rowid,
   }) {
@@ -780,6 +869,8 @@ class BooksCompanion extends UpdateCompanion<Book> {
       if (fileHash != null) 'file_hash': fileHash,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (syncPending != null) 'sync_pending': syncPending,
       if (remoteId != null) 'remote_id': remoteId,
       if (rowid != null) 'rowid': rowid,
     });
@@ -801,6 +892,8 @@ class BooksCompanion extends UpdateCompanion<Book> {
     Value<String?>? fileHash,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<bool>? syncPending,
     Value<String?>? remoteId,
     Value<int>? rowid,
   }) {
@@ -820,6 +913,8 @@ class BooksCompanion extends UpdateCompanion<Book> {
       fileHash: fileHash ?? this.fileHash,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      syncPending: syncPending ?? this.syncPending,
       remoteId: remoteId ?? this.remoteId,
       rowid: rowid ?? this.rowid,
     );
@@ -873,6 +968,12 @@ class BooksCompanion extends UpdateCompanion<Book> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (syncPending.present) {
+      map['sync_pending'] = Variable<bool>(syncPending.value);
+    }
     if (remoteId.present) {
       map['remote_id'] = Variable<String>(remoteId.value);
     }
@@ -900,6 +1001,8 @@ class BooksCompanion extends UpdateCompanion<Book> {
           ..write('fileHash: $fileHash, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('remoteId: $remoteId, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -1003,6 +1106,32 @@ class $ReadingProgressesTable extends ReadingProgresses
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncPendingMeta = const VerificationMeta(
+    'syncPending',
+  );
+  @override
+  late final GeneratedColumn<bool> syncPending = GeneratedColumn<bool>(
+    'sync_pending',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sync_pending" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _remoteIdMeta = const VerificationMeta(
     'remoteId',
   );
@@ -1024,6 +1153,8 @@ class $ReadingProgressesTable extends ReadingProgresses
     lastPosition,
     lastReadAt,
     updatedAt,
+    deletedAt,
+    syncPending,
     remoteId,
   ];
   @override
@@ -1106,6 +1237,21 @@ class $ReadingProgressesTable extends ReadingProgresses
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_pending')) {
+      context.handle(
+        _syncPendingMeta,
+        syncPending.isAcceptableOrUnknown(
+          data['sync_pending']!,
+          _syncPendingMeta,
+        ),
+      );
+    }
     if (data.containsKey('remote_id')) {
       context.handle(
         _remoteIdMeta,
@@ -1153,6 +1299,14 @@ class $ReadingProgressesTable extends ReadingProgresses
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      syncPending: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sync_pending'],
+      )!,
       remoteId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}remote_id'],
@@ -1175,6 +1329,8 @@ class ReadingProgress extends DataClass implements Insertable<ReadingProgress> {
   final String? lastPosition;
   final DateTime lastReadAt;
   final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final bool syncPending;
   final String? remoteId;
   const ReadingProgress({
     required this.id,
@@ -1185,6 +1341,8 @@ class ReadingProgress extends DataClass implements Insertable<ReadingProgress> {
     this.lastPosition,
     required this.lastReadAt,
     required this.updatedAt,
+    this.deletedAt,
+    required this.syncPending,
     this.remoteId,
   });
   @override
@@ -1200,6 +1358,10 @@ class ReadingProgress extends DataClass implements Insertable<ReadingProgress> {
     }
     map['last_read_at'] = Variable<DateTime>(lastReadAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['sync_pending'] = Variable<bool>(syncPending);
     if (!nullToAbsent || remoteId != null) {
       map['remote_id'] = Variable<String>(remoteId);
     }
@@ -1218,6 +1380,10 @@ class ReadingProgress extends DataClass implements Insertable<ReadingProgress> {
           : Value(lastPosition),
       lastReadAt: Value(lastReadAt),
       updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      syncPending: Value(syncPending),
       remoteId: remoteId == null && nullToAbsent
           ? const Value.absent()
           : Value(remoteId),
@@ -1238,6 +1404,8 @@ class ReadingProgress extends DataClass implements Insertable<ReadingProgress> {
       lastPosition: serializer.fromJson<String?>(json['lastPosition']),
       lastReadAt: serializer.fromJson<DateTime>(json['lastReadAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      syncPending: serializer.fromJson<bool>(json['syncPending']),
       remoteId: serializer.fromJson<String?>(json['remoteId']),
     );
   }
@@ -1253,6 +1421,8 @@ class ReadingProgress extends DataClass implements Insertable<ReadingProgress> {
       'lastPosition': serializer.toJson<String?>(lastPosition),
       'lastReadAt': serializer.toJson<DateTime>(lastReadAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'syncPending': serializer.toJson<bool>(syncPending),
       'remoteId': serializer.toJson<String?>(remoteId),
     };
   }
@@ -1266,6 +1436,8 @@ class ReadingProgress extends DataClass implements Insertable<ReadingProgress> {
     Value<String?> lastPosition = const Value.absent(),
     DateTime? lastReadAt,
     DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    bool? syncPending,
     Value<String?> remoteId = const Value.absent(),
   }) => ReadingProgress(
     id: id ?? this.id,
@@ -1276,6 +1448,8 @@ class ReadingProgress extends DataClass implements Insertable<ReadingProgress> {
     lastPosition: lastPosition.present ? lastPosition.value : this.lastPosition,
     lastReadAt: lastReadAt ?? this.lastReadAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    syncPending: syncPending ?? this.syncPending,
     remoteId: remoteId.present ? remoteId.value : this.remoteId,
   );
   ReadingProgress copyWithCompanion(ReadingProgressesCompanion data) {
@@ -1298,6 +1472,10 @@ class ReadingProgress extends DataClass implements Insertable<ReadingProgress> {
           ? data.lastReadAt.value
           : this.lastReadAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      syncPending: data.syncPending.present
+          ? data.syncPending.value
+          : this.syncPending,
       remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
     );
   }
@@ -1313,6 +1491,8 @@ class ReadingProgress extends DataClass implements Insertable<ReadingProgress> {
           ..write('lastPosition: $lastPosition, ')
           ..write('lastReadAt: $lastReadAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('remoteId: $remoteId')
           ..write(')'))
         .toString();
@@ -1328,6 +1508,8 @@ class ReadingProgress extends DataClass implements Insertable<ReadingProgress> {
     lastPosition,
     lastReadAt,
     updatedAt,
+    deletedAt,
+    syncPending,
     remoteId,
   );
   @override
@@ -1342,6 +1524,8 @@ class ReadingProgress extends DataClass implements Insertable<ReadingProgress> {
           other.lastPosition == this.lastPosition &&
           other.lastReadAt == this.lastReadAt &&
           other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.syncPending == this.syncPending &&
           other.remoteId == this.remoteId);
 }
 
@@ -1354,6 +1538,8 @@ class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgress> {
   final Value<String?> lastPosition;
   final Value<DateTime> lastReadAt;
   final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<bool> syncPending;
   final Value<String?> remoteId;
   final Value<int> rowid;
   const ReadingProgressesCompanion({
@@ -1365,6 +1551,8 @@ class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgress> {
     this.lastPosition = const Value.absent(),
     this.lastReadAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1377,6 +1565,8 @@ class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgress> {
     this.lastPosition = const Value.absent(),
     required DateTime lastReadAt,
     required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1392,6 +1582,8 @@ class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgress> {
     Expression<String>? lastPosition,
     Expression<DateTime>? lastReadAt,
     Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<bool>? syncPending,
     Expression<String>? remoteId,
     Expression<int>? rowid,
   }) {
@@ -1404,6 +1596,8 @@ class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgress> {
       if (lastPosition != null) 'last_position': lastPosition,
       if (lastReadAt != null) 'last_read_at': lastReadAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (syncPending != null) 'sync_pending': syncPending,
       if (remoteId != null) 'remote_id': remoteId,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1418,6 +1612,8 @@ class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgress> {
     Value<String?>? lastPosition,
     Value<DateTime>? lastReadAt,
     Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<bool>? syncPending,
     Value<String?>? remoteId,
     Value<int>? rowid,
   }) {
@@ -1430,6 +1626,8 @@ class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgress> {
       lastPosition: lastPosition ?? this.lastPosition,
       lastReadAt: lastReadAt ?? this.lastReadAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      syncPending: syncPending ?? this.syncPending,
       remoteId: remoteId ?? this.remoteId,
       rowid: rowid ?? this.rowid,
     );
@@ -1462,6 +1660,12 @@ class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgress> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (syncPending.present) {
+      map['sync_pending'] = Variable<bool>(syncPending.value);
+    }
     if (remoteId.present) {
       map['remote_id'] = Variable<String>(remoteId.value);
     }
@@ -1482,6 +1686,8 @@ class ReadingProgressesCompanion extends UpdateCompanion<ReadingProgress> {
           ..write('lastPosition: $lastPosition, ')
           ..write('lastReadAt: $lastReadAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('remoteId: $remoteId, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -1556,6 +1762,44 @@ class $BookmarksTable extends Bookmarks
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncPendingMeta = const VerificationMeta(
+    'syncPending',
+  );
+  @override
+  late final GeneratedColumn<bool> syncPending = GeneratedColumn<bool>(
+    'sync_pending',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sync_pending" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _remoteIdMeta = const VerificationMeta(
     'remoteId',
   );
@@ -1575,6 +1819,9 @@ class $BookmarksTable extends Bookmarks
     cfi,
     title,
     createdAt,
+    updatedAt,
+    deletedAt,
+    syncPending,
     remoteId,
   ];
   @override
@@ -1635,6 +1882,27 @@ class $BookmarksTable extends Bookmarks
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_pending')) {
+      context.handle(
+        _syncPendingMeta,
+        syncPending.isAcceptableOrUnknown(
+          data['sync_pending']!,
+          _syncPendingMeta,
+        ),
+      );
+    }
     if (data.containsKey('remote_id')) {
       context.handle(
         _remoteIdMeta,
@@ -1674,6 +1942,18 @@ class $BookmarksTable extends Bookmarks
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      syncPending: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sync_pending'],
+      )!,
       remoteId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}remote_id'],
@@ -1694,6 +1974,9 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
   final String? cfi;
   final String title;
   final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final bool syncPending;
   final String? remoteId;
   const Bookmark({
     required this.id,
@@ -1702,6 +1985,9 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
     this.cfi,
     required this.title,
     required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.syncPending,
     this.remoteId,
   });
   @override
@@ -1715,6 +2001,11 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
     }
     map['title'] = Variable<String>(title);
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['sync_pending'] = Variable<bool>(syncPending);
     if (!nullToAbsent || remoteId != null) {
       map['remote_id'] = Variable<String>(remoteId);
     }
@@ -1729,6 +2020,11 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
       cfi: cfi == null && nullToAbsent ? const Value.absent() : Value(cfi),
       title: Value(title),
       createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      syncPending: Value(syncPending),
       remoteId: remoteId == null && nullToAbsent
           ? const Value.absent()
           : Value(remoteId),
@@ -1747,6 +2043,9 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
       cfi: serializer.fromJson<String?>(json['cfi']),
       title: serializer.fromJson<String>(json['title']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      syncPending: serializer.fromJson<bool>(json['syncPending']),
       remoteId: serializer.fromJson<String?>(json['remoteId']),
     );
   }
@@ -1760,6 +2059,9 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
       'cfi': serializer.toJson<String?>(cfi),
       'title': serializer.toJson<String>(title),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'syncPending': serializer.toJson<bool>(syncPending),
       'remoteId': serializer.toJson<String?>(remoteId),
     };
   }
@@ -1771,6 +2073,9 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
     Value<String?> cfi = const Value.absent(),
     String? title,
     DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    bool? syncPending,
     Value<String?> remoteId = const Value.absent(),
   }) => Bookmark(
     id: id ?? this.id,
@@ -1779,6 +2084,9 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
     cfi: cfi.present ? cfi.value : this.cfi,
     title: title ?? this.title,
     createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    syncPending: syncPending ?? this.syncPending,
     remoteId: remoteId.present ? remoteId.value : this.remoteId,
   );
   Bookmark copyWithCompanion(BookmarksCompanion data) {
@@ -1791,6 +2099,11 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
       cfi: data.cfi.present ? data.cfi.value : this.cfi,
       title: data.title.present ? data.title.value : this.title,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      syncPending: data.syncPending.present
+          ? data.syncPending.value
+          : this.syncPending,
       remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
     );
   }
@@ -1804,14 +2117,27 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
           ..write('cfi: $cfi, ')
           ..write('title: $title, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('remoteId: $remoteId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, bookId, chapterIndex, cfi, title, createdAt, remoteId);
+  int get hashCode => Object.hash(
+    id,
+    bookId,
+    chapterIndex,
+    cfi,
+    title,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    syncPending,
+    remoteId,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1822,6 +2148,9 @@ class Bookmark extends DataClass implements Insertable<Bookmark> {
           other.cfi == this.cfi &&
           other.title == this.title &&
           other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.syncPending == this.syncPending &&
           other.remoteId == this.remoteId);
 }
 
@@ -1832,6 +2161,9 @@ class BookmarksCompanion extends UpdateCompanion<Bookmark> {
   final Value<String?> cfi;
   final Value<String> title;
   final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<bool> syncPending;
   final Value<String?> remoteId;
   final Value<int> rowid;
   const BookmarksCompanion({
@@ -1841,6 +2173,9 @@ class BookmarksCompanion extends UpdateCompanion<Bookmark> {
     this.cfi = const Value.absent(),
     this.title = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1851,6 +2186,9 @@ class BookmarksCompanion extends UpdateCompanion<Bookmark> {
     this.cfi = const Value.absent(),
     required String title,
     required DateTime createdAt,
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1865,6 +2203,9 @@ class BookmarksCompanion extends UpdateCompanion<Bookmark> {
     Expression<String>? cfi,
     Expression<String>? title,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<bool>? syncPending,
     Expression<String>? remoteId,
     Expression<int>? rowid,
   }) {
@@ -1875,6 +2216,9 @@ class BookmarksCompanion extends UpdateCompanion<Bookmark> {
       if (cfi != null) 'cfi': cfi,
       if (title != null) 'title': title,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (syncPending != null) 'sync_pending': syncPending,
       if (remoteId != null) 'remote_id': remoteId,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1887,6 +2231,9 @@ class BookmarksCompanion extends UpdateCompanion<Bookmark> {
     Value<String?>? cfi,
     Value<String>? title,
     Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<bool>? syncPending,
     Value<String?>? remoteId,
     Value<int>? rowid,
   }) {
@@ -1897,6 +2244,9 @@ class BookmarksCompanion extends UpdateCompanion<Bookmark> {
       cfi: cfi ?? this.cfi,
       title: title ?? this.title,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      syncPending: syncPending ?? this.syncPending,
       remoteId: remoteId ?? this.remoteId,
       rowid: rowid ?? this.rowid,
     );
@@ -1923,6 +2273,15 @@ class BookmarksCompanion extends UpdateCompanion<Bookmark> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (syncPending.present) {
+      map['sync_pending'] = Variable<bool>(syncPending.value);
+    }
     if (remoteId.present) {
       map['remote_id'] = Variable<String>(remoteId.value);
     }
@@ -1941,6 +2300,9 @@ class BookmarksCompanion extends UpdateCompanion<Bookmark> {
           ..write('cfi: $cfi, ')
           ..write('title: $title, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('remoteId: $remoteId, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2058,6 +2420,32 @@ class $HighlightsTable extends Highlights
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncPendingMeta = const VerificationMeta(
+    'syncPending',
+  );
+  @override
+  late final GeneratedColumn<bool> syncPending = GeneratedColumn<bool>(
+    'sync_pending',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sync_pending" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _remoteIdMeta = const VerificationMeta(
     'remoteId',
   );
@@ -2081,6 +2469,8 @@ class $HighlightsTable extends Highlights
     note,
     createdAt,
     updatedAt,
+    deletedAt,
+    syncPending,
     remoteId,
   ];
   @override
@@ -2170,6 +2560,21 @@ class $HighlightsTable extends Highlights
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_pending')) {
+      context.handle(
+        _syncPendingMeta,
+        syncPending.isAcceptableOrUnknown(
+          data['sync_pending']!,
+          _syncPendingMeta,
+        ),
+      );
+    }
     if (data.containsKey('remote_id')) {
       context.handle(
         _remoteIdMeta,
@@ -2225,6 +2630,14 @@ class $HighlightsTable extends Highlights
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      syncPending: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sync_pending'],
+      )!,
       remoteId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}remote_id'],
@@ -2249,6 +2662,8 @@ class Highlight extends DataClass implements Insertable<Highlight> {
   final String? note;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final bool syncPending;
   final String? remoteId;
   const Highlight({
     required this.id,
@@ -2261,6 +2676,8 @@ class Highlight extends DataClass implements Insertable<Highlight> {
     this.note,
     required this.createdAt,
     required this.updatedAt,
+    this.deletedAt,
+    required this.syncPending,
     this.remoteId,
   });
   @override
@@ -2282,6 +2699,10 @@ class Highlight extends DataClass implements Insertable<Highlight> {
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['sync_pending'] = Variable<bool>(syncPending);
     if (!nullToAbsent || remoteId != null) {
       map['remote_id'] = Variable<String>(remoteId);
     }
@@ -2304,6 +2725,10 @@ class Highlight extends DataClass implements Insertable<Highlight> {
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      syncPending: Value(syncPending),
       remoteId: remoteId == null && nullToAbsent
           ? const Value.absent()
           : Value(remoteId),
@@ -2326,6 +2751,8 @@ class Highlight extends DataClass implements Insertable<Highlight> {
       note: serializer.fromJson<String?>(json['note']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      syncPending: serializer.fromJson<bool>(json['syncPending']),
       remoteId: serializer.fromJson<String?>(json['remoteId']),
     );
   }
@@ -2343,6 +2770,8 @@ class Highlight extends DataClass implements Insertable<Highlight> {
       'note': serializer.toJson<String?>(note),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'syncPending': serializer.toJson<bool>(syncPending),
       'remoteId': serializer.toJson<String?>(remoteId),
     };
   }
@@ -2358,6 +2787,8 @@ class Highlight extends DataClass implements Insertable<Highlight> {
     Value<String?> note = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    bool? syncPending,
     Value<String?> remoteId = const Value.absent(),
   }) => Highlight(
     id: id ?? this.id,
@@ -2370,6 +2801,8 @@ class Highlight extends DataClass implements Insertable<Highlight> {
     note: note.present ? note.value : this.note,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    syncPending: syncPending ?? this.syncPending,
     remoteId: remoteId.present ? remoteId.value : this.remoteId,
   );
   Highlight copyWithCompanion(HighlightsCompanion data) {
@@ -2388,6 +2821,10 @@ class Highlight extends DataClass implements Insertable<Highlight> {
       note: data.note.present ? data.note.value : this.note,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      syncPending: data.syncPending.present
+          ? data.syncPending.value
+          : this.syncPending,
       remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
     );
   }
@@ -2405,6 +2842,8 @@ class Highlight extends DataClass implements Insertable<Highlight> {
           ..write('note: $note, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('remoteId: $remoteId')
           ..write(')'))
         .toString();
@@ -2422,6 +2861,8 @@ class Highlight extends DataClass implements Insertable<Highlight> {
     note,
     createdAt,
     updatedAt,
+    deletedAt,
+    syncPending,
     remoteId,
   );
   @override
@@ -2438,6 +2879,8 @@ class Highlight extends DataClass implements Insertable<Highlight> {
           other.note == this.note &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.syncPending == this.syncPending &&
           other.remoteId == this.remoteId);
 }
 
@@ -2452,6 +2895,8 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
   final Value<String?> note;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<bool> syncPending;
   final Value<String?> remoteId;
   final Value<int> rowid;
   const HighlightsCompanion({
@@ -2465,6 +2910,8 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
     this.note = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -2479,6 +2926,8 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
     this.note = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -2498,6 +2947,8 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
     Expression<String>? note,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<bool>? syncPending,
     Expression<String>? remoteId,
     Expression<int>? rowid,
   }) {
@@ -2512,6 +2963,8 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
       if (note != null) 'note': note,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (syncPending != null) 'sync_pending': syncPending,
       if (remoteId != null) 'remote_id': remoteId,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2528,6 +2981,8 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
     Value<String?>? note,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<bool>? syncPending,
     Value<String?>? remoteId,
     Value<int>? rowid,
   }) {
@@ -2542,6 +2997,8 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
       note: note ?? this.note,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      syncPending: syncPending ?? this.syncPending,
       remoteId: remoteId ?? this.remoteId,
       rowid: rowid ?? this.rowid,
     );
@@ -2580,6 +3037,12 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (syncPending.present) {
+      map['sync_pending'] = Variable<bool>(syncPending.value);
+    }
     if (remoteId.present) {
       map['remote_id'] = Variable<String>(remoteId.value);
     }
@@ -2602,6 +3065,8 @@ class HighlightsCompanion extends UpdateCompanion<Highlight> {
           ..write('note: $note, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('remoteId: $remoteId, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2677,6 +3142,32 @@ class $BookCollectionsTable extends BookCollections
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncPendingMeta = const VerificationMeta(
+    'syncPending',
+  );
+  @override
+  late final GeneratedColumn<bool> syncPending = GeneratedColumn<bool>(
+    'sync_pending',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sync_pending" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _remoteIdMeta = const VerificationMeta(
     'remoteId',
   );
@@ -2696,6 +3187,8 @@ class $BookCollectionsTable extends BookCollections
     coverPath,
     createdAt,
     updatedAt,
+    deletedAt,
+    syncPending,
     remoteId,
   ];
   @override
@@ -2754,6 +3247,21 @@ class $BookCollectionsTable extends BookCollections
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_pending')) {
+      context.handle(
+        _syncPendingMeta,
+        syncPending.isAcceptableOrUnknown(
+          data['sync_pending']!,
+          _syncPendingMeta,
+        ),
+      );
+    }
     if (data.containsKey('remote_id')) {
       context.handle(
         _remoteIdMeta,
@@ -2793,6 +3301,14 @@ class $BookCollectionsTable extends BookCollections
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      syncPending: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sync_pending'],
+      )!,
       remoteId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}remote_id'],
@@ -2813,6 +3329,8 @@ class BookCollection extends DataClass implements Insertable<BookCollection> {
   final String? coverPath;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final bool syncPending;
   final String? remoteId;
   const BookCollection({
     required this.id,
@@ -2821,6 +3339,8 @@ class BookCollection extends DataClass implements Insertable<BookCollection> {
     this.coverPath,
     required this.createdAt,
     required this.updatedAt,
+    this.deletedAt,
+    required this.syncPending,
     this.remoteId,
   });
   @override
@@ -2836,6 +3356,10 @@ class BookCollection extends DataClass implements Insertable<BookCollection> {
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['sync_pending'] = Variable<bool>(syncPending);
     if (!nullToAbsent || remoteId != null) {
       map['remote_id'] = Variable<String>(remoteId);
     }
@@ -2854,6 +3378,10 @@ class BookCollection extends DataClass implements Insertable<BookCollection> {
           : Value(coverPath),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      syncPending: Value(syncPending),
       remoteId: remoteId == null && nullToAbsent
           ? const Value.absent()
           : Value(remoteId),
@@ -2872,6 +3400,8 @@ class BookCollection extends DataClass implements Insertable<BookCollection> {
       coverPath: serializer.fromJson<String?>(json['coverPath']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      syncPending: serializer.fromJson<bool>(json['syncPending']),
       remoteId: serializer.fromJson<String?>(json['remoteId']),
     );
   }
@@ -2885,6 +3415,8 @@ class BookCollection extends DataClass implements Insertable<BookCollection> {
       'coverPath': serializer.toJson<String?>(coverPath),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'syncPending': serializer.toJson<bool>(syncPending),
       'remoteId': serializer.toJson<String?>(remoteId),
     };
   }
@@ -2896,6 +3428,8 @@ class BookCollection extends DataClass implements Insertable<BookCollection> {
     Value<String?> coverPath = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    bool? syncPending,
     Value<String?> remoteId = const Value.absent(),
   }) => BookCollection(
     id: id ?? this.id,
@@ -2904,6 +3438,8 @@ class BookCollection extends DataClass implements Insertable<BookCollection> {
     coverPath: coverPath.present ? coverPath.value : this.coverPath,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    syncPending: syncPending ?? this.syncPending,
     remoteId: remoteId.present ? remoteId.value : this.remoteId,
   );
   BookCollection copyWithCompanion(BookCollectionsCompanion data) {
@@ -2916,6 +3452,10 @@ class BookCollection extends DataClass implements Insertable<BookCollection> {
       coverPath: data.coverPath.present ? data.coverPath.value : this.coverPath,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      syncPending: data.syncPending.present
+          ? data.syncPending.value
+          : this.syncPending,
       remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
     );
   }
@@ -2929,6 +3469,8 @@ class BookCollection extends DataClass implements Insertable<BookCollection> {
           ..write('coverPath: $coverPath, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('remoteId: $remoteId')
           ..write(')'))
         .toString();
@@ -2942,6 +3484,8 @@ class BookCollection extends DataClass implements Insertable<BookCollection> {
     coverPath,
     createdAt,
     updatedAt,
+    deletedAt,
+    syncPending,
     remoteId,
   );
   @override
@@ -2954,6 +3498,8 @@ class BookCollection extends DataClass implements Insertable<BookCollection> {
           other.coverPath == this.coverPath &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.syncPending == this.syncPending &&
           other.remoteId == this.remoteId);
 }
 
@@ -2964,6 +3510,8 @@ class BookCollectionsCompanion extends UpdateCompanion<BookCollection> {
   final Value<String?> coverPath;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<bool> syncPending;
   final Value<String?> remoteId;
   final Value<int> rowid;
   const BookCollectionsCompanion({
@@ -2973,6 +3521,8 @@ class BookCollectionsCompanion extends UpdateCompanion<BookCollection> {
     this.coverPath = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -2983,6 +3533,8 @@ class BookCollectionsCompanion extends UpdateCompanion<BookCollection> {
     this.coverPath = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -2996,6 +3548,8 @@ class BookCollectionsCompanion extends UpdateCompanion<BookCollection> {
     Expression<String>? coverPath,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<bool>? syncPending,
     Expression<String>? remoteId,
     Expression<int>? rowid,
   }) {
@@ -3006,6 +3560,8 @@ class BookCollectionsCompanion extends UpdateCompanion<BookCollection> {
       if (coverPath != null) 'cover_path': coverPath,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (syncPending != null) 'sync_pending': syncPending,
       if (remoteId != null) 'remote_id': remoteId,
       if (rowid != null) 'rowid': rowid,
     });
@@ -3018,6 +3574,8 @@ class BookCollectionsCompanion extends UpdateCompanion<BookCollection> {
     Value<String?>? coverPath,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<bool>? syncPending,
     Value<String?>? remoteId,
     Value<int>? rowid,
   }) {
@@ -3028,6 +3586,8 @@ class BookCollectionsCompanion extends UpdateCompanion<BookCollection> {
       coverPath: coverPath ?? this.coverPath,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      syncPending: syncPending ?? this.syncPending,
       remoteId: remoteId ?? this.remoteId,
       rowid: rowid ?? this.rowid,
     );
@@ -3054,6 +3614,12 @@ class BookCollectionsCompanion extends UpdateCompanion<BookCollection> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (syncPending.present) {
+      map['sync_pending'] = Variable<bool>(syncPending.value);
+    }
     if (remoteId.present) {
       map['remote_id'] = Variable<String>(remoteId.value);
     }
@@ -3072,6 +3638,8 @@ class BookCollectionsCompanion extends UpdateCompanion<BookCollection> {
           ..write('coverPath: $coverPath, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('remoteId: $remoteId, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3123,8 +3691,65 @@ class $CollectionBooksTable extends CollectionBooks
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _remoteIdMeta = const VerificationMeta(
+    'remoteId',
+  );
   @override
-  List<GeneratedColumn> get $columns => [collectionId, bookId, sortOrder];
+  late final GeneratedColumn<String> remoteId = GeneratedColumn<String>(
+    'remote_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncPendingMeta = const VerificationMeta(
+    'syncPending',
+  );
+  @override
+  late final GeneratedColumn<bool> syncPending = GeneratedColumn<bool>(
+    'sync_pending',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sync_pending" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    collectionId,
+    bookId,
+    sortOrder,
+    remoteId,
+    updatedAt,
+    deletedAt,
+    syncPending,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -3162,6 +3787,33 @@ class $CollectionBooksTable extends CollectionBooks
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('remote_id')) {
+      context.handle(
+        _remoteIdMeta,
+        remoteId.isAcceptableOrUnknown(data['remote_id']!, _remoteIdMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_pending')) {
+      context.handle(
+        _syncPendingMeta,
+        syncPending.isAcceptableOrUnknown(
+          data['sync_pending']!,
+          _syncPendingMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -3183,6 +3835,22 @@ class $CollectionBooksTable extends CollectionBooks
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      remoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_id'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      syncPending: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sync_pending'],
+      )!,
     );
   }
 
@@ -3196,10 +3864,18 @@ class CollectionBook extends DataClass implements Insertable<CollectionBook> {
   final String collectionId;
   final String bookId;
   final int sortOrder;
+  final String? remoteId;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final bool syncPending;
   const CollectionBook({
     required this.collectionId,
     required this.bookId,
     required this.sortOrder,
+    this.remoteId,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.syncPending,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3207,6 +3883,14 @@ class CollectionBook extends DataClass implements Insertable<CollectionBook> {
     map['collection_id'] = Variable<String>(collectionId);
     map['book_id'] = Variable<String>(bookId);
     map['sort_order'] = Variable<int>(sortOrder);
+    if (!nullToAbsent || remoteId != null) {
+      map['remote_id'] = Variable<String>(remoteId);
+    }
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['sync_pending'] = Variable<bool>(syncPending);
     return map;
   }
 
@@ -3215,6 +3899,14 @@ class CollectionBook extends DataClass implements Insertable<CollectionBook> {
       collectionId: Value(collectionId),
       bookId: Value(bookId),
       sortOrder: Value(sortOrder),
+      remoteId: remoteId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteId),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      syncPending: Value(syncPending),
     );
   }
 
@@ -3227,6 +3919,10 @@ class CollectionBook extends DataClass implements Insertable<CollectionBook> {
       collectionId: serializer.fromJson<String>(json['collectionId']),
       bookId: serializer.fromJson<String>(json['bookId']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      remoteId: serializer.fromJson<String?>(json['remoteId']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      syncPending: serializer.fromJson<bool>(json['syncPending']),
     );
   }
   @override
@@ -3236,6 +3932,10 @@ class CollectionBook extends DataClass implements Insertable<CollectionBook> {
       'collectionId': serializer.toJson<String>(collectionId),
       'bookId': serializer.toJson<String>(bookId),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'remoteId': serializer.toJson<String?>(remoteId),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'syncPending': serializer.toJson<bool>(syncPending),
     };
   }
 
@@ -3243,10 +3943,18 @@ class CollectionBook extends DataClass implements Insertable<CollectionBook> {
     String? collectionId,
     String? bookId,
     int? sortOrder,
+    Value<String?> remoteId = const Value.absent(),
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    bool? syncPending,
   }) => CollectionBook(
     collectionId: collectionId ?? this.collectionId,
     bookId: bookId ?? this.bookId,
     sortOrder: sortOrder ?? this.sortOrder,
+    remoteId: remoteId.present ? remoteId.value : this.remoteId,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    syncPending: syncPending ?? this.syncPending,
   );
   CollectionBook copyWithCompanion(CollectionBooksCompanion data) {
     return CollectionBook(
@@ -3255,6 +3963,12 @@ class CollectionBook extends DataClass implements Insertable<CollectionBook> {
           : this.collectionId,
       bookId: data.bookId.present ? data.bookId.value : this.bookId,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      syncPending: data.syncPending.present
+          ? data.syncPending.value
+          : this.syncPending,
     );
   }
 
@@ -3263,37 +3977,65 @@ class CollectionBook extends DataClass implements Insertable<CollectionBook> {
     return (StringBuffer('CollectionBook(')
           ..write('collectionId: $collectionId, ')
           ..write('bookId: $bookId, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('remoteId: $remoteId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(collectionId, bookId, sortOrder);
+  int get hashCode => Object.hash(
+    collectionId,
+    bookId,
+    sortOrder,
+    remoteId,
+    updatedAt,
+    deletedAt,
+    syncPending,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is CollectionBook &&
           other.collectionId == this.collectionId &&
           other.bookId == this.bookId &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.remoteId == this.remoteId &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.syncPending == this.syncPending);
 }
 
 class CollectionBooksCompanion extends UpdateCompanion<CollectionBook> {
   final Value<String> collectionId;
   final Value<String> bookId;
   final Value<int> sortOrder;
+  final Value<String?> remoteId;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<bool> syncPending;
   final Value<int> rowid;
   const CollectionBooksCompanion({
     this.collectionId = const Value.absent(),
     this.bookId = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.remoteId = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CollectionBooksCompanion.insert({
     required String collectionId,
     required String bookId,
     this.sortOrder = const Value.absent(),
+    this.remoteId = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : collectionId = Value(collectionId),
        bookId = Value(bookId);
@@ -3301,12 +4043,20 @@ class CollectionBooksCompanion extends UpdateCompanion<CollectionBook> {
     Expression<String>? collectionId,
     Expression<String>? bookId,
     Expression<int>? sortOrder,
+    Expression<String>? remoteId,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<bool>? syncPending,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (collectionId != null) 'collection_id': collectionId,
       if (bookId != null) 'book_id': bookId,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (remoteId != null) 'remote_id': remoteId,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (syncPending != null) 'sync_pending': syncPending,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3315,12 +4065,20 @@ class CollectionBooksCompanion extends UpdateCompanion<CollectionBook> {
     Value<String>? collectionId,
     Value<String>? bookId,
     Value<int>? sortOrder,
+    Value<String?>? remoteId,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<bool>? syncPending,
     Value<int>? rowid,
   }) {
     return CollectionBooksCompanion(
       collectionId: collectionId ?? this.collectionId,
       bookId: bookId ?? this.bookId,
       sortOrder: sortOrder ?? this.sortOrder,
+      remoteId: remoteId ?? this.remoteId,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      syncPending: syncPending ?? this.syncPending,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3337,6 +4095,18 @@ class CollectionBooksCompanion extends UpdateCompanion<CollectionBook> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (remoteId.present) {
+      map['remote_id'] = Variable<String>(remoteId.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (syncPending.present) {
+      map['sync_pending'] = Variable<bool>(syncPending.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3349,6 +4119,10 @@ class CollectionBooksCompanion extends UpdateCompanion<CollectionBook> {
           ..write('collectionId: $collectionId, ')
           ..write('bookId: $bookId, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('remoteId: $remoteId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3451,6 +4225,44 @@ class $ReadingSessionsTable extends ReadingSessions
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncPendingMeta = const VerificationMeta(
+    'syncPending',
+  );
+  @override
+  late final GeneratedColumn<bool> syncPending = GeneratedColumn<bool>(
+    'sync_pending',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sync_pending" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _remoteIdMeta = const VerificationMeta(
     'remoteId',
   );
@@ -3472,6 +4284,9 @@ class $ReadingSessionsTable extends ReadingSessions
     durationSeconds,
     startChapter,
     endChapter,
+    updatedAt,
+    deletedAt,
+    syncPending,
     remoteId,
   ];
   @override
@@ -3545,6 +4360,27 @@ class $ReadingSessionsTable extends ReadingSessions
         endChapter.isAcceptableOrUnknown(data['end_chapter']!, _endChapterMeta),
       );
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_pending')) {
+      context.handle(
+        _syncPendingMeta,
+        syncPending.isAcceptableOrUnknown(
+          data['sync_pending']!,
+          _syncPendingMeta,
+        ),
+      );
+    }
     if (data.containsKey('remote_id')) {
       context.handle(
         _remoteIdMeta,
@@ -3592,6 +4428,18 @@ class $ReadingSessionsTable extends ReadingSessions
         DriftSqlType.int,
         data['${effectivePrefix}end_chapter'],
       )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      syncPending: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sync_pending'],
+      )!,
       remoteId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}remote_id'],
@@ -3614,6 +4462,9 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
   final int durationSeconds;
   final int startChapter;
   final int endChapter;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final bool syncPending;
   final String? remoteId;
   const ReadingSession({
     required this.id,
@@ -3624,6 +4475,9 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
     required this.durationSeconds,
     required this.startChapter,
     required this.endChapter,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.syncPending,
     this.remoteId,
   });
   @override
@@ -3639,6 +4493,11 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
     map['duration_seconds'] = Variable<int>(durationSeconds);
     map['start_chapter'] = Variable<int>(startChapter);
     map['end_chapter'] = Variable<int>(endChapter);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['sync_pending'] = Variable<bool>(syncPending);
     if (!nullToAbsent || remoteId != null) {
       map['remote_id'] = Variable<String>(remoteId);
     }
@@ -3657,6 +4516,11 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
       durationSeconds: Value(durationSeconds),
       startChapter: Value(startChapter),
       endChapter: Value(endChapter),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      syncPending: Value(syncPending),
       remoteId: remoteId == null && nullToAbsent
           ? const Value.absent()
           : Value(remoteId),
@@ -3677,6 +4541,9 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
       durationSeconds: serializer.fromJson<int>(json['durationSeconds']),
       startChapter: serializer.fromJson<int>(json['startChapter']),
       endChapter: serializer.fromJson<int>(json['endChapter']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      syncPending: serializer.fromJson<bool>(json['syncPending']),
       remoteId: serializer.fromJson<String?>(json['remoteId']),
     );
   }
@@ -3692,6 +4559,9 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
       'durationSeconds': serializer.toJson<int>(durationSeconds),
       'startChapter': serializer.toJson<int>(startChapter),
       'endChapter': serializer.toJson<int>(endChapter),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'syncPending': serializer.toJson<bool>(syncPending),
       'remoteId': serializer.toJson<String?>(remoteId),
     };
   }
@@ -3705,6 +4575,9 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
     int? durationSeconds,
     int? startChapter,
     int? endChapter,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    bool? syncPending,
     Value<String?> remoteId = const Value.absent(),
   }) => ReadingSession(
     id: id ?? this.id,
@@ -3715,6 +4588,9 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
     durationSeconds: durationSeconds ?? this.durationSeconds,
     startChapter: startChapter ?? this.startChapter,
     endChapter: endChapter ?? this.endChapter,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    syncPending: syncPending ?? this.syncPending,
     remoteId: remoteId.present ? remoteId.value : this.remoteId,
   );
   ReadingSession copyWithCompanion(ReadingSessionsCompanion data) {
@@ -3733,6 +4609,11 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
       endChapter: data.endChapter.present
           ? data.endChapter.value
           : this.endChapter,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      syncPending: data.syncPending.present
+          ? data.syncPending.value
+          : this.syncPending,
       remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
     );
   }
@@ -3748,6 +4629,9 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
           ..write('durationSeconds: $durationSeconds, ')
           ..write('startChapter: $startChapter, ')
           ..write('endChapter: $endChapter, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('remoteId: $remoteId')
           ..write(')'))
         .toString();
@@ -3763,6 +4647,9 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
     durationSeconds,
     startChapter,
     endChapter,
+    updatedAt,
+    deletedAt,
+    syncPending,
     remoteId,
   );
   @override
@@ -3777,6 +4664,9 @@ class ReadingSession extends DataClass implements Insertable<ReadingSession> {
           other.durationSeconds == this.durationSeconds &&
           other.startChapter == this.startChapter &&
           other.endChapter == this.endChapter &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.syncPending == this.syncPending &&
           other.remoteId == this.remoteId);
 }
 
@@ -3789,6 +4679,9 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
   final Value<int> durationSeconds;
   final Value<int> startChapter;
   final Value<int> endChapter;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<bool> syncPending;
   final Value<String?> remoteId;
   final Value<int> rowid;
   const ReadingSessionsCompanion({
@@ -3800,6 +4693,9 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
     this.durationSeconds = const Value.absent(),
     this.startChapter = const Value.absent(),
     this.endChapter = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -3812,6 +4708,9 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
     this.durationSeconds = const Value.absent(),
     this.startChapter = const Value.absent(),
     this.endChapter = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -3827,6 +4726,9 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
     Expression<int>? durationSeconds,
     Expression<int>? startChapter,
     Expression<int>? endChapter,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<bool>? syncPending,
     Expression<String>? remoteId,
     Expression<int>? rowid,
   }) {
@@ -3839,6 +4741,9 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
       if (durationSeconds != null) 'duration_seconds': durationSeconds,
       if (startChapter != null) 'start_chapter': startChapter,
       if (endChapter != null) 'end_chapter': endChapter,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (syncPending != null) 'sync_pending': syncPending,
       if (remoteId != null) 'remote_id': remoteId,
       if (rowid != null) 'rowid': rowid,
     });
@@ -3853,6 +4758,9 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
     Value<int>? durationSeconds,
     Value<int>? startChapter,
     Value<int>? endChapter,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<bool>? syncPending,
     Value<String?>? remoteId,
     Value<int>? rowid,
   }) {
@@ -3865,6 +4773,9 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
       durationSeconds: durationSeconds ?? this.durationSeconds,
       startChapter: startChapter ?? this.startChapter,
       endChapter: endChapter ?? this.endChapter,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      syncPending: syncPending ?? this.syncPending,
       remoteId: remoteId ?? this.remoteId,
       rowid: rowid ?? this.rowid,
     );
@@ -3897,6 +4808,15 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
     if (endChapter.present) {
       map['end_chapter'] = Variable<int>(endChapter.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (syncPending.present) {
+      map['sync_pending'] = Variable<bool>(syncPending.value);
+    }
     if (remoteId.present) {
       map['remote_id'] = Variable<String>(remoteId.value);
     }
@@ -3917,6 +4837,9 @@ class ReadingSessionsCompanion extends UpdateCompanion<ReadingSession> {
           ..write('durationSeconds: $durationSeconds, ')
           ..write('startChapter: $startChapter, ')
           ..write('endChapter: $endChapter, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('remoteId: $remoteId, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3973,6 +4896,44 @@ class $ReadingGoalsTable extends ReadingGoals
     requiredDuringInsert: false,
     defaultValue: const Constant(30),
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncPendingMeta = const VerificationMeta(
+    'syncPending',
+  );
+  @override
+  late final GeneratedColumn<bool> syncPending = GeneratedColumn<bool>(
+    'sync_pending',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sync_pending" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _remoteIdMeta = const VerificationMeta(
     'remoteId',
   );
@@ -3990,6 +4951,9 @@ class $ReadingGoalsTable extends ReadingGoals
     year,
     booksGoal,
     minutesPerDayGoal,
+    updatedAt,
+    deletedAt,
+    syncPending,
     remoteId,
   ];
   @override
@@ -4032,6 +4996,27 @@ class $ReadingGoalsTable extends ReadingGoals
         ),
       );
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_pending')) {
+      context.handle(
+        _syncPendingMeta,
+        syncPending.isAcceptableOrUnknown(
+          data['sync_pending']!,
+          _syncPendingMeta,
+        ),
+      );
+    }
     if (data.containsKey('remote_id')) {
       context.handle(
         _remoteIdMeta,
@@ -4063,6 +5048,18 @@ class $ReadingGoalsTable extends ReadingGoals
         DriftSqlType.int,
         data['${effectivePrefix}minutes_per_day_goal'],
       )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      syncPending: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sync_pending'],
+      )!,
       remoteId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}remote_id'],
@@ -4081,12 +5078,18 @@ class ReadingGoal extends DataClass implements Insertable<ReadingGoal> {
   final int year;
   final int booksGoal;
   final int minutesPerDayGoal;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final bool syncPending;
   final String? remoteId;
   const ReadingGoal({
     required this.id,
     required this.year,
     required this.booksGoal,
     required this.minutesPerDayGoal,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.syncPending,
     this.remoteId,
   });
   @override
@@ -4096,6 +5099,11 @@ class ReadingGoal extends DataClass implements Insertable<ReadingGoal> {
     map['year'] = Variable<int>(year);
     map['books_goal'] = Variable<int>(booksGoal);
     map['minutes_per_day_goal'] = Variable<int>(minutesPerDayGoal);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['sync_pending'] = Variable<bool>(syncPending);
     if (!nullToAbsent || remoteId != null) {
       map['remote_id'] = Variable<String>(remoteId);
     }
@@ -4108,6 +5116,11 @@ class ReadingGoal extends DataClass implements Insertable<ReadingGoal> {
       year: Value(year),
       booksGoal: Value(booksGoal),
       minutesPerDayGoal: Value(minutesPerDayGoal),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      syncPending: Value(syncPending),
       remoteId: remoteId == null && nullToAbsent
           ? const Value.absent()
           : Value(remoteId),
@@ -4124,6 +5137,9 @@ class ReadingGoal extends DataClass implements Insertable<ReadingGoal> {
       year: serializer.fromJson<int>(json['year']),
       booksGoal: serializer.fromJson<int>(json['booksGoal']),
       minutesPerDayGoal: serializer.fromJson<int>(json['minutesPerDayGoal']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      syncPending: serializer.fromJson<bool>(json['syncPending']),
       remoteId: serializer.fromJson<String?>(json['remoteId']),
     );
   }
@@ -4135,6 +5151,9 @@ class ReadingGoal extends DataClass implements Insertable<ReadingGoal> {
       'year': serializer.toJson<int>(year),
       'booksGoal': serializer.toJson<int>(booksGoal),
       'minutesPerDayGoal': serializer.toJson<int>(minutesPerDayGoal),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'syncPending': serializer.toJson<bool>(syncPending),
       'remoteId': serializer.toJson<String?>(remoteId),
     };
   }
@@ -4144,12 +5163,18 @@ class ReadingGoal extends DataClass implements Insertable<ReadingGoal> {
     int? year,
     int? booksGoal,
     int? minutesPerDayGoal,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    bool? syncPending,
     Value<String?> remoteId = const Value.absent(),
   }) => ReadingGoal(
     id: id ?? this.id,
     year: year ?? this.year,
     booksGoal: booksGoal ?? this.booksGoal,
     minutesPerDayGoal: minutesPerDayGoal ?? this.minutesPerDayGoal,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    syncPending: syncPending ?? this.syncPending,
     remoteId: remoteId.present ? remoteId.value : this.remoteId,
   );
   ReadingGoal copyWithCompanion(ReadingGoalsCompanion data) {
@@ -4160,6 +5185,11 @@ class ReadingGoal extends DataClass implements Insertable<ReadingGoal> {
       minutesPerDayGoal: data.minutesPerDayGoal.present
           ? data.minutesPerDayGoal.value
           : this.minutesPerDayGoal,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      syncPending: data.syncPending.present
+          ? data.syncPending.value
+          : this.syncPending,
       remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
     );
   }
@@ -4171,14 +5201,25 @@ class ReadingGoal extends DataClass implements Insertable<ReadingGoal> {
           ..write('year: $year, ')
           ..write('booksGoal: $booksGoal, ')
           ..write('minutesPerDayGoal: $minutesPerDayGoal, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('remoteId: $remoteId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, year, booksGoal, minutesPerDayGoal, remoteId);
+  int get hashCode => Object.hash(
+    id,
+    year,
+    booksGoal,
+    minutesPerDayGoal,
+    updatedAt,
+    deletedAt,
+    syncPending,
+    remoteId,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4187,6 +5228,9 @@ class ReadingGoal extends DataClass implements Insertable<ReadingGoal> {
           other.year == this.year &&
           other.booksGoal == this.booksGoal &&
           other.minutesPerDayGoal == this.minutesPerDayGoal &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.syncPending == this.syncPending &&
           other.remoteId == this.remoteId);
 }
 
@@ -4195,6 +5239,9 @@ class ReadingGoalsCompanion extends UpdateCompanion<ReadingGoal> {
   final Value<int> year;
   final Value<int> booksGoal;
   final Value<int> minutesPerDayGoal;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<bool> syncPending;
   final Value<String?> remoteId;
   final Value<int> rowid;
   const ReadingGoalsCompanion({
@@ -4202,6 +5249,9 @@ class ReadingGoalsCompanion extends UpdateCompanion<ReadingGoal> {
     this.year = const Value.absent(),
     this.booksGoal = const Value.absent(),
     this.minutesPerDayGoal = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -4210,6 +5260,9 @@ class ReadingGoalsCompanion extends UpdateCompanion<ReadingGoal> {
     required int year,
     this.booksGoal = const Value.absent(),
     this.minutesPerDayGoal = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.syncPending = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -4219,6 +5272,9 @@ class ReadingGoalsCompanion extends UpdateCompanion<ReadingGoal> {
     Expression<int>? year,
     Expression<int>? booksGoal,
     Expression<int>? minutesPerDayGoal,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<bool>? syncPending,
     Expression<String>? remoteId,
     Expression<int>? rowid,
   }) {
@@ -4227,6 +5283,9 @@ class ReadingGoalsCompanion extends UpdateCompanion<ReadingGoal> {
       if (year != null) 'year': year,
       if (booksGoal != null) 'books_goal': booksGoal,
       if (minutesPerDayGoal != null) 'minutes_per_day_goal': minutesPerDayGoal,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (syncPending != null) 'sync_pending': syncPending,
       if (remoteId != null) 'remote_id': remoteId,
       if (rowid != null) 'rowid': rowid,
     });
@@ -4237,6 +5296,9 @@ class ReadingGoalsCompanion extends UpdateCompanion<ReadingGoal> {
     Value<int>? year,
     Value<int>? booksGoal,
     Value<int>? minutesPerDayGoal,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<bool>? syncPending,
     Value<String?>? remoteId,
     Value<int>? rowid,
   }) {
@@ -4245,6 +5307,9 @@ class ReadingGoalsCompanion extends UpdateCompanion<ReadingGoal> {
       year: year ?? this.year,
       booksGoal: booksGoal ?? this.booksGoal,
       minutesPerDayGoal: minutesPerDayGoal ?? this.minutesPerDayGoal,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      syncPending: syncPending ?? this.syncPending,
       remoteId: remoteId ?? this.remoteId,
       rowid: rowid ?? this.rowid,
     );
@@ -4265,6 +5330,15 @@ class ReadingGoalsCompanion extends UpdateCompanion<ReadingGoal> {
     if (minutesPerDayGoal.present) {
       map['minutes_per_day_goal'] = Variable<int>(minutesPerDayGoal.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (syncPending.present) {
+      map['sync_pending'] = Variable<bool>(syncPending.value);
+    }
     if (remoteId.present) {
       map['remote_id'] = Variable<String>(remoteId.value);
     }
@@ -4281,6 +5355,9 @@ class ReadingGoalsCompanion extends UpdateCompanion<ReadingGoal> {
           ..write('year: $year, ')
           ..write('booksGoal: $booksGoal, ')
           ..write('minutesPerDayGoal: $minutesPerDayGoal, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('syncPending: $syncPending, ')
           ..write('remoteId: $remoteId, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4349,6 +5426,8 @@ typedef $$BooksTableCreateCompanionBuilder =
       Value<String?> fileHash,
       required DateTime createdAt,
       required DateTime updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<String?> remoteId,
       Value<int> rowid,
     });
@@ -4369,6 +5448,8 @@ typedef $$BooksTableUpdateCompanionBuilder =
       Value<String?> fileHash,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<String?> remoteId,
       Value<int> rowid,
     });
@@ -4558,6 +5639,16 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4776,6 +5867,16 @@ class $$BooksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get remoteId => $composableBuilder(
     column: $table.remoteId,
     builder: (column) => ColumnOrderings(column),
@@ -4841,6 +5942,14 @@ class $$BooksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get remoteId =>
       $composableBuilder(column: $table.remoteId, builder: (column) => column);
@@ -5021,6 +6130,8 @@ class $$BooksTableTableManager
                 Value<String?> fileHash = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BooksCompanion(
@@ -5039,6 +6150,8 @@ class $$BooksTableTableManager
                 fileHash: fileHash,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 remoteId: remoteId,
                 rowid: rowid,
               ),
@@ -5059,6 +6172,8 @@ class $$BooksTableTableManager
                 Value<String?> fileHash = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BooksCompanion.insert(
@@ -5077,6 +6192,8 @@ class $$BooksTableTableManager
                 fileHash: fileHash,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 remoteId: remoteId,
                 rowid: rowid,
               ),
@@ -5241,6 +6358,8 @@ typedef $$ReadingProgressesTableCreateCompanionBuilder =
       Value<String?> lastPosition,
       required DateTime lastReadAt,
       required DateTime updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<String?> remoteId,
       Value<int> rowid,
     });
@@ -5254,6 +6373,8 @@ typedef $$ReadingProgressesTableUpdateCompanionBuilder =
       Value<String?> lastPosition,
       Value<DateTime> lastReadAt,
       Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<String?> remoteId,
       Value<int> rowid,
     });
@@ -5334,6 +6455,16 @@ class $$ReadingProgressesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get remoteId => $composableBuilder(
     column: $table.remoteId,
     builder: (column) => ColumnFilters(column),
@@ -5407,6 +6538,16 @@ class $$ReadingProgressesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get remoteId => $composableBuilder(
     column: $table.remoteId,
     builder: (column) => ColumnOrderings(column),
@@ -5476,6 +6617,14 @@ class $$ReadingProgressesTableAnnotationComposer
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get remoteId =>
       $composableBuilder(column: $table.remoteId, builder: (column) => column);
 
@@ -5544,6 +6693,8 @@ class $$ReadingProgressesTableTableManager
                 Value<String?> lastPosition = const Value.absent(),
                 Value<DateTime> lastReadAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ReadingProgressesCompanion(
@@ -5555,6 +6706,8 @@ class $$ReadingProgressesTableTableManager
                 lastPosition: lastPosition,
                 lastReadAt: lastReadAt,
                 updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 remoteId: remoteId,
                 rowid: rowid,
               ),
@@ -5568,6 +6721,8 @@ class $$ReadingProgressesTableTableManager
                 Value<String?> lastPosition = const Value.absent(),
                 required DateTime lastReadAt,
                 required DateTime updatedAt,
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ReadingProgressesCompanion.insert(
@@ -5579,6 +6734,8 @@ class $$ReadingProgressesTableTableManager
                 lastPosition: lastPosition,
                 lastReadAt: lastReadAt,
                 updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 remoteId: remoteId,
                 rowid: rowid,
               ),
@@ -5659,6 +6816,9 @@ typedef $$BookmarksTableCreateCompanionBuilder =
       Value<String?> cfi,
       required String title,
       required DateTime createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<String?> remoteId,
       Value<int> rowid,
     });
@@ -5670,6 +6830,9 @@ typedef $$BookmarksTableUpdateCompanionBuilder =
       Value<String?> cfi,
       Value<String> title,
       Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<String?> remoteId,
       Value<int> rowid,
     });
@@ -5728,6 +6891,21 @@ class $$BookmarksTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5794,6 +6972,21 @@ class $$BookmarksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get remoteId => $composableBuilder(
     column: $table.remoteId,
     builder: (column) => ColumnOrderings(column),
@@ -5848,6 +7041,17 @@ class $$BookmarksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get remoteId =>
       $composableBuilder(column: $table.remoteId, builder: (column) => column);
@@ -5910,6 +7114,9 @@ class $$BookmarksTableTableManager
                 Value<String?> cfi = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BookmarksCompanion(
@@ -5919,6 +7126,9 @@ class $$BookmarksTableTableManager
                 cfi: cfi,
                 title: title,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 remoteId: remoteId,
                 rowid: rowid,
               ),
@@ -5930,6 +7140,9 @@ class $$BookmarksTableTableManager
                 Value<String?> cfi = const Value.absent(),
                 required String title,
                 required DateTime createdAt,
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BookmarksCompanion.insert(
@@ -5939,6 +7152,9 @@ class $$BookmarksTableTableManager
                 cfi: cfi,
                 title: title,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 remoteId: remoteId,
                 rowid: rowid,
               ),
@@ -6021,6 +7237,8 @@ typedef $$HighlightsTableCreateCompanionBuilder =
       Value<String?> note,
       required DateTime createdAt,
       required DateTime updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<String?> remoteId,
       Value<int> rowid,
     });
@@ -6036,6 +7254,8 @@ typedef $$HighlightsTableUpdateCompanionBuilder =
       Value<String?> note,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<String?> remoteId,
       Value<int> rowid,
     });
@@ -6114,6 +7334,16 @@ class $$HighlightsTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6200,6 +7430,16 @@ class $$HighlightsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get remoteId => $composableBuilder(
     column: $table.remoteId,
     builder: (column) => ColumnOrderings(column),
@@ -6269,6 +7509,14 @@ class $$HighlightsTableAnnotationComposer
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get remoteId =>
       $composableBuilder(column: $table.remoteId, builder: (column) => column);
 
@@ -6334,6 +7582,8 @@ class $$HighlightsTableTableManager
                 Value<String?> note = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => HighlightsCompanion(
@@ -6347,6 +7597,8 @@ class $$HighlightsTableTableManager
                 note: note,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 remoteId: remoteId,
                 rowid: rowid,
               ),
@@ -6362,6 +7614,8 @@ class $$HighlightsTableTableManager
                 Value<String?> note = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => HighlightsCompanion.insert(
@@ -6375,6 +7629,8 @@ class $$HighlightsTableTableManager
                 note: note,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 remoteId: remoteId,
                 rowid: rowid,
               ),
@@ -6453,6 +7709,8 @@ typedef $$BookCollectionsTableCreateCompanionBuilder =
       Value<String?> coverPath,
       required DateTime createdAt,
       required DateTime updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<String?> remoteId,
       Value<int> rowid,
     });
@@ -6464,6 +7722,8 @@ typedef $$BookCollectionsTableUpdateCompanionBuilder =
       Value<String?> coverPath,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<String?> remoteId,
       Value<int> rowid,
     });
@@ -6540,6 +7800,16 @@ class $$BookCollectionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get remoteId => $composableBuilder(
     column: $table.remoteId,
     builder: (column) => ColumnFilters(column),
@@ -6610,6 +7880,16 @@ class $$BookCollectionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get remoteId => $composableBuilder(
     column: $table.remoteId,
     builder: (column) => ColumnOrderings(column),
@@ -6644,6 +7924,14 @@ class $$BookCollectionsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get remoteId =>
       $composableBuilder(column: $table.remoteId, builder: (column) => column);
@@ -6710,6 +7998,8 @@ class $$BookCollectionsTableTableManager
                 Value<String?> coverPath = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BookCollectionsCompanion(
@@ -6719,6 +8009,8 @@ class $$BookCollectionsTableTableManager
                 coverPath: coverPath,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 remoteId: remoteId,
                 rowid: rowid,
               ),
@@ -6730,6 +8022,8 @@ class $$BookCollectionsTableTableManager
                 Value<String?> coverPath = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BookCollectionsCompanion.insert(
@@ -6739,6 +8033,8 @@ class $$BookCollectionsTableTableManager
                 coverPath: coverPath,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 remoteId: remoteId,
                 rowid: rowid,
               ),
@@ -6807,6 +8103,10 @@ typedef $$CollectionBooksTableCreateCompanionBuilder =
       required String collectionId,
       required String bookId,
       Value<int> sortOrder,
+      Value<String?> remoteId,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<int> rowid,
     });
 typedef $$CollectionBooksTableUpdateCompanionBuilder =
@@ -6814,6 +8114,10 @@ typedef $$CollectionBooksTableUpdateCompanionBuilder =
       Value<String> collectionId,
       Value<String> bookId,
       Value<int> sortOrder,
+      Value<String?> remoteId,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<int> rowid,
     });
 
@@ -6881,6 +8185,26 @@ class $$CollectionBooksTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$BookCollectionsTableFilterComposer get collectionId {
     final $$BookCollectionsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -6942,6 +8266,26 @@ class $$CollectionBooksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$BookCollectionsTableOrderingComposer get collectionId {
     final $$BookCollectionsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -7000,6 +8344,20 @@ class $$CollectionBooksTableAnnotationComposer
   });
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<String> get remoteId =>
+      $composableBuilder(column: $table.remoteId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => column,
+  );
 
   $$BookCollectionsTableAnnotationComposer get collectionId {
     final $$BookCollectionsTableAnnotationComposer composer = $composerBuilder(
@@ -7081,11 +8439,19 @@ class $$CollectionBooksTableTableManager
                 Value<String> collectionId = const Value.absent(),
                 Value<String> bookId = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<String?> remoteId = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CollectionBooksCompanion(
                 collectionId: collectionId,
                 bookId: bookId,
                 sortOrder: sortOrder,
+                remoteId: remoteId,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -7093,11 +8459,19 @@ class $$CollectionBooksTableTableManager
                 required String collectionId,
                 required String bookId,
                 Value<int> sortOrder = const Value.absent(),
+                Value<String?> remoteId = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CollectionBooksCompanion.insert(
                 collectionId: collectionId,
                 bookId: bookId,
                 sortOrder: sortOrder,
+                remoteId: remoteId,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -7194,6 +8568,9 @@ typedef $$ReadingSessionsTableCreateCompanionBuilder =
       Value<int> durationSeconds,
       Value<int> startChapter,
       Value<int> endChapter,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<String?> remoteId,
       Value<int> rowid,
     });
@@ -7207,6 +8584,9 @@ typedef $$ReadingSessionsTableUpdateCompanionBuilder =
       Value<int> durationSeconds,
       Value<int> startChapter,
       Value<int> endChapter,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<String?> remoteId,
       Value<int> rowid,
     });
@@ -7283,6 +8663,21 @@ class $$ReadingSessionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get remoteId => $composableBuilder(
     column: $table.remoteId,
     builder: (column) => ColumnFilters(column),
@@ -7356,6 +8751,21 @@ class $$ReadingSessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get remoteId => $composableBuilder(
     column: $table.remoteId,
     builder: (column) => ColumnOrderings(column),
@@ -7418,6 +8828,17 @@ class $$ReadingSessionsTableAnnotationComposer
 
   GeneratedColumn<int> get endChapter => $composableBuilder(
     column: $table.endChapter,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
     builder: (column) => column,
   );
 
@@ -7486,6 +8907,9 @@ class $$ReadingSessionsTableTableManager
                 Value<int> durationSeconds = const Value.absent(),
                 Value<int> startChapter = const Value.absent(),
                 Value<int> endChapter = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ReadingSessionsCompanion(
@@ -7497,6 +8921,9 @@ class $$ReadingSessionsTableTableManager
                 durationSeconds: durationSeconds,
                 startChapter: startChapter,
                 endChapter: endChapter,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 remoteId: remoteId,
                 rowid: rowid,
               ),
@@ -7510,6 +8937,9 @@ class $$ReadingSessionsTableTableManager
                 Value<int> durationSeconds = const Value.absent(),
                 Value<int> startChapter = const Value.absent(),
                 Value<int> endChapter = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ReadingSessionsCompanion.insert(
@@ -7521,6 +8951,9 @@ class $$ReadingSessionsTableTableManager
                 durationSeconds: durationSeconds,
                 startChapter: startChapter,
                 endChapter: endChapter,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 remoteId: remoteId,
                 rowid: rowid,
               ),
@@ -7599,6 +9032,9 @@ typedef $$ReadingGoalsTableCreateCompanionBuilder =
       required int year,
       Value<int> booksGoal,
       Value<int> minutesPerDayGoal,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<String?> remoteId,
       Value<int> rowid,
     });
@@ -7608,6 +9044,9 @@ typedef $$ReadingGoalsTableUpdateCompanionBuilder =
       Value<int> year,
       Value<int> booksGoal,
       Value<int> minutesPerDayGoal,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<bool> syncPending,
       Value<String?> remoteId,
       Value<int> rowid,
     });
@@ -7638,6 +9077,21 @@ class $$ReadingGoalsTableFilterComposer
 
   ColumnFilters<int> get minutesPerDayGoal => $composableBuilder(
     column: $table.minutesPerDayGoal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7676,6 +9130,21 @@ class $$ReadingGoalsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get remoteId => $composableBuilder(
     column: $table.remoteId,
     builder: (column) => ColumnOrderings(column),
@@ -7702,6 +9171,17 @@ class $$ReadingGoalsTableAnnotationComposer
 
   GeneratedColumn<int> get minutesPerDayGoal => $composableBuilder(
     column: $table.minutesPerDayGoal,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get syncPending => $composableBuilder(
+    column: $table.syncPending,
     builder: (column) => column,
   );
 
@@ -7744,6 +9224,9 @@ class $$ReadingGoalsTableTableManager
                 Value<int> year = const Value.absent(),
                 Value<int> booksGoal = const Value.absent(),
                 Value<int> minutesPerDayGoal = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ReadingGoalsCompanion(
@@ -7751,6 +9234,9 @@ class $$ReadingGoalsTableTableManager
                 year: year,
                 booksGoal: booksGoal,
                 minutesPerDayGoal: minutesPerDayGoal,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 remoteId: remoteId,
                 rowid: rowid,
               ),
@@ -7760,6 +9246,9 @@ class $$ReadingGoalsTableTableManager
                 required int year,
                 Value<int> booksGoal = const Value.absent(),
                 Value<int> minutesPerDayGoal = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<bool> syncPending = const Value.absent(),
                 Value<String?> remoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ReadingGoalsCompanion.insert(
@@ -7767,6 +9256,9 @@ class $$ReadingGoalsTableTableManager
                 year: year,
                 booksGoal: booksGoal,
                 minutesPerDayGoal: minutesPerDayGoal,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                syncPending: syncPending,
                 remoteId: remoteId,
                 rowid: rowid,
               ),
