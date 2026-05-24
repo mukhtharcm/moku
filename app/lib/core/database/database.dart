@@ -590,4 +590,40 @@ class AppDatabase extends _$AppDatabase {
     }
     return query.get();
   }
+
+  /// Clears sync-scoped user content when switching to a different sync
+  /// identity (server/account). Returns local file paths that should be
+  /// cleaned up from disk after the DB transaction completes.
+  Future<List<String>> clearAllSyncContent() async {
+    final localAssetPaths = <String>{};
+    final allBooks = await select(books).get();
+    for (final book in allBooks) {
+      if (book.filePath.isNotEmpty) {
+        localAssetPaths.add(book.filePath);
+      }
+      if (book.coverPath case final coverPath? when coverPath.isNotEmpty) {
+        localAssetPaths.add(coverPath);
+      }
+    }
+
+    final collectionCovers = await select(bookCollections).get();
+    for (final collection in collectionCovers) {
+      if (collection.coverPath case final coverPath? when coverPath.isNotEmpty) {
+        localAssetPaths.add(coverPath);
+      }
+    }
+
+    await transaction(() async {
+      await delete(collectionBooks).go();
+      await delete(bookmarks).go();
+      await delete(highlights).go();
+      await delete(readingProgresses).go();
+      await delete(readingSessions).go();
+      await delete(readingGoals).go();
+      await delete(bookCollections).go();
+      await delete(books).go();
+    });
+
+    return localAssetPaths.toList(growable: false);
+  }
 }

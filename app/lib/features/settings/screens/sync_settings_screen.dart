@@ -86,7 +86,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
       }
       if (!mounted) return;
       // Build engine + attach auto-sync; kick off an immediate sync.
-      _bootstrap.onAuthenticated();
+      await _bootstrap.onAuthenticated();
       setState(() => _isLoading = false);
     } catch (e) {
       setState(() {

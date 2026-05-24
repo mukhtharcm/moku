@@ -85,4 +85,91 @@ void main() {
     );
     expect(deletedGoal?.deletedAt?.toUtc(), deletedAt);
   });
+
+  test('clearAllSyncContent wipes sync tables and returns local asset paths', () async {
+    final now = DateTime.utc(2026, 5, 24, 10);
+    await database.insertBook(
+      BooksCompanion.insert(
+        id: 'book-1',
+        title: 'Seed Book',
+        author: 'Author',
+        filePath: '/tmp/book.epub',
+        coverPath: const Value('/tmp/book-cover.png'),
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await database.upsertProgress(
+      ReadingProgressesCompanion.insert(
+        id: 'progress-1',
+        bookId: 'book-1',
+        lastReadAt: now,
+        updatedAt: now,
+      ),
+    );
+    await database.insertBookmark(
+      BookmarksCompanion.insert(
+        id: 'bookmark-1',
+        bookId: 'book-1',
+        chapterIndex: 0,
+        title: 'Marker',
+        createdAt: now,
+        updatedAt: Value(now),
+      ),
+    );
+    await database.insertHighlight(
+      HighlightsCompanion.insert(
+        id: 'highlight-1',
+        bookId: 'book-1',
+        chapterIndex: 0,
+        selectedText: 'Highlight',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await database.insertCollection(
+      BookCollectionsCompanion.insert(
+        id: 'collection-1',
+        name: 'Shelf',
+        coverPath: const Value('/tmp/collection-cover.png'),
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await database.addBookToCollection('collection-1', 'book-1');
+    await database.insertSession(
+      ReadingSessionsCompanion.insert(
+        id: 'session-1',
+        bookId: 'book-1',
+        bookTitle: 'Seed Book',
+        startedAt: now,
+        updatedAt: Value(now),
+      ),
+    );
+    await database.upsertGoal(
+      ReadingGoalsCompanion.insert(
+        id: 'goal-1',
+        year: 2026,
+        booksGoal: const Value(24),
+        minutesPerDayGoal: const Value(45),
+        updatedAt: Value(now),
+      ),
+    );
+
+    final assetPaths = await database.clearAllSyncContent();
+
+    expect(assetPaths, containsAll([
+      '/tmp/book.epub',
+      '/tmp/book-cover.png',
+      '/tmp/collection-cover.png',
+    ]));
+    expect(await database.getAllBooks(includeDeleted: true), isEmpty);
+    expect(await database.getAllCollections(includeDeleted: true), isEmpty);
+    expect(await database.getAllCollectionBooks(includeDeleted: true), isEmpty);
+    expect(await database.getBookmarksForBook('book-1', includeDeleted: true), isEmpty);
+    expect(await database.getHighlightsForBook('book-1', includeDeleted: true), isEmpty);
+    expect(await database.getProgressForBook('book-1', includeDeleted: true), isNull);
+    expect(await database.getAllSessions(includeDeleted: true), isEmpty);
+    expect(await database.getAllGoals(includeDeleted: true), isEmpty);
+  });
 }
