@@ -345,6 +345,44 @@ void main() {
     });
 
     test(
+      'reuses an existing remote collection instead of creating a duplicate',
+      () async {
+        final now = DateTime.utc(2026, 5, 24, 10);
+        pb.seedRecords('collections', [
+          RecordModel({
+            'id': 'collection-remote-1',
+            'user': pb.userId,
+            'name': 'Shelf',
+            'description': 'Exact match',
+            'deleted_at': '',
+            'updated': now.toIso8601String(),
+          }),
+        ]);
+
+        await database.insertCollection(
+          BookCollectionsCompanion.insert(
+            id: 'collection-local',
+            name: 'Shelf',
+            description: const Value('Exact match'),
+            createdAt: now.add(const Duration(minutes: 5)),
+            updatedAt: now.add(const Duration(minutes: 5)),
+          ),
+        );
+
+        final result = await engine.syncAll();
+
+        expect(result.isFullSuccess, isTrue);
+        expect(pb.recordsFor('collections'), hasLength(1));
+        final collections = await database.getAllCollections(
+          includeDeleted: true,
+        );
+        expect(collections, hasLength(1));
+        expect(collections.single.remoteId, 'collection-remote-1');
+        expect(collections.single.syncPending, isFalse);
+      },
+    );
+
+    test(
       'attaches a remote reading progress record to the existing local book progress',
       () async {
         final localUpdated = DateTime.utc(2026, 5, 24, 10);
@@ -617,6 +655,61 @@ void main() {
         expect(
           sessions.where((s) => s.remoteId == 'session-remote-2'),
           hasLength(1),
+        );
+      },
+    );
+
+    test(
+      'pulls multiple reading sessions even when remote ids share a long prefix',
+      () async {
+        await seedBook(remoteId: 'book-remote-1');
+        pb.seedRecords('reading_sessions', [
+          RecordModel({
+            'id': 'bulksessu001',
+            'book': 'book-remote-1',
+            'user': pb.userId,
+            'book_title': 'Seed Book',
+            'started_at': DateTime.utc(2026, 5, 25, 1, 1).toIso8601String(),
+            'ended_at': DateTime.utc(2026, 5, 25, 1, 11).toIso8601String(),
+            'duration_seconds': 600,
+            'start_chapter': 1,
+            'end_chapter': 2,
+            'deleted_at': '',
+          }),
+          RecordModel({
+            'id': 'bulksessu002',
+            'book': 'book-remote-1',
+            'user': pb.userId,
+            'book_title': 'Seed Book',
+            'started_at': DateTime.utc(2026, 5, 25, 1, 2).toIso8601String(),
+            'ended_at': DateTime.utc(2026, 5, 25, 1, 12).toIso8601String(),
+            'duration_seconds': 610,
+            'start_chapter': 2,
+            'end_chapter': 3,
+            'deleted_at': '',
+          }),
+          RecordModel({
+            'id': 'bulksessu010',
+            'book': 'book-remote-1',
+            'user': pb.userId,
+            'book_title': 'Seed Book',
+            'started_at': DateTime.utc(2026, 5, 25, 1, 10).toIso8601String(),
+            'ended_at': DateTime.utc(2026, 5, 25, 1, 20).toIso8601String(),
+            'duration_seconds': 620,
+            'start_chapter': 3,
+            'end_chapter': 4,
+            'deleted_at': '',
+          }),
+        ]);
+
+        final result = await engine.syncAll();
+
+        expect(result.isFullSuccess, isTrue);
+        final sessions = await database.getAllSessions(includeDeleted: true);
+        expect(sessions, hasLength(3));
+        expect(
+          sessions.map((s) => s.remoteId).toSet(),
+          {'bulksessu001', 'bulksessu002', 'bulksessu010'},
         );
       },
     );

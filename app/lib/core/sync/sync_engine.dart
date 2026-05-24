@@ -386,7 +386,7 @@ class SyncEngine {
       final publishDateStr = record.getStringValue('publish_date');
       await db.insertBook(
         BooksCompanion.insert(
-          id: 'pb_${record.id.substring(0, 11)}',
+          id: _mirroredLocalId('pb', record.id),
           title: record.getStringValue('title'),
           author: record.getStringValue('author'),
           description: Value(record.getStringValue('description')),
@@ -649,7 +649,7 @@ class SyncEngine {
         if (remoteDeletedAt != null) continue;
         await db.upsertProgress(
           ReadingProgressesCompanion.insert(
-            id: 'rp_${record.id.substring(0, 11)}',
+            id: _mirroredLocalId('rp', record.id),
             bookId: localBookId,
             lastReadAt:
                 DateTime.tryParse(record.getStringValue('last_read_at')) ?? now,
@@ -826,7 +826,7 @@ class SyncEngine {
       if (remoteDeletedAt == null) {
         await db.insertBookmark(
           BookmarksCompanion.insert(
-            id: 'bm_${record.id.substring(0, 11)}',
+            id: _mirroredLocalId('bm', record.id),
             bookId: localBookId,
             chapterIndex: record.getIntValue('chapter_index'),
             title: record.getStringValue('title'),
@@ -1005,7 +1005,7 @@ class SyncEngine {
         final resolvedTimestamp = remoteUpdated ?? _fallbackRemoteTimestamp();
         await db.insertHighlight(
           HighlightsCompanion.insert(
-            id: 'hl_${record.id.substring(0, 11)}',
+            id: _mirroredLocalId('hl', record.id),
             bookId: localBookId,
             chapterIndex: record.getIntValue('chapter_index'),
             selectedText: record.getStringValue('selected_text'),
@@ -1044,6 +1044,26 @@ class SyncEngine {
         .toList();
     for (final collection in newCollections) {
       try {
+        final existingRemote = await _findRemoteRecordByFilter(
+          'collections',
+          pb.filter(
+            'name = {:name} && description = {:description} && user = {:user}',
+            {
+              'name': collection.name,
+              'description': collection.description ?? '',
+              'user': userId,
+            },
+          ),
+        );
+        if (existingRemote != null) {
+          await _attachCollectionRemoteLink(
+            collection,
+            existingRemote,
+            userId: userId,
+          );
+          continue;
+        }
+
         final record = await pb
             .collection('collections')
             .create(
@@ -1154,7 +1174,7 @@ class SyncEngine {
         final resolvedTimestamp = remoteUpdated ?? _fallbackRemoteTimestamp();
         await db.insertCollection(
           BookCollectionsCompanion.insert(
-            id: 'col_${record.id.substring(0, 10)}',
+            id: _mirroredLocalId('col', record.id),
             name: record.getStringValue('name'),
             description: Value(record.getStringValue('description')),
             createdAt: resolvedTimestamp,
@@ -1666,7 +1686,7 @@ class SyncEngine {
 
       await db.insertSession(
         ReadingSessionsCompanion.insert(
-          id: 'rs_${record.id.substring(0, 11)}',
+          id: _mirroredLocalId('rs', record.id),
           bookId: localBookId,
           bookTitle: book?.title ?? record.getStringValue('book_title'),
           startedAt: startedAt,
@@ -1854,7 +1874,7 @@ class SyncEngine {
         if (remoteDeletedAt != null) continue;
         await db.upsertGoal(
           ReadingGoalsCompanion.insert(
-            id: 'rg_${record.id.substring(0, 11)}',
+            id: _mirroredLocalId('rg', record.id),
             year: year,
             booksGoal: Value(booksGoal),
             minutesPerDayGoal: Value(minutesPerDayGoal),
@@ -2228,6 +2248,58 @@ class SyncEngine {
         .write(ReadingGoalsCompanion(remoteId: Value(remoteRecord.id)));
   }
 
+  Future<void> _attachCollectionRemoteLink(
+    BookCollection collection,
+    RecordModel remoteRecord, {
+    required String userId,
+  }) async {
+    final remoteDeletedAt = _parseRemoteDeletedAt(remoteRecord);
+    final remoteUpdated = _parseRemoteTimestamp(remoteRecord);
+    final shouldPushLocal =
+        remoteDeletedAt != null ||
+        remoteUpdated == null ||
+        !remoteUpdated.isAfter(collection.updatedAt);
+
+    if (shouldPushLocal) {
+      final updated = await pb
+          .collection('collections')
+          .update(
+            remoteRecord.id,
+            body: {
+              'name': collection.name,
+              'description': collection.description ?? '',
+              'deleted_at':
+                  collection.deletedAt?.toUtc().toIso8601String() ?? '',
+              'user': userId,
+            },
+          );
+      final updatedAt =
+          _parseRemoteTimestamp(updated) ?? _fallbackRemoteTimestamp();
+      await (db.update(db.bookCollections)
+            ..where((c) => c.id.equals(collection.id)))
+          .write(
+            BookCollectionsCompanion(
+              remoteId: Value(remoteRecord.id),
+              deletedAt: Value(collection.deletedAt),
+              updatedAt: Value(updatedAt),
+              syncPending: const Value(false),
+            ),
+          );
+      return;
+    }
+
+    await (db.update(db.bookCollections)
+          ..where((c) => c.id.equals(collection.id)))
+        .write(
+          BookCollectionsCompanion(
+            remoteId: Value(remoteRecord.id),
+            deletedAt: Value(remoteDeletedAt),
+            updatedAt: Value(remoteUpdated),
+            syncPending: const Value(false),
+          ),
+        );
+  }
+
   Future<void> _attachBookmarkRemoteLink(
     Bookmark bookmark,
     RecordModel remoteRecord, {
@@ -2422,6 +2494,10 @@ class SyncEngine {
         existing.booksGoal == record.getIntValue('books_goal') &&
         existing.minutesPerDayGoal ==
             record.getIntValue('minutes_per_day_goal');
+  }
+
+  static String _mirroredLocalId(String prefix, String remoteId) {
+    return '${prefix}_$remoteId';
   }
 
   Map<String, dynamic> _bookToMap(Book book, String userId) {
