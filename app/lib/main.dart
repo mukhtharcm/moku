@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:window_manager/window_manager.dart';
 
 import 'core/database/database.dart';
 import 'core/localization/app_locale_cubit.dart';
@@ -14,6 +17,23 @@ import 'app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Remove the native title bar on desktop — window_manager takes over.
+  // Must run before runApp; the window is hidden until show() is called
+  // inside the callback, which prevents any flash of unstyled chrome.
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.macOS ||
+          defaultTargetPlatform == TargetPlatform.linux ||
+          defaultTargetPlatform == TargetPlatform.windows)) {
+    await windowManager.ensureInitialized();
+    windowManager.waitUntilReadyToShow(
+      const WindowOptions(titleBarStyle: TitleBarStyle.hidden),
+      () async {
+        await windowManager.show();
+        await windowManager.focus();
+      },
+    );
+  }
 
   // Initialize path resolver before anything touches file paths
   await PathResolver.init();

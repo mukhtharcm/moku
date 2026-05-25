@@ -142,6 +142,25 @@ class MokuTheme {
           );
         }),
       ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: _paperWhite,
+        indicatorColor: colorScheme.primaryContainer.withValues(alpha: 0.7),
+        selectedIconTheme: IconThemeData(color: colorScheme.primary, size: 24),
+        unselectedIconTheme: IconThemeData(
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+          size: 22,
+        ),
+        selectedLabelTextStyle: GoogleFonts.inter(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: colorScheme.primary,
+        ),
+        unselectedLabelTextStyle: GoogleFonts.inter(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+        ),
+      ),
       chipTheme: ChipThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -206,6 +225,9 @@ class MokuTheme {
         builders: {
           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
           TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
         },
       ),
     );
@@ -303,6 +325,25 @@ class MokuTheme {
           );
         }),
       ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: _nightCard,
+        indicatorColor: colorScheme.primaryContainer.withValues(alpha: 0.5),
+        selectedIconTheme: IconThemeData(color: colorScheme.primary, size: 24),
+        unselectedIconTheme: IconThemeData(
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+          size: 22,
+        ),
+        selectedLabelTextStyle: GoogleFonts.inter(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: colorScheme.primary,
+        ),
+        unselectedLabelTextStyle: GoogleFonts.inter(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+        ),
+      ),
       chipTheme: ChipThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -367,6 +408,9 @@ class MokuTheme {
         builders: {
           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
           TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
         },
       ),
     );

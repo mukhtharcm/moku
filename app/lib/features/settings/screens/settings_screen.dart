@@ -30,8 +30,11 @@ class SettingsScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           const SizedBox(height: 8),
           _SectionHeader(l10n.settingsSectionAppearance),
@@ -294,6 +297,8 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 32),
         ],
+      ),
+        ),
       ),
     );
   }
