@@ -310,6 +310,13 @@ class SyncEngine {
             ),
           );
         }
+        // Even when metadata is up-to-date, the local epub file may have been
+        // deleted (re-install, sandbox move, first-time cross-device sync that
+        // only created the DB record without a file). Re-download if missing.
+        final resolvedPath = PathResolver.resolve(existingBook.filePath);
+        if (!File(resolvedPath).existsSync()) {
+          await _redownloadBookFile(record, existingBook);
+        }
       } else {
         // Check if we already have this book by file hash
         final fileHash = record.getStringValue('file_hash');
@@ -356,8 +363,34 @@ class SyncEngine {
       final resolvedFilename = remoteFilename;
 
       final fileUrl = pb.files.getUrl(record, resolvedFilename);
-      final response = await http.get(fileUrl);
+      // Use a client with an explicit per-download timeout so large files on
+      // slow connections don't hang forever, and so a truncated transfer is
+      // detected rather than silently written as a corrupt epub.
+      final client = http.Client();
+      late http.Response response;
+      try {
+        response = await client
+            .get(fileUrl)
+            .timeout(const Duration(minutes: 10));
+      } finally {
+        client.close();
+      }
       if (response.statusCode != 200) return;
+
+      // Validate: refuse to store an empty or suspiciously small file.
+      // A real epub is a zip; its minimum valid size is ~22 bytes (empty zip).
+      // In practice every epub has at least a mimetype entry, so < 100 bytes
+      // means the server returned an error body instead of the epub.
+      if (response.bodyBytes.length < 100) {
+        _reportError(
+          'books',
+          'Downloaded file for record ${record.id} is suspiciously small '
+          '(${response.bodyBytes.length} bytes) — skipping to avoid '
+          'storing a corrupt epub.',
+          null,
+        );
+        return;
+      }
 
       // Save to app documents directory using moku_books structure
       final basePath = PathResolver.basePath;
@@ -2544,6 +2577,49 @@ class SyncEngine {
       deletedAt: const Value(null),
       syncPending: const Value(false),
     );
+  }
+
+  /// Re-downloads the epub file for an existing book whose local file is
+  /// missing (e.g. after an app re-install or sandbox migration). Updates
+  /// `filePath` in-place so reading progress and annotations are preserved.
+  Future<void> _redownloadBookFile(
+    RecordModel record,
+    Book existingBook,
+  ) async {
+    try {
+      final remoteFilename = _getRemoteBookFilename(record);
+      if (remoteFilename.isEmpty) return;
+
+      final fileUrl = pb.files.getUrl(record, remoteFilename);
+      final client = http.Client();
+      late http.Response response;
+      try {
+        response = await client
+            .get(fileUrl)
+            .timeout(const Duration(minutes: 10));
+      } finally {
+        client.close();
+      }
+      if (response.statusCode != 200) return;
+      if (response.bodyBytes.length < 100) return;
+
+      final basePath = PathResolver.basePath;
+      final absFilePath =
+          '$basePath/moku_books/${record.id}_$remoteFilename';
+      final file = File(absFilePath);
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(response.bodyBytes);
+
+      // Update filePath on the existing record so all linked data is kept.
+      await (db.update(db.books)
+            ..where((b) => b.id.equals(existingBook.id)))
+          .write(BooksCompanion(
+        filePath: Value(PathResolver.toRelative(absFilePath)),
+        updatedAt: Value(DateTime.now()),
+      ));
+    } catch (e, st) {
+      _reportError('books', e, st);
+    }
   }
 
   Future<void> _deleteLocalBookFiles(Book book) async {

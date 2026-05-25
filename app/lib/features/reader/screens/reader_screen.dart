@@ -1118,15 +1118,65 @@ window.addEventListener('load', function() {
           );
         }
 
-        if (state.status == ReaderStatus.error) {
+        if (state.status == ReaderStatus.error ||
+            state.status == ReaderStatus.fileMissing) {
+          final isMissing = state.status == ReaderStatus.fileMissing;
           return Scaffold(
             appBar: AppBar(title: Text(l10n.readerErrorTitle)),
             body: Center(
               child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  l10n.readerUnknownError,
-                  textAlign: TextAlign.center,
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isMissing
+                          ? Icons.cloud_download_outlined
+                          : Icons.error_outline_rounded,
+                      size: 52,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant
+                          .withValues(alpha: 0.4),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      isMissing
+                          ? 'Book file not found'
+                          : l10n.readerUnknownError,
+                      style: Theme.of(context).textTheme.titleMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isMissing
+                          ? 'The epub was not downloaded yet or was removed '
+                            'from this device. Sync now to re-download it.'
+                          : l10n.readerUnknownError,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                    if (isMissing) ...[  
+                      const SizedBox(height: 24),
+                      FilledButton.icon(
+                        icon: const Icon(Icons.sync_rounded),
+                        label: const Text('Sync Now'),
+                        onPressed: () {
+                          context
+                              .read<AutoSyncService>()
+                              .syncNow();
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
