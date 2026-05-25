@@ -115,44 +115,58 @@ class _AppShellState extends State<AppShell> {
 
   // ── Desktop: icon rail + context panel + main pane ──────────────────────
 
-  Widget _buildDesktopLayout(
-      BuildContext context, bool nativeDesktop) {
+  Widget _buildDesktopLayout(BuildContext context, bool nativeDesktop) {
     final colorScheme = Theme.of(context).colorScheme;
-    // Stats (index 3) has no sidebar — the main pane fills the full width.
     final hasSidebar = _currentIndex != 3;
+    final railBg = Theme.of(context).navigationRailTheme.backgroundColor ??
+        colorScheme.surfaceContainerLow;
+    final dividerColor = colorScheme.outlineVariant.withValues(alpha: 0.3);
 
     return Scaffold(
-      body: Row(
+      body: Stack(
         children: [
-          // 1. Narrow icon rail
-          _IconRail(
-            selectedIndex: _currentIndex,
-            onTap: (i) => setState(() => _currentIndex = i),
-            titleBarHeight: _titleBarHeight,
-            nativeDesktop: nativeDesktop,
-            destinations: _destinations,
-            labels: _destinationLabels(context),
+          // ── Rail background fills the title-bar zone seamlessly ────────
+          if (_titleBarHeight > 0)
+            Positioned(
+              top: 0, left: 0,
+              width: 64,
+              height: _titleBarHeight,
+              child: ColoredBox(color: railBg),
+            ),
+
+          // ── All content starts below the traffic lights ────────────────
+          Padding(
+            padding: EdgeInsets.only(top: _titleBarHeight),
+            child: Row(
+              children: [
+                _IconRail(
+                  selectedIndex: _currentIndex,
+                  onTap: (i) => setState(() => _currentIndex = i),
+                  destinations: _destinations,
+                  labels: _destinationLabels(context),
+                ),
+                VerticalDivider(
+                    thickness: 1, width: 1, color: dividerColor),
+                if (hasSidebar) ...[
+                  SizedBox(
+                    width: 260,
+                    child: _buildContextPanel(context),
+                  ),
+                  VerticalDivider(
+                      thickness: 1, width: 1, color: dividerColor),
+                ],
+                Expanded(child: _buildMainPane(context)),
+              ],
+            ),
           ),
 
-          VerticalDivider(
-              thickness: 1,
-              width: 1,
-              color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
-
-          // 2. Context panel (260 px)
-          if (hasSidebar) ...[
-            SizedBox(
-              width: 260,
-              child: _buildContextPanel(context),
+          // ── Full-width drag handle in the title-bar zone ───────────────
+          if (nativeDesktop && _titleBarHeight > 0)
+            Positioned(
+              top: 0, left: 0, right: 0,
+              height: _titleBarHeight,
+              child: DragToMoveArea(child: const SizedBox.expand()),
             ),
-            VerticalDivider(
-                thickness: 1,
-                width: 1,
-                color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
-          ],
-
-          // 3. Main pane
-          Expanded(child: _buildMainPane(context)),
         ],
       ),
     );
@@ -186,45 +200,61 @@ class _AppShellState extends State<AppShell> {
 
   Widget _buildTabletLayout(BuildContext context, bool nativeDesktop) {
     final colorScheme = Theme.of(context).colorScheme;
-    final topInset = _titleBarHeight;
-
-    Widget leading;
-    leading = Padding(
-      padding: EdgeInsets.only(top: topInset, bottom: 4),
-      child: Icon(Icons.auto_stories_rounded,
-          color: colorScheme.primary, size: 22),
-    );
-    if (nativeDesktop) leading = DragToMoveArea(child: leading);
+    final railBg = Theme.of(context).navigationRailTheme.backgroundColor ??
+        colorScheme.surfaceContainerLow;
+    final dividerColor = colorScheme.outlineVariant.withValues(alpha: 0.3);
 
     return Scaffold(
-      body: Row(
+      body: Stack(
         children: [
-          NavigationRail(
-            extended: false,
-            selectedIndex: _currentIndex,
-            onDestinationSelected: (i) =>
-                setState(() => _currentIndex = i),
-            minWidth: 72,
-            leading: leading,
-            destinations: _destinations.map((d) {
-              final labels = _destinationLabels(context);
-              return NavigationRailDestination(
-                icon: Icon(d.icon),
-                selectedIcon: Icon(d.selectedIcon),
-                label: Text(labels[_destinations.indexOf(d)]),
-              );
-            }).toList(),
-          ),
-          VerticalDivider(
-              thickness: 1,
-              width: 1,
-              color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
-          Expanded(
-            child: IndexedStack(
-              index: _currentIndex,
-              children: _screens,
+          // ── Rail background fills the title-bar zone ───────────────────
+          if (_titleBarHeight > 0)
+            Positioned(
+              top: 0, left: 0,
+              width: 72,
+              height: _titleBarHeight,
+              child: ColoredBox(color: railBg),
+            ),
+
+          // ── Content starts below the traffic lights ────────────────────
+          Padding(
+            padding: EdgeInsets.only(top: _titleBarHeight),
+            child: Row(
+              children: [
+                NavigationRail(
+                  extended: false,
+                  selectedIndex: _currentIndex,
+                  onDestinationSelected: (i) =>
+                      setState(() => _currentIndex = i),
+                  minWidth: 72,
+                  destinations: _destinations.map((d) {
+                    final labels = _destinationLabels(context);
+                    return NavigationRailDestination(
+                      icon: Icon(d.icon),
+                      selectedIcon: Icon(d.selectedIcon),
+                      label: Text(labels[_destinations.indexOf(d)]),
+                    );
+                  }).toList(),
+                ),
+                VerticalDivider(
+                    thickness: 1, width: 1, color: dividerColor),
+                Expanded(
+                  child: IndexedStack(
+                    index: _currentIndex,
+                    children: _screens,
+                  ),
+                ),
+              ],
             ),
           ),
+
+          // ── Full-width drag handle in the title-bar zone ───────────────
+          if (nativeDesktop && _titleBarHeight > 0)
+            Positioned(
+              top: 0, left: 0, right: 0,
+              height: _titleBarHeight,
+              child: DragToMoveArea(child: const SizedBox.expand()),
+            ),
         ],
       ),
     );
@@ -303,16 +333,12 @@ class _NavDestination {
 class _IconRail extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onTap;
-  final double titleBarHeight;
-  final bool nativeDesktop;
   final List<_NavDestination> destinations;
   final List<String> labels;
 
   const _IconRail({
     required this.selectedIndex,
     required this.onTap,
-    required this.titleBarHeight,
-    required this.nativeDesktop,
     required this.destinations,
     required this.labels,
   });
@@ -324,28 +350,15 @@ class _IconRail extends StatelessWidget {
     final railBg = theme.navigationRailTheme.backgroundColor ??
         colorScheme.surfaceContainerLow;
 
-    // Separate Settings (index 4) to the bottom with a spacer
     final mainDests = destinations.sublist(0, 4);
     final bottomDest = destinations[4];
-
-    Widget logo = Padding(
-      padding: EdgeInsets.only(
-        top: titleBarHeight > 0 ? titleBarHeight + 4 : 16,
-        bottom: 8,
-      ),
-      child: Icon(Icons.auto_stories_rounded,
-          color: colorScheme.primary, size: 22),
-    );
-    if (nativeDesktop) logo = DragToMoveArea(child: logo);
 
     return Container(
       width: 64,
       color: railBg,
       child: Column(
         children: [
-          // Logo / drag handle
-          logo,
-
+          const SizedBox(height: 8),
           const Divider(height: 1),
           const SizedBox(height: 4),
 
@@ -366,7 +379,7 @@ class _IconRail extends StatelessWidget {
           const Divider(height: 1),
           const SizedBox(height: 4),
 
-          // Settings at the bottom
+          // Settings pinned to the bottom
           _IconRailItem(
             icon: bottomDest.icon,
             selectedIcon: bottomDest.selectedIcon,
