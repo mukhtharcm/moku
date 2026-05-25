@@ -8,41 +8,56 @@ library;
 import 'package:flutter/material.dart';
 
 // ── Palette ──────────────────────────────────────────────────────────────────
+//
+// Moku's identity is **warm ink on warm paper**, lifted by rust + teal
+// accents and a residual violet brand mark. These are the exact tokens
+// used on the marketing site (`website/index.html`), so the product and
+// the brand read as the same thing.
 
 class MokuColors {
   MokuColors._();
 
-  // Brand
-  static const violet    = Color(0xFF6B4EFF); // primary accent
-  static const coral     = Color(0xFFFF8A65); // warm secondary
+  // Brand marks (kept for hero / app icon)
+  static const violet    = Color(0xFF6B4EFF);
+  static const coral     = Color(0xFFFF8A65);
 
-  // Light surfaces
-  static const cream      = Color(0xFFFAF7F2); // scaffold / page bg
-  static const paper      = Color(0xFFFFFBF7); // card / panel bg
-  static const paperDim   = Color(0xFFF5F1EB); // slightly darker panel
+  // Primary accents (active UI)
+  static const rust      = Color(0xFFC4653A); // primary action, selection text
+  static const rustDeep  = Color(0xFFA8542E); // hover / pressed
+  static const teal      = Color(0xFF2A6F6A); // secondary accent, progress
+  static const tealDeep  = Color(0xFF1F5450);
+
+  // Light surfaces (ink-on-paper)
+  static const paper      = Color(0xFFF7F3EC); // scaffold / page bg
+  static const paperWarm  = Color(0xFFEFE8DC); // raised surface / sidebar
+  static const paperDim   = Color(0xFFE5DDCE); // pressed / hover
+  static const paperWhite = Color(0xFFFFFCF6); // card / detail surface
 
   // Light text
-  static const ink        = Color(0xFF1C1917); // body text
-  static const inkMuted   = Color(0xFF6B6460); // secondary text
-  static const inkFaint   = Color(0xFFB0A99E); // placeholder / disabled
+  static const ink        = Color(0xFF1A1612); // body text
+  static const inkMuted   = Color(0xFF6A625A); // secondary text
+  static const inkFaint   = Color(0xFF9A918A); // placeholder / disabled
+  static const inkRule    = Color(0x141A1612); // hairline rule (8 %)
 
   // Dark surfaces
-  static const nightBase  = Color(0xFF1A1816); // scaffold / page bg
-  static const nightCard  = Color(0xFF252220); // card / panel bg
-  static const nightPanel = Color(0xFF1F1D1B); // sidebar / secondary panel
+  static const nightBase  = Color(0xFF14110E); // scaffold / page bg
+  static const nightPanel = Color(0xFF1B1814); // sidebar / secondary panel
+  static const nightCard  = Color(0xFF221E18); // card / detail surface
+  static const nightRaise = Color(0xFF2A251E); // selection / hover
 
   // Dark text
-  static const moonlight  = Color(0xFFE8E4DF); // body text (dark)
-  static const moonMuted  = Color(0xFF8C857D); // secondary (dark)
+  static const moonlight  = Color(0xFFEDE6DA); // body text (dark)
+  static const moonMuted  = Color(0xFF9C9388); // secondary text (dark)
+  static const moonRule   = Color(0x1EEDE6DA); // hairline rule (12 %)
 
-  // Semantic (light)
-  static const successGreen = Color(0xFF22C55E);
-  static const errorRed     = Color(0xFFEF4444);
-  static const warningAmber = Color(0xFFF59E0B);
+  // Semantic
+  static const successGreen = Color(0xFF3F8F5C);
+  static const errorRed     = Color(0xFFC0392B);
+  static const warningAmber = Color(0xFFD18E2C);
 
   // Reader themes (bg / fg pairs)
-  static const readerLightBg  = paper;
-  static const readerLightFg  = Color(0xFF2C2520);
+  static const readerLightBg  = paperWhite;
+  static const readerLightFg  = Color(0xFF1A1612);
   static const readerDarkBg   = nightBase;
   static const readerDarkFg   = Color(0xFFD5D0CA);
   static const readerSepiaBg  = Color(0xFFF4ECD8);
@@ -67,7 +82,7 @@ class MokuSpacing {
 
   // Semantic aliases
   static const double pagePadding   = s6;   // main content horizontal inset
-  static const double panelPadding  = s4;   // sidebar / panel inset
+  static const double panelPadding  = s3;   // sidebar / panel inset (was s4)
   static const double cardPadding   = s3;   // inside a card
   static const double tileVPadding  = s2;   // list tile vertical
   static const double sectionGap    = s6;   // between major sections
@@ -75,15 +90,17 @@ class MokuSpacing {
 }
 
 // ── Border radius ─────────────────────────────────────────────────────────────
+//
+// Tightened to a desktop-friendly scale. Pills only for badges.
 
 class MokuRadius {
   MokuRadius._();
 
-  static const double xs  =  4;
-  static const double sm  =  6;
-  static const double md  = 10;
-  static const double lg  = 14;
-  static const double xl  = 20;
+  static const double xs  =  3;
+  static const double sm  =  5;
+  static const double md  =  7;
+  static const double lg  = 10;
+  static const double xl  = 14;
   static const double pill = 999;
 
   static BorderRadius get xsAll  => BorderRadius.circular(xs);

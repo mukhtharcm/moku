@@ -2,42 +2,47 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../ui/tokens.dart';
+
+/// Moku theme — ink-on-paper, warm, with rust + teal accents.
+///
+/// Public API:
+///   • [MokuTheme.lightTheme] / [MokuTheme.darkTheme] return the base theme.
+///   • [MokuTheme.desktopify] returns a tightened variant for desktop chrome
+///     (smaller paddings, smaller radii, neutral selection, hairline borders).
+///   • [MokuTheme.adaptForTextDirection] kept for RTL flow.
 class MokuTheme {
-  // Brand colors — warm, bookish palette
-  static const Color primarySeed = Color(0xFF6B4EFF); // deep violet
-  static const Color warmAccent = Color(0xFFFF8A65); // warm coral
-  static const Color _cream = Color(0xFFFAF7F2); // warm cream background
-  static const Color _inkDark = Color(0xFF1C1917); // warm ink
-  static const Color _paperWhite = Color(0xFFFFFBF7);
-  static const Color _nightSurface = Color(0xFF1A1816);
-  static const Color _nightCard = Color(0xFF252220);
+  // Legacy brand mark, kept for any place that still references it.
+  static const Color primarySeed = MokuColors.rust;
+
+  // ── Text theme ─────────────────────────────────────────────────────────
 
   static TextTheme _buildTextTheme(Brightness brightness) {
     final base = brightness == Brightness.dark
         ? ThemeData(brightness: Brightness.dark).textTheme
         : ThemeData(brightness: Brightness.light).textTheme;
 
-    // Use Literata for display/headings (a bookish serif), Inter for body
-    final headingTheme = GoogleFonts.literataTextTheme(base);
-    final bodyTheme = GoogleFonts.interTextTheme(base);
+    final headingTheme = GoogleFonts.instrumentSerifTextTheme(base);
+    final bodyTheme = GoogleFonts.dmSansTextTheme(base);
 
     return bodyTheme.copyWith(
       displayLarge: headingTheme.displayLarge,
       displayMedium: headingTheme.displayMedium,
       displaySmall: headingTheme.displaySmall,
       headlineLarge: headingTheme.headlineLarge?.copyWith(
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w400,
         letterSpacing: -0.5,
       ),
       headlineMedium: headingTheme.headlineMedium?.copyWith(
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w400,
         letterSpacing: -0.3,
       ),
       headlineSmall: headingTheme.headlineSmall?.copyWith(
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w400,
       ),
       titleLarge: headingTheme.titleLarge?.copyWith(
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.2,
       ),
       titleMedium: bodyTheme.titleMedium?.copyWith(
         fontWeight: FontWeight.w500,
@@ -50,359 +55,325 @@ class MokuTheme {
     );
   }
 
+  // ── Light theme ────────────────────────────────────────────────────────
+
   static ThemeData lightTheme() {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: primarySeed,
+    final colorScheme = ColorScheme(
       brightness: Brightness.light,
-      surface: _cream,
-      onSurface: _inkDark,
+      primary: MokuColors.rust,
+      onPrimary: MokuColors.paperWhite,
+      primaryContainer: MokuColors.paperWarm,
+      onPrimaryContainer: MokuColors.rustDeep,
+      secondary: MokuColors.teal,
+      onSecondary: MokuColors.paperWhite,
+      secondaryContainer: MokuColors.paperWarm,
+      onSecondaryContainer: MokuColors.tealDeep,
+      tertiary: MokuColors.violet,
+      onTertiary: MokuColors.paperWhite,
+      error: MokuColors.errorRed,
+      onError: MokuColors.paperWhite,
+      surface: MokuColors.paper,
+      onSurface: MokuColors.ink,
+      onSurfaceVariant: MokuColors.inkMuted,
+      surfaceContainerLowest: MokuColors.paperWhite,
+      surfaceContainerLow: MokuColors.paper,
+      surfaceContainer: MokuColors.paperWarm,
+      surfaceContainerHigh: MokuColors.paperWarm,
+      surfaceContainerHighest: MokuColors.paperDim,
+      outline: MokuColors.inkRule,
+      outlineVariant: MokuColors.inkRule,
+      shadow: MokuColors.ink,
+      inverseSurface: MokuColors.ink,
+      onInverseSurface: MokuColors.paper,
+      inversePrimary: MokuColors.coral,
     );
 
-    return ThemeData(
-      useMaterial3: true,
+    return _baseTheme(
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: _cream,
-      textTheme: _buildTextTheme(Brightness.light),
-      appBarTheme: AppBarTheme(
-        centerTitle: false,
-        backgroundColor: _cream,
-        foregroundColor: _inkDark,
-        elevation: 0,
-        scrolledUnderElevation: 0.5,
-        titleTextStyle: GoogleFonts.literata(
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-          color: _inkDark,
-          letterSpacing: -0.3,
-        ),
-      ),
-      cardTheme: CardThemeData(
-        elevation: 0,
-        color: _paperWhite,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.25),
-          ),
-        ),
-        margin: EdgeInsets.zero,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: _paperWhite,
-        surfaceTintColor: Colors.transparent,
-        indicatorColor: colorScheme.primaryContainer.withValues(alpha: 0.7),
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        height: 72,
-        iconTheme: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return IconThemeData(color: colorScheme.primary, size: 24);
-          }
-          return IconThemeData(
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              size: 22);
-        }),
-        labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: colorScheme.primary,
-            );
-          }
-          return GoogleFonts.inter(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-          );
-        }),
-      ),
-      navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: _paperWhite,
-        indicatorColor: colorScheme.primaryContainer.withValues(alpha: 0.7),
-        selectedIconTheme: IconThemeData(color: colorScheme.primary, size: 24),
-        unselectedIconTheme: IconThemeData(
-          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-          size: 22,
-        ),
-        selectedLabelTextStyle: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: colorScheme.primary,
-        ),
-        unselectedLabelTextStyle: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-        ),
-      ),
-      chipTheme: ChipThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
-      dialogTheme: DialogThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
-      ),
-      bottomSheetTheme: const BottomSheetThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-      ),
-      snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-      ),
-      dividerTheme: DividerThemeData(
-        color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-        thickness: 0.5,
-        space: 0.5,
-      ),
-      listTileTheme: ListTileThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      ),
-      popupMenuTheme: PopupMenuThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-      pageTransitionsTheme: const PageTransitionsTheme(
-        builders: {
-          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
-          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
-          TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
-        },
-      ),
+      scaffoldBackground: MokuColors.paper,
+      cardColor: MokuColors.paperWhite,
+      navBg: MokuColors.paperWarm,
+      ruleColor: MokuColors.inkRule,
+      brightness: Brightness.light,
     );
   }
+
+  // ── Dark theme ─────────────────────────────────────────────────────────
 
   static ThemeData darkTheme() {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: primarySeed,
+    final colorScheme = ColorScheme(
       brightness: Brightness.dark,
-      surface: _nightSurface,
-      onSurface: const Color(0xFFE8E4DF),
+      primary: const Color(0xFFE08A5C), // rust lifted for dark
+      onPrimary: MokuColors.nightBase,
+      primaryContainer: MokuColors.nightRaise,
+      onPrimaryContainer: const Color(0xFFE08A5C),
+      secondary: const Color(0xFF5FB0A8), // teal lifted for dark
+      onSecondary: MokuColors.nightBase,
+      secondaryContainer: MokuColors.nightRaise,
+      onSecondaryContainer: const Color(0xFF5FB0A8),
+      tertiary: MokuColors.violet,
+      onTertiary: MokuColors.moonlight,
+      error: const Color(0xFFE07B6E),
+      onError: MokuColors.nightBase,
+      surface: MokuColors.nightBase,
+      onSurface: MokuColors.moonlight,
+      onSurfaceVariant: MokuColors.moonMuted,
+      surfaceContainerLowest: MokuColors.nightPanel,
+      surfaceContainerLow: MokuColors.nightPanel,
+      surfaceContainer: MokuColors.nightCard,
+      surfaceContainerHigh: MokuColors.nightRaise,
+      surfaceContainerHighest: MokuColors.nightRaise,
+      outline: MokuColors.moonRule,
+      outlineVariant: MokuColors.moonRule,
+      shadow: const Color(0xFF000000),
+      inverseSurface: MokuColors.moonlight,
+      onInverseSurface: MokuColors.nightBase,
+      inversePrimary: MokuColors.rust,
     );
 
+    return _baseTheme(
+      colorScheme: colorScheme,
+      scaffoldBackground: MokuColors.nightBase,
+      cardColor: MokuColors.nightCard,
+      navBg: MokuColors.nightPanel,
+      ruleColor: MokuColors.moonRule,
+      brightness: Brightness.dark,
+    );
+  }
+
+  // ── Shared theme body ──────────────────────────────────────────────────
+
+  static ThemeData _baseTheme({
+    required ColorScheme colorScheme,
+    required Color scaffoldBackground,
+    required Color cardColor,
+    required Color navBg,
+    required Color ruleColor,
+    required Brightness brightness,
+  }) {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: _nightSurface,
-      textTheme: _buildTextTheme(Brightness.dark),
+      scaffoldBackgroundColor: scaffoldBackground,
+      canvasColor: scaffoldBackground,
+      splashFactory: InkSparkle.splashFactory,
+      textTheme: _buildTextTheme(brightness),
       appBarTheme: AppBarTheme(
         centerTitle: false,
-        backgroundColor: _nightSurface,
-        foregroundColor: const Color(0xFFE8E4DF),
+        backgroundColor: scaffoldBackground,
+        foregroundColor: colorScheme.onSurface,
         elevation: 0,
-        scrolledUnderElevation: 0.5,
-        titleTextStyle: GoogleFonts.literata(
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-          color: const Color(0xFFE8E4DF),
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: GoogleFonts.instrumentSerif(
+          fontSize: 24,
+          fontWeight: FontWeight.w400,
+          color: colorScheme.onSurface,
           letterSpacing: -0.3,
         ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: _nightCard,
+        color: cardColor,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.15),
-          ),
+          borderRadius: MokuRadius.lgAll,
+          side: BorderSide(color: ruleColor),
         ),
         margin: EdgeInsets.zero,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        fillColor: brightness == Brightness.light
+            ? MokuColors.paperWhite
+            : MokuColors.nightPanel,
+        hintStyle: GoogleFonts.dmSans(
+          fontSize: MokuTypeSize.bodyM,
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          borderRadius: MokuRadius.smAll,
+          borderSide: BorderSide(color: ruleColor),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          borderRadius: MokuRadius.smAll,
+          borderSide: BorderSide(color: ruleColor),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+          borderRadius: MokuRadius.smAll,
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.2),
         ),
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        isDense: true,
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: MokuRadius.lgAll),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: _nightCard,
+        backgroundColor: navBg,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: colorScheme.primaryContainer.withValues(alpha: 0.5),
+        indicatorColor: brightness == Brightness.light
+            ? MokuColors.paperDim
+            : MokuColors.nightRaise,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        height: 72,
+        height: 64,
+        elevation: 0,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return IconThemeData(color: colorScheme.primary, size: 24);
+            return IconThemeData(color: colorScheme.primary, size: 22);
           }
           return IconThemeData(
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-              size: 22);
+              color: colorScheme.onSurfaceVariant, size: 22);
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return GoogleFonts.inter(
-              fontSize: 12,
+            return GoogleFonts.dmSans(
+              fontSize: 11.5,
               fontWeight: FontWeight.w600,
               color: colorScheme.primary,
             );
           }
-          return GoogleFonts.inter(
-            fontSize: 11,
+          return GoogleFonts.dmSans(
+            fontSize: 11.5,
             fontWeight: FontWeight.w500,
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+            color: colorScheme.onSurfaceVariant,
           );
         }),
       ),
       navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: _nightCard,
-        indicatorColor: colorScheme.primaryContainer.withValues(alpha: 0.5),
-        selectedIconTheme: IconThemeData(color: colorScheme.primary, size: 24),
+        backgroundColor: navBg,
+        indicatorColor: brightness == Brightness.light
+            ? MokuColors.paperDim
+            : MokuColors.nightRaise,
+        selectedIconTheme:
+            IconThemeData(color: colorScheme.primary, size: 22),
         unselectedIconTheme: IconThemeData(
-          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+          color: colorScheme.onSurfaceVariant,
           size: 22,
         ),
-        selectedLabelTextStyle: GoogleFonts.inter(
-          fontSize: 13,
+        selectedLabelTextStyle: GoogleFonts.dmSans(
+          fontSize: 12,
           fontWeight: FontWeight.w600,
           color: colorScheme.primary,
         ),
-        unselectedLabelTextStyle: GoogleFonts.inter(
-          fontSize: 13,
+        unselectedLabelTextStyle: GoogleFonts.dmSans(
+          fontSize: 12,
           fontWeight: FontWeight.w500,
-          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+          color: colorScheme.onSurfaceVariant,
         ),
       ),
       chipTheme: ChipThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+        shape: RoundedRectangleBorder(borderRadius: MokuRadius.smAll),
+        side: BorderSide(color: ruleColor),
+        backgroundColor: Colors.transparent,
+        labelStyle: GoogleFonts.dmSans(
+          fontSize: MokuTypeSize.small,
+          fontWeight: FontWeight.w500,
+          color: colorScheme.onSurface,
         ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       ),
       dialogTheme: DialogThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        backgroundColor: cardColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: MokuRadius.lgAll),
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: cardColor,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+        backgroundColor: colorScheme.inverseSurface,
+        contentTextStyle: GoogleFonts.dmSans(
+          fontSize: MokuTypeSize.body,
+          color: colorScheme.onInverseSurface,
         ),
+        shape: RoundedRectangleBorder(borderRadius: MokuRadius.smAll),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          shape: RoundedRectangleBorder(borderRadius: MokuRadius.smAll),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          textStyle: GoogleFonts.dmSans(
+            fontSize: MokuTypeSize.bodyM,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.1,
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+          foregroundColor: colorScheme.onSurface,
+          side: BorderSide(color: ruleColor),
+          shape: RoundedRectangleBorder(borderRadius: MokuRadius.smAll),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          textStyle: GoogleFonts.dmSans(
+            fontSize: MokuTypeSize.bodyM,
+            fontWeight: FontWeight.w600,
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+          foregroundColor: colorScheme.primary,
+          shape: RoundedRectangleBorder(borderRadius: MokuRadius.smAll),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          textStyle: GoogleFonts.dmSans(
+            fontSize: MokuTypeSize.bodyM,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          shape: RoundedRectangleBorder(borderRadius: MokuRadius.smAll),
+        ),
+      ),
       dividerTheme: DividerThemeData(
-        color: colorScheme.outlineVariant.withValues(alpha: 0.2),
-        thickness: 0.5,
-        space: 0.5,
+        color: ruleColor,
+        thickness: 1,
+        space: 1,
       ),
       listTileTheme: ListTileThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        shape: RoundedRectangleBorder(borderRadius: MokuRadius.smAll),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+        minVerticalPadding: 6,
       ),
       popupMenuTheme: PopupMenuThemeData(
+        color: cardColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 6,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: MokuRadius.smAll,
+          side: BorderSide(color: ruleColor),
         ),
+        textStyle: GoogleFonts.dmSans(
+          fontSize: MokuTypeSize.bodyM,
+          color: colorScheme.onSurface,
+        ),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: colorScheme.inverseSurface.withValues(alpha: 0.95),
+          borderRadius: MokuRadius.xsAll,
+        ),
+        textStyle: GoogleFonts.dmSans(
+          fontSize: MokuTypeSize.small,
+          color: colorScheme.onInverseSurface,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        waitDuration: const Duration(milliseconds: 400),
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
@@ -415,6 +386,92 @@ class MokuTheme {
       ),
     );
   }
+
+  // ── Desktop overrides ──────────────────────────────────────────────────
+  //
+  // Take a base ThemeData and tighten it for desktop chrome: smaller paddings,
+  // smaller fonts on buttons, denser list tiles, hairline rules.
+
+  static ThemeData desktopify(ThemeData base) {
+    final ruleColor = base.dividerTheme.color ?? base.colorScheme.outlineVariant;
+    final cs = base.colorScheme;
+    return base.copyWith(
+      visualDensity: VisualDensity.compact,
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: cs.primary,
+          foregroundColor: cs.onPrimary,
+          shape: RoundedRectangleBorder(borderRadius: MokuRadius.smAll),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          minimumSize: const Size(0, 30),
+          textStyle: GoogleFonts.dmSans(
+            fontSize: MokuTypeSize.body,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.1,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: cs.onSurface,
+          side: BorderSide(color: ruleColor),
+          shape: RoundedRectangleBorder(borderRadius: MokuRadius.smAll),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          minimumSize: const Size(0, 30),
+          textStyle: GoogleFonts.dmSans(
+            fontSize: MokuTypeSize.body,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: cs.primary,
+          shape: RoundedRectangleBorder(borderRadius: MokuRadius.smAll),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          minimumSize: const Size(0, 28),
+          textStyle: GoogleFonts.dmSans(
+            fontSize: MokuTypeSize.body,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      inputDecorationTheme: base.inputDecorationTheme.copyWith(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        hintStyle: GoogleFonts.dmSans(
+          fontSize: MokuTypeSize.body,
+          color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+        ),
+      ),
+      cardTheme: base.cardTheme.copyWith(
+        shape: RoundedRectangleBorder(
+          borderRadius: MokuRadius.mdAll,
+          side: BorderSide(color: ruleColor),
+        ),
+      ),
+      dialogTheme: base.dialogTheme.copyWith(
+        shape: RoundedRectangleBorder(borderRadius: MokuRadius.mdAll),
+      ),
+      listTileTheme: base.listTileTheme.copyWith(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+        minVerticalPadding: 4,
+        dense: true,
+      ),
+      appBarTheme: base.appBarTheme.copyWith(
+        toolbarHeight: 44,
+        titleTextStyle: GoogleFonts.instrumentSerif(
+          fontSize: 20,
+          fontWeight: FontWeight.w400,
+          color: cs.onSurface,
+          letterSpacing: -0.2,
+        ),
+      ),
+    );
+  }
+
+  // ── RTL adaptation ─────────────────────────────────────────────────────
 
   static ThemeData adaptForTextDirection(
     ThemeData baseTheme,
@@ -473,18 +530,18 @@ class ReaderTheme {
   });
 
   static const light = ReaderTheme(
-    backgroundColor: Color(0xFFFFFBF7),
-    textColor: Color(0xFF2C2520),
+    backgroundColor: MokuColors.readerLightBg,
+    textColor: MokuColors.readerLightFg,
   );
 
   static const dark = ReaderTheme(
-    backgroundColor: Color(0xFF1A1816),
-    textColor: Color(0xFFD5D0CA),
+    backgroundColor: MokuColors.readerDarkBg,
+    textColor: MokuColors.readerDarkFg,
   );
 
   static const sepia = ReaderTheme(
-    backgroundColor: Color(0xFFF4ECD8),
-    textColor: Color(0xFF5B4636),
+    backgroundColor: MokuColors.readerSepiaBg,
+    textColor: MokuColors.readerSepiaFg,
   );
 
   static const values = [light, dark, sepia];

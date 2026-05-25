@@ -101,13 +101,12 @@ class _BookDetailView extends StatelessWidget {
 
     return Scaffold(
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        padding: const EdgeInsets.fromLTRB(40, 28, 40, 32),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                 // ── Cover + metadata ─────────────────────────────────
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,14 +167,19 @@ class _BookDetailView extends StatelessWidget {
                           // Format badge
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
+                                horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: colorScheme.secondaryContainer,
-                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: colorScheme.outlineVariant,
+                              ),
+                              borderRadius:
+                                  BorderRadius.circular(MokuRadius.xs),
                             ),
                             child: Text(
                               book.format.name.toUpperCase(),
-                              style: MokuText.micro(color: colorScheme.onSecondaryContainer),
+                              style: MokuText.micro(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ),
                         ],
@@ -189,31 +193,29 @@ class _BookDetailView extends StatelessWidget {
                 // ── Actions ──────────────────────────────────────────
                 Row(
                   children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: onOpenReader,
-                        icon: Icon(
-                          hasProgress
-                              ? Icons.play_arrow_rounded
-                              : Icons.menu_book_rounded,
-                          size: 18,
-                        ),
-                        label: Text(
-                          hasProgress
-                              ? l10n.libraryContinueReading
-                              : 'Open Book',
-                        ),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
+                    FilledButton.icon(
+                      onPressed: onOpenReader,
+                      icon: Icon(
+                        hasProgress
+                            ? Icons.play_arrow_rounded
+                            : Icons.menu_book_rounded,
+                        size: 16,
+                      ),
+                      label: Text(
+                        hasProgress
+                            ? l10n.libraryContinueReading
+                            : 'Open Book',
                       ),
                     ),
                     const SizedBox(width: 8),
-                    IconButton.outlined(
+                    OutlinedButton.icon(
                       onPressed: onDelete,
                       icon: Icon(Icons.delete_outline_rounded,
-                          color: colorScheme.error),
-                      tooltip: context.l10n.commonDelete,
+                          size: 16, color: colorScheme.error),
+                      label: Text(
+                        context.l10n.commonDelete,
+                        style: TextStyle(color: colorScheme.error),
+                      ),
                     ),
                   ],
                 ),
@@ -243,8 +245,7 @@ class _BookDetailView extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 }
 

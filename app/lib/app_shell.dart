@@ -188,7 +188,7 @@ class _AppShellState extends State<AppShell> {
     final hasSidebar = _currentIndex != 3;
     final railBg = Theme.of(context).navigationRailTheme.backgroundColor ??
         colorScheme.surfaceContainerLow;
-    final dividerColor = colorScheme.outlineVariant.withValues(alpha: 0.3);
+    final dividerColor = colorScheme.outlineVariant;
 
     return Scaffold(
       body: Stack(
@@ -197,7 +197,7 @@ class _AppShellState extends State<AppShell> {
           if (_titleBarHeight > 0)
             Positioned(
               top: 0, left: 0,
-              width: 72,
+              width: 56,
               height: _titleBarHeight,
               child: ColoredBox(color: railBg),
             ),
@@ -217,7 +217,7 @@ class _AppShellState extends State<AppShell> {
                     thickness: 1, width: 1, color: dividerColor),
                 if (hasSidebar) ...[
                   SizedBox(
-                    width: 260,
+                    width: 240,
                     child: _buildContextPanel(context),
                   ),
                   VerticalDivider(
@@ -278,7 +278,7 @@ class _AppShellState extends State<AppShell> {
     final colorScheme = Theme.of(context).colorScheme;
     final railBg = Theme.of(context).navigationRailTheme.backgroundColor ??
         colorScheme.surfaceContainerLow;
-    final dividerColor = colorScheme.outlineVariant.withValues(alpha: 0.3);
+    final dividerColor = colorScheme.outlineVariant;
 
     return Scaffold(
       body: Stack(
@@ -464,13 +464,11 @@ class _IconRail extends StatelessWidget {
     final bottomDest = destinations[4];
 
     return Container(
-      width: 72,
+      width: 56,
       color: railBg,
       child: Column(
         children: [
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
           // Main nav items
           ...mainDests.asMap().entries.map((e) {
@@ -486,8 +484,6 @@ class _IconRail extends StatelessWidget {
           }),
 
           const Spacer(),
-          const Divider(height: 1),
-          const SizedBox(height: 4),
 
           // Settings pinned to the bottom
           _IconRailItem(
@@ -497,7 +493,7 @@ class _IconRail extends StatelessWidget {
             isSelected: selectedIndex == 4,
             onTap: () => onTap(4),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
         ],
       ),
     );
@@ -523,30 +519,36 @@ class _IconRailItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    final brightness = colorScheme.brightness;
+    final selectedBg = brightness == Brightness.light
+        ? colorScheme.primary.withValues(alpha: 0.12)
+        : colorScheme.primary.withValues(alpha: 0.20);
+
     return Tooltip(
       message: label,
       preferBelow: false,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            width: 48,
-            height: 40,
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? colorScheme.primaryContainer.withValues(alpha: 0.7)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              isSelected ? selectedIcon : icon,
-              size: 22,
-              color: isSelected
-                  ? colorScheme.primary
-                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: MokuRadius.smAll,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              width: 44,
+              height: 34,
+              decoration: BoxDecoration(
+                color: isSelected ? selectedBg : Colors.transparent,
+                borderRadius: MokuRadius.smAll,
+              ),
+              child: Icon(
+                isSelected ? selectedIcon : icon,
+                size: 19,
+                color: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ),

@@ -9,6 +9,7 @@ import 'core/services/opds_catalog_service.dart';
 import 'core/sync/auto_sync_service.dart';
 import 'core/sync/sync_bootstrap.dart';
 import 'core/sync/sync_config.dart';
+import 'core/platform/moku_platform.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_cubit.dart';
 import 'features/library/cubit/library_cubit.dart';
@@ -95,18 +96,15 @@ class MokuApp extends StatelessWidget {
                   themeMode: themeState.themeMode,
                   builder: (context, child) {
                     final themedChild = child ?? const SizedBox.shrink();
-                    final direction = Directionality.maybeOf(context);
-                    if (direction == null) {
-                      return themedChild;
+                    var data = Theme.of(context);
+                    if (MokuPlatform.useDesktopChrome(context)) {
+                      data = MokuTheme.desktopify(data);
                     }
-
-                    return Theme(
-                      data: MokuTheme.adaptForTextDirection(
-                        Theme.of(context),
-                        direction,
-                      ),
-                      child: themedChild,
-                    );
+                    final direction = Directionality.maybeOf(context);
+                    if (direction != null) {
+                      data = MokuTheme.adaptForTextDirection(data, direction);
+                    }
+                    return Theme(data: data, child: themedChild);
                   },
                   home: showOnboarding
                       ? const OnboardingScreen()
