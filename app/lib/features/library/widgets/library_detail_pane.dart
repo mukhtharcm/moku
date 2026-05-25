@@ -11,7 +11,11 @@ import 'book_cover.dart';
 import '../../reader/screens/reader_screen.dart';
 
 class LibraryDetailPane extends StatelessWidget {
-  const LibraryDetailPane({super.key});
+  /// When provided (desktop inline mode) opening a book calls this callback
+  /// instead of pushing a route. The shell replaces the main pane.
+  final void Function(Book)? onOpenBook;
+
+  const LibraryDetailPane({super.key, this.onOpenBook});
 
   @override
   Widget build(BuildContext context) {
@@ -26,15 +30,19 @@ class LibraryDetailPane extends StatelessWidget {
             onDelete: () => _confirmDelete(context, book),
           );
         }
-        return _WelcomePane(state: state);
+        return _WelcomePane(state: state, onOpenBook: onOpenBook);
       },
     );
   }
 
   void _openReader(BuildContext context, Book book) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ReaderScreen(book: book)),
-    );
+    if (onOpenBook != null) {
+      onOpenBook!(book);
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ReaderScreen(book: book)),
+      );
+    }
   }
 
   void _confirmDelete(BuildContext context, Book book) {
@@ -293,7 +301,8 @@ class _MetaItem extends StatelessWidget {
 
 class _WelcomePane extends StatelessWidget {
   final LibraryState state;
-  const _WelcomePane({required this.state});
+  final void Function(Book)? onOpenBook;
+  const _WelcomePane({required this.state, this.onOpenBook});
 
   @override
   Widget build(BuildContext context) {

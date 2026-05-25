@@ -9,8 +9,10 @@ import 'core/ui/ui.dart';
 import 'l10n/l10n.dart';
 
 // Screens: mobile + tablet use full-screen; desktop uses split panes below
+import 'core/models/book.dart';
 import 'features/library/cubit/library_cubit.dart';
 import 'features/library/screens/library_screen.dart';
+import 'features/reader/screens/reader_screen.dart';
 import 'features/search/screens/search_screen.dart' as discover;
 import 'features/collections/screens/collections_screen.dart';
 import 'features/stats/stats_page.dart';
@@ -36,6 +38,7 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
+  Book? _readingBook; // non-null = desktop inline reader is active
   late final FocusNode _shellFocus;
 
   // ── Title-bar height (macOS) ─────────────────────────────────────────────
@@ -113,6 +116,9 @@ class _AppShellState extends State<AppShell> {
     _shellFocus.dispose();
     super.dispose();
   }
+
+  void _openBookInline(Book book) => setState(() => _readingBook = book);
+  void _closeReader()            => setState(() => _readingBook = null);
 
   void _handleKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) return;
@@ -248,8 +254,16 @@ class _AppShellState extends State<AppShell> {
   }
 
   Widget _buildMainPane(BuildContext context) {
+    // Inline reader: takes over the main pane on desktop.
+    if (_readingBook != null) {
+      return ReaderScreen(
+        key: ValueKey(_readingBook!.id),
+        book: _readingBook!,
+        onClose: _closeReader,
+      );
+    }
     return switch (_currentIndex) {
-      0 => const LibraryDetailPane(),
+      0 => LibraryDetailPane(onOpenBook: _openBookInline),
       1 => const _DiscoverMainPane(),
       2 => const ShelvesDetailPane(),
       3 => const StatsPage(),

@@ -35,8 +35,11 @@ import 'cbz_reader_screen.dart';
 
 class ReaderScreen extends StatelessWidget {
   final Book book;
+  /// When provided the close/back action calls this instead of Navigator.pop.
+  /// Used for inline desktop embedding — the shell controls navigation.
+  final VoidCallback? onClose;
 
-  const ReaderScreen({super.key, required this.book});
+  const ReaderScreen({super.key, required this.book, this.onClose});
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +59,7 @@ class ReaderScreen extends StatelessWidget {
         book: book,
         autoSync: context.read<AutoSyncService>(),
       )..loadBook(),
-      child: const _ReaderView(),
+      child: _ReaderView(onClose: onClose),
     );
   }
 }
@@ -66,7 +69,8 @@ class ReaderScreen extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _ReaderView extends StatefulWidget {
-  const _ReaderView();
+  final VoidCallback? onClose;
+  const _ReaderView({this.onClose});
 
   @override
   State<_ReaderView> createState() => _ReaderViewState();
@@ -1407,7 +1411,7 @@ window.addEventListener('load', function() {
                       state: state,
                       sidebarVisible: _sidebarVisible,
                       bookmarkConfirmed: _bookmarkToastVisible,
-                      onBack: () => Navigator.pop(context),
+                      onBack: widget.onClose ?? () => Navigator.pop(context),
                       onToggleSidebar: () =>
                           setState(() => _sidebarVisible = !_sidebarVisible),
                       onBookmark: () => _addBookmarkFromKeyboard(),
@@ -1504,7 +1508,11 @@ window.addEventListener('load', function() {
     final hasModifier = isMeta || isCtrl;
 
     if (key == LogicalKeyboardKey.escape) {
-      if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+      if (widget.onClose != null) {
+        widget.onClose!();
+      } else if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
       return;
     }
 
