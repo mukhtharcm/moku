@@ -62,7 +62,10 @@ class _AppShellState extends State<AppShell> {
     }
     try {
       final h = await windowManager.getTitleBarHeight();
-      if (mounted && h.toDouble() != _titleBarHeight) {
+      // getTitleBarHeight() returns 0 when fullSizeContentView is active
+      // (the content rect equals the full frame, so the delta is 0).
+      // In that case keep the seeded platform default — don't overwrite it.
+      if (mounted && h > 0 && h.toDouble() != _titleBarHeight) {
         setState(() => _titleBarHeight = h.toDouble());
       }
     } catch (_) {}
