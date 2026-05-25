@@ -9,6 +9,7 @@ import '../../../core/models/book.dart';
 import '../../../core/models/book_localizations.dart';
 import '../../../core/sync/auto_sync_service.dart';
 import '../../../l10n/l10n.dart';
+import '../../../core/ui/ui.dart';
 
 /// Dedicated reader screen for CBZ (Comic Book ZIP) files.
 ///
@@ -310,9 +311,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                           thumbShape: const RoundSliderThumbShape(
                             enabledThumbRadius: 6,
                           ),
-                          activeTrackColor: theme.colorScheme.primary,
+                          activeTrackColor: context.colors.accent,
                           inactiveTrackColor: fgColor.withValues(alpha: 0.3),
-                          thumbColor: theme.colorScheme.primary,
+                          thumbColor: context.colors.accent,
                         ),
                         child: Semantics(
                           label: l10n.readerPageOf(

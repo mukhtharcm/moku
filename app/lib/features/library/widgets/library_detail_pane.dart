@@ -66,7 +66,7 @@ class LibraryDetailPane extends StatelessWidget {
               Navigator.pop(ctx);
             },
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+              backgroundColor: context.colors.danger,
             ),
             child: Text(l10n.commonDelete),
           ),
@@ -93,7 +93,7 @@ class _BookDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
     final title = bookTitleLabel(context, book.title);
     final author = bookAuthorLabel(context, book.author);
@@ -135,12 +135,12 @@ class _BookDetailView extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             title,
-                            style: MokuText.bookTitle(color: colorScheme.onSurface),
+                            style: MokuText.bookTitle(color: colors.textPrimary),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             author,
-                            style: MokuText.body(color: colorScheme.primary, weight: FontWeight.w500),
+                            style: MokuText.body(color: colors.accent, weight: FontWeight.w500),
                           ),
                           const SizedBox(height: 16),
                           // Progress
@@ -150,9 +150,7 @@ class _BookDetailView extends StatelessWidget {
                               child: LinearProgressIndicator(
                                 value: progress,
                                 minHeight: 6,
-                                backgroundColor: colorScheme
-                                    .surfaceContainerHighest
-                                    .withValues(alpha: 0.5),
+                                backgroundColor: colors.surfaceElevated.withValues(alpha: 0.5),
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -161,7 +159,7 @@ class _BookDetailView extends StatelessWidget {
                                 progress: (progress * 100).toInt(),
                               ),
                               style:
-                                  MokuText.caption(color: colorScheme.onSurfaceVariant),
+                                  MokuText.caption(color: colors.textSecondary),
                             ),
                             const SizedBox(height: 16),
                           ],
@@ -170,12 +168,12 @@ class _BookDetailView extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: colorScheme.secondaryContainer,
+                              color: colors.accentMuted,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               book.format.name.toUpperCase(),
-                              style: MokuText.micro(color: colorScheme.onSecondaryContainer),
+                              style: MokuText.micro(color: colors.accent),
                             ),
                           ),
                         ],
@@ -212,7 +210,7 @@ class _BookDetailView extends StatelessWidget {
                     IconButton.outlined(
                       onPressed: onDelete,
                       icon: Icon(Icons.delete_outline_rounded,
-                          color: colorScheme.error),
+                          color: colors.danger),
                       tooltip: context.l10n.commonDelete,
                     ),
                   ],
@@ -224,12 +222,12 @@ class _BookDetailView extends StatelessWidget {
                   const SizedBox(height: 28),
                   Text(
                     'About',
-                    style: MokuText.sectionLabel(color: colorScheme.onSurfaceVariant),
+                    style: MokuText.sectionLabel(color: colors.textSecondary),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     _stripHtml(book.description!),
-                    style: MokuText.body(color: colorScheme.onSurface.withValues(alpha: 0.85)),
+                    style: MokuText.body(color: colors.textSecondary),
                   ),
                 ],
 
@@ -279,13 +277,13 @@ class _MetaItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: MokuText.caption(color: colorScheme.onSurfaceVariant),
+          style: MokuText.caption(color: colors.textSecondary),
         ),
         const SizedBox(height: 2),
         Text(
@@ -306,7 +304,7 @@ class _WelcomePane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
     final currentlyReading = state.currentlyReading;
 
@@ -317,13 +315,13 @@ class _WelcomePane extends StatelessWidget {
           children: [
             Icon(Icons.auto_stories_rounded,
                 size: 64,
-                color: colorScheme.primary.withValues(alpha: 0.2)),
+                color: colors.accent.withValues(alpha: 0.2)),
             const SizedBox(height: 20),
             Text(l10n.libraryEmptyTitle,
                 style: MokuText.sectionHeading()),
             const SizedBox(height: 8),
             Text(l10n.libraryEmptyBody,
-                style: MokuText.body(color: colorScheme.onSurfaceVariant),
+                style: MokuText.body(color: colors.textSecondary),
                 textAlign: TextAlign.center),
             const SizedBox(height: 24),
             FilledButton.icon(
@@ -349,7 +347,7 @@ class _WelcomePane extends StatelessWidget {
                   Row(
                     children: [
                       Icon(Icons.play_circle_outline_rounded,
-                          size: 18, color: colorScheme.primary),
+                          size: 18, color: colors.accent),
                       const SizedBox(width: 8),
                       Text(
                         l10n.libraryContinueReading,
@@ -373,14 +371,14 @@ class _WelcomePane extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       '${state.books.length}',
-                      style: MokuText.caption(color: colorScheme.onSurfaceVariant),
+                      style: MokuText.caption(color: colors.textSecondary),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Select a book from the sidebar to view details.',
-                  style: MokuText.body(color: colorScheme.onSurfaceVariant),
+                  style: MokuText.body(color: colors.textSecondary),
                 ),
               ],
             ),
@@ -402,7 +400,7 @@ class _ContinueReadingGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -457,9 +455,7 @@ class _ContinueReadingGrid extends StatelessWidget {
                               child: LinearProgressIndicator(
                                 value: progress,
                                 minHeight: 3,
-                                backgroundColor: colorScheme
-                                    .surfaceContainerHighest
-                                    .withValues(alpha: 0.5),
+                                backgroundColor: colors.surfaceElevated.withValues(alpha: 0.5),
                               ),
                             ),
                           ],

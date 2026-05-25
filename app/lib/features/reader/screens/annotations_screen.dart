@@ -7,6 +7,7 @@ import '../../../l10n/l10n.dart';
 import '../reader_localizations.dart';
 import '../cubit/reader_cubit.dart';
 import '../cubit/reader_state.dart';
+import '../../../core/ui/ui.dart';
 
 class AnnotationsScreen extends StatefulWidget {
   final Book book;
@@ -51,8 +52,8 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final state = context.watch<ReaderCubit>().state;
+    final colors = context.colors;
+final state = context.watch<ReaderCubit>().state;
     final l10n = context.l10n;
 
     return Scaffold(
@@ -77,8 +78,8 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
           : TabBarView(
               controller: _tabController,
               children: [
-                _buildHighlightsList(context, state, colorScheme),
-                _buildBookmarksList(context, state, colorScheme),
+                _buildHighlightsList(context, state, context.colors),
+                _buildBookmarksList(context, state, context.colors),
               ],
             ),
     );
@@ -87,7 +88,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
   Widget _buildHighlightsList(
     BuildContext context,
     ReaderState state,
-    ColorScheme colorScheme,
+    MokuAppColors colors,
   ) {
     if (_allHighlights.isEmpty) {
       final l10n = context.l10n;
@@ -136,7 +137,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
                 chapterTitle,
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: colorScheme.primary,
+                  color: colors.accent,
                   fontSize: 13,
                 ),
               ),
@@ -166,7 +167,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
   Widget _buildBookmarksList(
     BuildContext context,
     ReaderState state,
-    ColorScheme colorScheme,
+    MokuAppColors colors,
   ) {
     if (_allBookmarks.isEmpty) {
       return Center(
@@ -196,7 +197,7 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
         );
 
         return ListTile(
-          leading: Icon(Icons.bookmark, color: colorScheme.primary),
+          leading: Icon(Icons.bookmark, color: colors.accent),
           title: Text(bm.title),
           subtitle: Text(chapterTitle, style: const TextStyle(fontSize: 12)),
           onTap: () {
@@ -398,7 +399,7 @@ class _HighlightTile extends StatelessWidget {
                         Icon(
                           Icons.note,
                           size: 14,
-                          color: Theme.of(context).colorScheme.secondary,
+                          color: context.colors.textSecondary,
                         ),
                         const SizedBox(width: 4),
                         Expanded(
@@ -406,9 +407,7 @@ class _HighlightTile extends StatelessWidget {
                             highlight.note!,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
+                              color: context.colors.textSecondary,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,

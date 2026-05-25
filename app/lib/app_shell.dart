@@ -184,11 +184,11 @@ class _AppShellState extends State<AppShell> {
   // ── Desktop: icon rail + context panel + main pane ──────────────────────
 
   Widget _buildDesktopLayout(BuildContext context, bool nativeDesktop) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final hasSidebar = _currentIndex != 3;
     final railBg = Theme.of(context).navigationRailTheme.backgroundColor ??
-        colorScheme.surfaceContainerLow;
-    final dividerColor = colorScheme.outlineVariant.withValues(alpha: 0.3);
+        colors.surfaceMuted;
+    final dividerColor = colors.border;
 
     return Scaffold(
       body: Stack(
@@ -275,10 +275,10 @@ class _AppShellState extends State<AppShell> {
   // ── Tablet: single NavigationRail + full screen content ─────────────────
 
   Widget _buildTabletLayout(BuildContext context, bool nativeDesktop) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final railBg = Theme.of(context).navigationRailTheme.backgroundColor ??
-        colorScheme.surfaceContainerLow;
-    final dividerColor = colorScheme.outlineVariant.withValues(alpha: 0.3);
+        colors.surfaceMuted;
+    final dividerColor = colors.border;
 
     return Scaffold(
       body: Stack(
@@ -401,7 +401,7 @@ class _DiscoverMainPane extends StatelessWidget {
 class _NoCatalogSelected extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -409,7 +409,7 @@ class _NoCatalogSelected extends StatelessWidget {
           Icon(
             Icons.explore_outlined,
             size: 64,
-            color: colorScheme.primary.withValues(alpha: 0.15),
+            color: colors.accent.withValues(alpha: 0.15),
           ),
           const SizedBox(height: 20),
           Text(
@@ -419,7 +419,7 @@ class _NoCatalogSelected extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Select a source from the sidebar to browse books.',
-            style: MokuText.body(color: colorScheme.onSurfaceVariant),
+            style: MokuText.body(color: colors.textSecondary),
           ),
         ],
       ),
@@ -455,10 +455,10 @@ class _IconRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final theme = Theme.of(context);
     final railBg = theme.navigationRailTheme.backgroundColor ??
-        colorScheme.surfaceContainerLow;
+        colors.surfaceMuted;
 
     final mainDests = destinations.sublist(0, 4);
     final bottomDest = destinations[4];
@@ -521,7 +521,7 @@ class _IconRailItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
 
     return Tooltip(
       message: label,
@@ -537,7 +537,7 @@ class _IconRailItem extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               color: isSelected
-                  ? colorScheme.primaryContainer.withValues(alpha: 0.7)
+                  ? colors.accentMuted
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
             ),
@@ -545,8 +545,8 @@ class _IconRailItem extends StatelessWidget {
               isSelected ? selectedIcon : icon,
               size: 22,
               color: isSelected
-                  ? colorScheme.primary
-                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  ? colors.accent
+                  : colors.textSecondary,
             ),
           ),
         ),

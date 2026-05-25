@@ -6,4 +6,5 @@ library;
 
 export 'tokens.dart';
 export 'moku_text.dart';
+export 'app_colors.dart';
 export 'components/panel_components.dart';

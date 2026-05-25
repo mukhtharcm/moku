@@ -164,7 +164,7 @@ class ShelvesSidebar extends StatelessWidget {
               Navigator.pop(ctx);
             },
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+              backgroundColor: context.colors.danger,
             ),
             child: Text(l10n.commonDelete),
           ),
@@ -180,7 +180,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
     return Center(
       child: Padding(
@@ -190,10 +190,10 @@ class _EmptyState extends StatelessWidget {
           children: [
             Icon(Icons.collections_bookmark_outlined,
                 size: 36,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35)),
+                color: colors.textTertiary),
             const SizedBox(height: MokuSpacing.s3),
             Text(l10n.collectionsEmptyTitle,
-                style: MokuText.bodySmall(color: colorScheme.onSurfaceVariant),
+                style: MokuText.bodySmall(color: colors.textSecondary),
                 textAlign: TextAlign.center),
             const SizedBox(height: MokuSpacing.s3),
             FilledButton.tonalIcon(

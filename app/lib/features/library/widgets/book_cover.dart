@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/models/models.dart';
 import '../../../core/models/book_localizations.dart';
+import '../../../core/ui/ui.dart';
 
 /// A book cover with realistic depth via shadow and a subtle spine edge.
 class BookCoverWidget extends StatelessWidget {
@@ -23,7 +24,7 @@ class BookCoverWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
 
     Widget cover;
     if (book.coverPath != null && File(book.coverPath!).existsSync()) {
@@ -45,12 +46,12 @@ class BookCoverWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(borderRadius),
               boxShadow: [
                 BoxShadow(
-                  color: colorScheme.shadow.withValues(alpha: 0.15),
+                  color: colors.textPrimary.withValues(alpha: 0.15),
                   blurRadius: 12,
                   offset: const Offset(2, 4),
                 ),
                 BoxShadow(
-                  color: colorScheme.shadow.withValues(alpha: 0.08),
+                  color: colors.textPrimary.withValues(alpha: 0.08),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),

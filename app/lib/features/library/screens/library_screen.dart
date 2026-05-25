@@ -11,6 +11,7 @@ import '../cubit/library_state.dart';
 import '../widgets/book_cover.dart';
 import '../widgets/book_grid_item.dart';
 import '../../reader/screens/reader_screen.dart';
+import '../../../core/ui/ui.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -31,8 +32,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final l10n = context.l10n;
+    final colors = context.colors;
+final l10n = context.l10n;
     final searchTooltip = _isSearching
         ? l10n.libraryCloseSearch
         : l10n.librarySearchAction;
@@ -114,7 +115,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: colorScheme.errorContainer.withValues(
+                        color: colors.dangerMuted.withValues(
                           alpha: 0.3,
                         ),
                         shape: BoxShape.circle,
@@ -122,7 +123,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       child: Icon(
                         Icons.error_outline_rounded,
                         size: 40,
-                        color: colorScheme.error,
+                        color: colors.danger,
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -192,7 +193,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: colorScheme.primaryContainer.withValues(
+                            color: colors.accentMuted.withValues(
                               alpha: 0.5,
                             ),
                             borderRadius: BorderRadius.circular(10),
@@ -201,7 +202,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             '${books.length}',
                             style: Theme.of(context).textTheme.labelSmall
                                 ?.copyWith(
-                                  color: colorScheme.primary,
+                                  color: colors.accent,
                                   fontWeight: FontWeight.w600,
                                 ),
                           ),
@@ -214,7 +215,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHighest
+                              color: colors.surfaceElevated
                                   .withValues(alpha: 0.4),
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -224,14 +225,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                 Icon(
                                   Icons.sort_rounded,
                                   size: 14,
-                                  color: colorScheme.onSurfaceVariant,
+                                  color: colors.textSecondary,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   _sortLabel(context, state.sortMode),
                                   style: Theme.of(context).textTheme.labelSmall
                                       ?.copyWith(
-                                        color: colorScheme.onSurfaceVariant,
+                                        color: colors.textSecondary,
                                       ),
                                 ),
                               ],
@@ -250,7 +251,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                     Icon(
                                       Icons.check_rounded,
                                       size: 16,
-                                      color: colorScheme.primary,
+                                      color: colors.accent,
                                     ),
                                   ],
                                 ],
@@ -318,7 +319,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: colorScheme.onSurfaceVariant.withValues(
+                              color: colors.textSecondary.withValues(
                                 alpha: 0.7,
                               ),
                             ),
@@ -330,9 +331,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   child: CircularProgressIndicator(
                                     value: progress,
                                     strokeWidth: 2.5,
-                                    backgroundColor: colorScheme
-                                        .surfaceContainerHighest
-                                        .withValues(alpha: 0.5),
+                                    backgroundColor: colors.surfaceElevated.withValues(alpha: 0.5),
                                   ),
                                 )
                               : null,
@@ -395,12 +394,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ListTile(
               leading: Icon(
                 Icons.delete_outline_rounded,
-                color: Theme.of(context).colorScheme.error,
+                color: context.colors.danger,
               ),
               title: Text(
                 context.l10n.commonDelete,
                 style:
-                    TextStyle(color: Theme.of(context).colorScheme.error),
+                    TextStyle(color: context.colors.danger),
               ),
               onTap: () {
                 Navigator.pop(ctx);
@@ -427,9 +426,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                  color: context.colors.textTertiary,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -444,12 +441,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ListTile(
                 leading: Icon(
                   Icons.delete_outline_rounded,
-                  color: Theme.of(context).colorScheme.error,
+                  color: context.colors.danger,
                 ),
                 title: Text(
                   context.l10n.commonDelete,
                   style: TextStyle(
-                      color: Theme.of(context).colorScheme.error),
+                      color: context.colors.danger),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -480,7 +477,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   Text(
                     bookAuthorLabel(context, book.author),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
+                      color: context.colors.accent,
                     ),
                   ),
                   if (book.description != null) ...[
@@ -537,9 +534,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                    color: context.colors.textTertiary,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -553,7 +548,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               Text(
                 bookAuthorLabel(context, book.author),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
+                  color: context.colors.accent,
                 ),
               ),
               if (book.description != null) ...[
@@ -602,7 +597,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               Navigator.pop(ctx);
             },
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+              backgroundColor: context.colors.danger,
             ),
             child: Text(context.l10n.commonDelete),
           ),
@@ -630,7 +625,7 @@ class _InfoRow extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -651,8 +646,8 @@ class _EmptyLibrary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final l10n = context.l10n;
+    final colors = context.colors;
+final l10n = context.l10n;
 
     if (hasSearch) {
       return Center(
@@ -664,7 +659,7 @@ class _EmptyLibrary extends StatelessWidget {
               Icon(
                 Icons.search_off_rounded,
                 size: 56,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                color: colors.textTertiary,
               ),
               const SizedBox(height: 16),
               Text(
@@ -675,7 +670,7 @@ class _EmptyLibrary extends StatelessWidget {
               Text(
                 l10n.libraryEmptySearchBody,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+                  color: colors.textSecondary,
                 ),
               ),
             ],
@@ -706,7 +701,7 @@ class _EmptyLibrary extends StatelessWidget {
                         width: 60,
                         height: 85,
                         decoration: BoxDecoration(
-                          color: colorScheme.primaryContainer.withValues(
+                          color: colors.accentMuted.withValues(
                             alpha: 0.5,
                           ),
                           borderRadius: BorderRadius.circular(8),
@@ -723,7 +718,7 @@ class _EmptyLibrary extends StatelessWidget {
                         width: 60,
                         height: 85,
                         decoration: BoxDecoration(
-                          color: colorScheme.tertiaryContainer.withValues(
+                          color: colors.accentMuted.withValues(
                             alpha: 0.6,
                           ),
                           borderRadius: BorderRadius.circular(8),
@@ -736,16 +731,16 @@ class _EmptyLibrary extends StatelessWidget {
                     width: 64,
                     height: 90,
                     decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.15),
+                      color: colors.accent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: colorScheme.primary.withValues(alpha: 0.3),
+                        color: colors.accent.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Icon(
                       Icons.auto_stories_rounded,
                       size: 28,
-                      color: colorScheme.primary.withValues(alpha: 0.6),
+                      color: colors.accent.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -762,7 +757,7 @@ class _EmptyLibrary extends StatelessWidget {
             Text(
               l10n.libraryEmptyBody,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
+                color: colors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -792,8 +787,8 @@ class _ContinueReadingSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final l10n = context.l10n;
+    final colors = context.colors;
+final l10n = context.l10n;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -805,7 +800,7 @@ class _ContinueReadingSection extends StatelessWidget {
               Icon(
                 Icons.play_circle_outline_rounded,
                 size: 20,
-                color: colorScheme.primary,
+                color: colors.accent,
               ),
               const SizedBox(width: 8),
               Text(
@@ -863,7 +858,7 @@ class _ContinueReadingSection extends StatelessWidget {
                                   bookAuthorLabel(context, book.author),
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
-                                        color: colorScheme.onSurfaceVariant
+                                        color: colors.textSecondary
                                             .withValues(alpha: 0.7),
                                       ),
                                   maxLines: 1,
@@ -876,9 +871,7 @@ class _ContinueReadingSection extends StatelessWidget {
                                   child: LinearProgressIndicator(
                                     value: progress,
                                     minHeight: 5,
-                                    backgroundColor: colorScheme
-                                        .surfaceContainerHighest
-                                        .withValues(alpha: 0.5),
+                                    backgroundColor: colors.surfaceElevated.withValues(alpha: 0.5),
                                   ),
                                 ),
                                 const SizedBox(height: 6),
@@ -888,7 +881,7 @@ class _ContinueReadingSection extends StatelessWidget {
                                   ),
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
-                                        color: colorScheme.onSurfaceVariant
+                                        color: colors.textSecondary
                                             .withValues(alpha: 0.6),
                                         fontSize: 11,
                                       ),

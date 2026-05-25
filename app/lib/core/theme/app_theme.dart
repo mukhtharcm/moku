@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../ui/tokens.dart';
+import '../ui/app_colors.dart';
 
 class MokuTheme {
   // Delegate to design tokens — single source of truth
@@ -63,6 +64,7 @@ class MokuTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: _cream,
+      extensions: const <ThemeExtension<dynamic>>[kMokuLight],
       textTheme: _buildTextTheme(Brightness.light),
       appBarTheme: AppBarTheme(
         centerTitle: false,
@@ -243,6 +245,7 @@ class MokuTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: _nightSurface,
+      extensions: const <ThemeExtension<dynamic>>[kMokuDark],
       textTheme: _buildTextTheme(Brightness.dark),
       appBarTheme: AppBarTheme(
         centerTitle: false,

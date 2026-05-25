@@ -97,7 +97,7 @@ class _DesktopDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
 
     return RefreshIndicator(
       onRefresh: () => context.read<StatsCubit>().load(),
@@ -158,7 +158,7 @@ class _DesktopDashboard extends StatelessWidget {
                     children: [
                       Text('Reading Activity',
                           style: MokuText.bodySmall(
-                            color: colorScheme.onSurfaceVariant,
+                            color: colors.textSecondary,
                             weight: FontWeight.w600,
                           )),
                       const SizedBox(height: MokuSpacing.s3),
@@ -189,11 +189,11 @@ class _SurfaceBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: colors.surface,
         borderRadius: MokuRadius.lgAll,
       ),
       child: child,
@@ -283,7 +283,7 @@ class _StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
 
     return StatsSemanticNode(
       label: label,
@@ -294,7 +294,7 @@ class _StatTile extends StatelessWidget {
           vertical: MokuSpacing.s3,
         ),
         decoration: BoxDecoration(
-          color: colorScheme.surface,
+          color: colors.surface,
           borderRadius: MokuRadius.lgAll,
         ),
         child: Row(
@@ -320,12 +320,12 @@ class _StatTile extends StatelessWidget {
                       fontSize: MokuTypeSize.h3,
                       fontWeight: FontWeight.w700,
                       height: 1.1,
-                      color: colorScheme.onSurface,
+                      color: colors.textPrimary,
                     ),
                   ),
                   Text(label,
                       style: MokuText.caption(
-                          color: colorScheme.onSurfaceVariant)),
+                          color: colors.textSecondary)),
                 ],
               ),
             ),
@@ -344,12 +344,12 @@ class _RecentSessions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
 
     return StatsSemanticSection(
       child: Container(
         decoration: BoxDecoration(
-          color: colorScheme.surface,
+          color: colors.surface,
           borderRadius: MokuRadius.lgAll,
         ),
         child: Column(
@@ -364,7 +364,7 @@ class _RecentSessions extends StatelessWidget {
                 context.l10n.statsRecentSessions,
                 style: MokuText.bodySmall(
                   weight: FontWeight.w700,
-                  color: colorScheme.onSurfaceVariant,
+                  color: colors.textSecondary,
                 ),
               ),
             ),
@@ -383,7 +383,7 @@ class _SessionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final localizations = MaterialLocalizations.of(context);
     final h = session.durationSeconds ~/ 3600;
     final m = (session.durationSeconds % 3600) ~/ 60;
@@ -417,7 +417,7 @@ class _SessionRow extends StatelessWidget {
                 Text(
                   dateLabel,
                   style: MokuText.caption(
-                      color: colorScheme.onSurfaceVariant),
+                      color: colors.textSecondary),
                 ),
                 const SizedBox(width: MokuSpacing.s3),
                 Container(
@@ -425,20 +425,20 @@ class _SessionRow extends StatelessWidget {
                       horizontal: MokuSpacing.s2,
                       vertical: MokuSpacing.s1),
                   decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer
+                    color: colors.accentMuted
                         .withValues(alpha: 0.4),
                     borderRadius: MokuRadius.xsAll,
                   ),
                   child: Text(duration,
                       style: MokuText.micro(
-                          color: colorScheme.primary)),
+                          color: colors.accent)),
                 ),
               ],
             ),
           ),
           Divider(
               height: 1,
-              color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+              color: colors.border),
         ],
       ),
     );

@@ -13,6 +13,7 @@ import '../cubit/collections_cubit.dart';
 import '../../library/widgets/book_cover.dart';
 import '../../library/widgets/book_grid_item.dart';
 import '../../reader/screens/reader_screen.dart';
+import '../../../core/ui/ui.dart';
 
 class CollectionDetailScreen extends StatefulWidget {
   final BookCollection collection;
@@ -36,9 +37,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    final isDesktop = MediaQuery.sizeOf(context).width >= 1000;
+    final colors = context.colors;
+final isDesktop = MediaQuery.sizeOf(context).width >= 1000;
 
     return StreamBuilder<List<db.Book>>(
       stream: _booksStream,
@@ -80,7 +80,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                   Icon(
                     Icons.library_books_outlined,
                     size: 64,
-                    color: colorScheme.primary.withValues(alpha: 0.5),
+                    color: colors.accent.withValues(alpha: 0.5),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -264,9 +264,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                       width: 36,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Theme.of(
-                          sheetContext,
-                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                        color: sheetContext.colors.textTertiary,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -310,7 +308,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                           ),
                           trailing: Icon(
                             Icons.add_circle_outline_rounded,
-                            color: Theme.of(itemContext).colorScheme.primary,
+                            color: itemContext.colors.accent,
                           ),
                           onTap: () => addBook(dbBook),
                         );
@@ -350,8 +348,8 @@ class _DesktopShelfHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Column(
+    final colors = context.colors;
+return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
@@ -373,7 +371,7 @@ class _DesktopShelfHeader extends StatelessWidget {
                   tooltip: 'Add books',
                   onPressed: onAddBooks,
                   style: IconButton.styleFrom(
-                    foregroundColor: colorScheme.primary,
+                    foregroundColor: colors.accent,
                   ),
                 ),
             ],
@@ -381,7 +379,7 @@ class _DesktopShelfHeader extends StatelessWidget {
         ),
         Divider(
           height: 1,
-          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+          color: colors.border,
         ),
       ],
     );

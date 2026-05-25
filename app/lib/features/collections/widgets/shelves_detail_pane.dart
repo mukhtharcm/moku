@@ -5,6 +5,7 @@ import '../../../l10n/l10n.dart';
 import '../cubit/collections_cubit.dart';
 import '../cubit/collections_state.dart';
 import '../screens/collection_detail_screen.dart';
+import '../../../core/ui/ui.dart';
 
 /// The right-hand main pane for the Shelves section on desktop.
 /// Shows the contents of the currently-selected shelf, or an empty
@@ -36,7 +37,7 @@ class ShelvesDetailPane extends StatelessWidget {
 class _EmptyPane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
 
     return Center(
@@ -46,7 +47,7 @@ class _EmptyPane extends StatelessWidget {
           Icon(
             Icons.collections_bookmark_outlined,
             size: 64,
-            color: colorScheme.primary.withValues(alpha: 0.2),
+            color: colors.accent.withValues(alpha: 0.2),
           ),
           const SizedBox(height: 20),
           Text(
@@ -60,7 +61,7 @@ class _EmptyPane extends StatelessWidget {
           Text(
             'Select a shelf from the sidebar to see its books.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+              color: colors.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),

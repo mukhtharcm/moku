@@ -20,7 +20,7 @@ class StreakCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final isDesktop = MediaQuery.sizeOf(context).width >= 1000;
 
     return StatsSemanticSection(
@@ -33,14 +33,14 @@ class StreakCard extends StatelessWidget {
               icon: Icons.local_fire_department_rounded,
               iconColor: currentStreak > 0
                   ? const Color(0xFFE6621E)
-                  : colorScheme.outlineVariant,
+                  : colors.borderStrong,
               isDesktop: isDesktop,
             ),
           ),
           Container(
             width: 1,
             height: isDesktop ? 64 : 48,
-            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+            color: colors.border,
           ),
           Expanded(
             child: _BigStreakStat(
@@ -49,7 +49,7 @@ class StreakCard extends StatelessWidget {
               icon: Icons.emoji_events_rounded,
               iconColor: longestStreak > 0
                   ? const Color(0xFFD4A017)
-                  : colorScheme.outlineVariant,
+                  : colors.borderStrong,
               isDesktop: isDesktop,
             ),
           ),
@@ -76,7 +76,7 @@ class _BigStreakStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final numSize = isDesktop ? MokuTypeSize.h1 : MokuTypeSize.h2;
 
     return StatsSemanticNode(
@@ -102,14 +102,14 @@ class _BigStreakStat extends StatelessWidget {
                     fontSize: numSize,
                     fontWeight: FontWeight.w700,
                     height: 1.0,
-                    color: colorScheme.onSurface,
+                    color: colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   label,
                   style: MokuText.caption(
-                    color: colorScheme.onSurfaceVariant,
+                    color: colors.textSecondary,
                   ),
                 ),
               ],

@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import '../tokens.dart';
 import '../moku_text.dart';
+import '../ui.dart';
 
 // ── MokuPanelHeader ──────────────────────────────────────────────────────────
 /// Top header row inside a sidebar or panel.
@@ -35,7 +36,7 @@ class MokuPanelHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -47,7 +48,7 @@ class MokuPanelHeader extends StatelessWidget {
                 child: Text(
                   label.toUpperCase(),
                   style: MokuText.sectionLabel(
-                    color: colorScheme.onSurfaceVariant
+                    color: colors.textSecondary
                         .withValues(alpha: 0.6),
                   ),
                 ),
@@ -58,7 +59,7 @@ class MokuPanelHeader extends StatelessWidget {
         ),
         Divider(
           height: 1,
-          color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+          color: colors.border,
         ),
       ],
     );
@@ -91,7 +92,7 @@ class MokuPanelItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final vPad = compact ? MokuSpacing.s1 + 2 : MokuSpacing.s2 + 2;
 
     return InkWell(
@@ -114,7 +115,7 @@ class MokuPanelItem extends StatelessWidget {
           border: Border(
             left: BorderSide(
               color: selected
-                  ? colorScheme.primary
+                  ? colors.accent
                   : Colors.transparent,
               width: 2.5,
             ),
@@ -138,8 +139,8 @@ class MokuPanelItem extends StatelessWidget {
                     style: MokuText.panelItem(
                       selected: selected,
                       color: selected
-                          ? colorScheme.primary
-                          : colorScheme.onSurface,
+                          ? colors.accent
+                          : colors.textPrimary,
                     ),
                   ),
                   if (subtitle != null) ...[
@@ -149,7 +150,7 @@ class MokuPanelItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: MokuText.caption(
-                        color: colorScheme.onSurfaceVariant
+                        color: colors.textSecondary
                             .withValues(alpha: 0.65),
                       ),
                     ),
@@ -238,14 +239,14 @@ class MokuProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     return ClipRRect(
       borderRadius: BorderRadius.circular(MokuRadius.pill),
       child: LinearProgressIndicator(
         value: progress,
         minHeight: height,
         backgroundColor:
-            colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            colors.surfaceElevated.withValues(alpha: 0.5),
       ),
     );
   }

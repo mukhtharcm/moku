@@ -60,10 +60,10 @@ class _SettingsGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: colors.surface,
         borderRadius: MokuRadius.lgAll,
       ),
       clipBehavior: Clip.antiAlias,
@@ -77,7 +77,7 @@ class _SettingsGroup extends StatelessWidget {
                 height: 1,
                 indent: MokuSpacing.s4,
                 endIndent: 0,
-                color: colorScheme.outlineVariant.withValues(alpha: 0.25),
+                color: colors.border,
               ),
           ],
         ],
@@ -105,7 +105,7 @@ class _OptionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
 
     return InkWell(
       onTap: onTap,
@@ -129,13 +129,13 @@ class _OptionRow extends StatelessWidget {
                   if (subtitle != null)
                     Text(subtitle!,
                         style: MokuText.caption(
-                            color: colorScheme.onSurfaceVariant)),
+                            color: colors.textSecondary)),
                 ],
               ),
             ),
             if (selected)
               Icon(Icons.check_rounded,
-                  size: 16, color: colorScheme.primary),
+                  size: 16, color: colors.accent),
           ],
         ),
       ),
@@ -161,7 +161,7 @@ class _ToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -183,7 +183,7 @@ class _ToggleRow extends StatelessWidget {
                 if (subtitle != null)
                   Text(subtitle!,
                       style: MokuText.caption(
-                          color: colorScheme.onSurfaceVariant)),
+                          color: colors.textSecondary)),
               ],
             ),
           ),
@@ -215,7 +215,7 @@ class _AppearanceSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
@@ -251,7 +251,7 @@ class _AppearanceSection extends StatelessWidget {
                             ? Icons.settings_suggest_rounded
                             : Icons.translate_rounded,
                         size: 16,
-                        color: colorScheme.onSurfaceVariant,
+                        color: colors.textSecondary,
                       ),
                       selected: selected == tag,
                       onTap: () {
@@ -278,7 +278,7 @@ class _AppearanceSection extends StatelessWidget {
                       title: l10n.settingsThemeSystem,
                       subtitle: l10n.settingsThemeSystemSubtitle,
                       leading: Icon(Icons.brightness_auto_rounded,
-                          size: 16, color: colorScheme.onSurfaceVariant),
+                          size: 16, color: colors.textSecondary),
                       selected: state.themeMode == ThemeMode.system,
                       onTap: () => context
                           .read<ThemeCubit>()
@@ -287,7 +287,7 @@ class _AppearanceSection extends StatelessWidget {
                     _OptionRow(
                       title: l10n.settingsThemeLight,
                       leading: Icon(Icons.light_mode_rounded,
-                          size: 16, color: colorScheme.onSurfaceVariant),
+                          size: 16, color: colors.textSecondary),
                       selected: state.themeMode == ThemeMode.light,
                       onTap: () => context
                           .read<ThemeCubit>()
@@ -296,7 +296,7 @@ class _AppearanceSection extends StatelessWidget {
                     _OptionRow(
                       title: l10n.settingsThemeDark,
                       leading: Icon(Icons.dark_mode_rounded,
-                          size: 16, color: colorScheme.onSurfaceVariant),
+                          size: 16, color: colors.textSecondary),
                       selected: state.themeMode == ThemeMode.dark,
                       onTap: () => context
                           .read<ThemeCubit>()
@@ -321,7 +321,7 @@ class _BatterySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
@@ -347,7 +347,7 @@ class _BatterySection extends StatelessWidget {
                         size: 16,
                         color: state.powerSaver
                             ? MokuColors.successGreen
-                            : colorScheme.onSurfaceVariant,
+                            : colors.textSecondary,
                       ),
                       value: state.powerSaver,
                       onChanged: (v) =>
@@ -385,7 +385,7 @@ class _SyncSection extends StatelessWidget {
             _SectionTitle(l10n.settingsSectionSync),
             BlocBuilder<SyncConfigCubit, SyncConfigState>(
               builder: (context, state) {
-                final colorScheme = Theme.of(context).colorScheme;
+                final colors = context.colors;
                 final connected = state.isAuthenticated;
                 return _SettingsGroup(
                   children: [
@@ -416,7 +416,7 @@ class _SyncSection extends StatelessWidget {
                               size: 16,
                               color: connected
                                   ? MokuColors.successGreen
-                                  : colorScheme.onSurfaceVariant,
+                                  : colors.textSecondary,
                             ),
                             const SizedBox(width: MokuSpacing.s3),
                             Expanded(
@@ -436,7 +436,7 @@ class _SyncSection extends StatelessWidget {
                                     style: MokuText.caption(
                                       color: connected
                                           ? MokuColors.successGreen
-                                          : colorScheme.onSurfaceVariant,
+                                          : colors.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -444,7 +444,7 @@ class _SyncSection extends StatelessWidget {
                             ),
                             Icon(Icons.chevron_right_rounded,
                                 size: 16,
-                                color: colorScheme.onSurfaceVariant),
+                                color: colors.textSecondary),
                           ],
                         ),
                       ),
@@ -467,7 +467,7 @@ class _AboutSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
 
     return SingleChildScrollView(
@@ -490,7 +490,7 @@ class _AboutSection extends StatelessWidget {
                   child: Row(
                     children: [
                       Icon(Icons.auto_stories_rounded,
-                          size: 16, color: colorScheme.primary),
+                          size: 16, color: colors.accent),
                       const SizedBox(width: MokuSpacing.s3),
                       Expanded(
                         child: Column(
@@ -522,7 +522,7 @@ class _AboutSection extends StatelessWidget {
                                                   version: v.version,
                                                   build: v.buildNumber!)),
                                   style: MokuText.caption(
-                                      color: colorScheme.onSurfaceVariant),
+                                      color: colors.textSecondary),
                                 );
                               },
                             ),
@@ -540,7 +540,7 @@ class _AboutSection extends StatelessWidget {
                   child: Row(
                     children: [
                       Icon(Icons.code_rounded,
-                          size: 16, color: colorScheme.onSurfaceVariant),
+                          size: 16, color: colors.textSecondary),
                       const SizedBox(width: MokuSpacing.s3),
                       Expanded(
                         child: Column(
@@ -551,7 +551,7 @@ class _AboutSection extends StatelessWidget {
                                 style: MokuText.body()),
                             Text(l10n.settingsOpenSourceSubtitle,
                                 style: MokuText.caption(
-                                    color: colorScheme.onSurfaceVariant)),
+                                    color: colors.textSecondary)),
                           ],
                         ),
                       ),

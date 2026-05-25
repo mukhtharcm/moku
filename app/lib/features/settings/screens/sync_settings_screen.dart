@@ -6,6 +6,7 @@ import '../../../core/sync/sync_bootstrap.dart';
 import '../../../core/sync/sync_config.dart';
 import '../../../core/sync/sync_localizations.dart';
 import '../../../l10n/l10n.dart';
+import '../../../core/ui/ui.dart';
 
 class SyncSettingsScreen extends StatefulWidget {
   const SyncSettingsScreen({super.key});
@@ -420,7 +421,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
                 icon: const Icon(Icons.logout),
                 label: Text(context.l10n.syncLogout),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: context.colors.danger,
                 ),
               ),
             ),
@@ -464,7 +465,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
                         Icon(
                           Icons.error_outline,
                           size: 18,
-                          color: Theme.of(context).colorScheme.error,
+                          color: context.colors.danger,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -475,7 +476,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
                                 syncCollectionLabel(context, e.collection),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.error,
+                                  color: context.colors.danger,
                                 ),
                               ),
                               Text(
@@ -501,21 +502,21 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
 
   Widget _buildErrorCard() {
     return Card(
-      color: Theme.of(context).colorScheme.errorContainer,
+      color: context.colors.dangerMuted,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             Icon(
               Icons.error_outline,
-              color: Theme.of(context).colorScheme.error,
+              color: context.colors.danger,
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 _errorMessage!,
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onErrorContainer,
+                  color: context.colors.accentOn,
                 ),
               ),
             ),

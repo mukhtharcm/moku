@@ -12,6 +12,7 @@ import '../../../l10n/l10n.dart';
 import '../catalog_error_localizations.dart';
 import '../cubit/search_cubit.dart';
 import '../cubit/search_state.dart';
+import '../../../core/ui/ui.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -140,7 +141,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 Icon(
                   Icons.folder_outlined,
                   size: 18,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: context.colors.accent,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -489,7 +490,7 @@ class _SearchStatusMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
 
     return Center(
       child: Padding(
@@ -504,7 +505,7 @@ class _SearchStatusMessage extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: 52,
-                  color: colorScheme.primary.withValues(alpha: 0.6),
+                  color: colors.accent.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(height: 12),
@@ -592,7 +593,7 @@ class _SearchResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
     final title = bookTitleLabel(context, book.title);
     final author = bookAuthorLabel(context, book.author);
@@ -624,20 +625,20 @@ class _SearchResultCard extends StatelessWidget {
                           placeholder: (context, url) => Container(
                             width: 64,
                             height: 96,
-                            color: colorScheme.surfaceContainerHighest,
+                            color: colors.surfaceElevated,
                             child: const Icon(Icons.book, size: 24),
                           ),
                           errorWidget: (context, url, error) => Container(
                             width: 64,
                             height: 96,
-                            color: colorScheme.surfaceContainerHighest,
+                            color: colors.surfaceElevated,
                             child: const Icon(Icons.book, size: 24),
                           ),
                         )
                       : Container(
                           width: 64,
                           height: 96,
-                          color: colorScheme.surfaceContainerHighest,
+                          color: colors.surfaceElevated,
                           child: const Icon(Icons.book, size: 24),
                         ),
                 ),
@@ -656,7 +657,7 @@ class _SearchResultCard extends StatelessWidget {
                       Text(
                         author,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.primary,
+                          color: colors.accent,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -684,7 +685,7 @@ class _SearchResultCard extends StatelessWidget {
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+                  color: colors.textSecondary,
                 ),
               ),
             ],
@@ -757,17 +758,17 @@ class _MetaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: colorScheme.secondaryContainer,
+        color: colors.accentMuted,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: colorScheme.onSecondaryContainer,
+          color: colors.accent,
         ),
       ),
     );

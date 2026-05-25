@@ -7,13 +7,14 @@ import '../../../l10n/l10n.dart';
 import '../cubit/collections_cubit.dart';
 import '../cubit/collections_state.dart';
 import 'collection_detail_screen.dart';
+import '../../../core/ui/ui.dart';
 
 class CollectionsScreen extends StatelessWidget {
   const CollectionsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
 
     return Scaffold(
@@ -42,7 +43,7 @@ class CollectionsScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: colorScheme.primaryContainer.withValues(
+                        color: colors.accentMuted.withValues(
                           alpha: 0.3,
                         ),
                         shape: BoxShape.circle,
@@ -50,7 +51,7 @@ class CollectionsScreen extends StatelessWidget {
                       child: Icon(
                         Icons.collections_bookmark_outlined,
                         size: 44,
-                        color: colorScheme.primary.withValues(alpha: 0.7),
+                        color: colors.accent.withValues(alpha: 0.7),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -63,7 +64,7 @@ class CollectionsScreen extends StatelessWidget {
                     Text(
                       l10n.collectionsEmptyBody,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
+                        color: colors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -202,7 +203,7 @@ class CollectionsScreen extends StatelessWidget {
               Navigator.pop(ctx);
             },
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+              backgroundColor: context.colors.danger,
             ),
             child: Text(l10n.commonDelete),
           ),
@@ -225,7 +226,7 @@ class _CollectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
 
     // Generate a colour from collection name hash
@@ -276,14 +277,14 @@ class _CollectionCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                      color: colors.textSecondary,
                     ),
                   ),
                 ),
           trailing: IconButton(
             tooltip: l10n.collectionsDeleteShelfTitle,
             onPressed: onDelete,
-            icon: Icon(Icons.delete_outline_rounded, color: colorScheme.error),
+            icon: Icon(Icons.delete_outline_rounded, color: colors.danger),
           ),
         ),
       ),

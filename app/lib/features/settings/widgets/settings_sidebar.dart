@@ -37,8 +37,8 @@ class SettingsSidebar extends StatelessWidget {
           return MokuPanelItem(
             leading: Icon(icon, size: 16,
                 color: selected == section
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurfaceVariant),
+                    ? context.colors.accent
+                    : context.colors.textSecondary),
             title: label,
             selected: selected == section,
             onTap: () => onSelect(section),
