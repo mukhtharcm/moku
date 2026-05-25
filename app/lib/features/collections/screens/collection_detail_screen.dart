@@ -38,25 +38,38 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    final isDesktop = MediaQuery.sizeOf(context).width >= 1000;
+
     return StreamBuilder<List<db.Book>>(
       stream: _booksStream,
       builder: (context, snapshot) {
         final books = snapshot.data ?? [];
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(widget.collection.name),
-            actions: [
-              if (snapshot.connectionState != ConnectionState.waiting &&
-                  books.isNotEmpty)
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  tooltip: context.l10n.collectionDetailAddBooksTooltip,
-                  onPressed: () => _showAddBooksDialog(context),
+          appBar: isDesktop
+              ? null
+              : AppBar(
+                  title: Text(widget.collection.name),
+                  actions: [
+                    if (snapshot.connectionState != ConnectionState.waiting &&
+                        books.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.add),
+                        tooltip: context.l10n.collectionDetailAddBooksTooltip,
+                        onPressed: () => _showAddBooksDialog(context),
+                      ),
+                  ],
                 ),
-            ],
-          ),
-          body: switch (snapshot.connectionState) {
+          body: Column(
+            children: [
+              if (isDesktop) _DesktopShelfHeader(
+                name: widget.collection.name,
+                onAddBooks: books.isNotEmpty
+                    ? () => _showAddBooksDialog(context)
+                    : null,
+              ),
+              Expanded(
+                child: switch (snapshot.connectionState) {
             ConnectionState.waiting => const Center(
               child: CircularProgressIndicator(),
             ),
@@ -82,32 +95,43 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                 ],
               ),
             ),
-            _ => GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 0.55,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: books.length,
-              itemBuilder: (context, index) {
-                final book = _toBook(books[index]);
-
-                return BookGridItem(
-                  book: book,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ReaderScreen(book: book),
-                      ),
+            _ => LayoutBuilder(
+              builder: (context, constraints) {
+                final cols = constraints.maxWidth > 900
+                    ? 6
+                    : constraints.maxWidth > 600
+                        ? 4
+                        : 3;
+                return GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: cols,
+                    childAspectRatio: 0.55,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemCount: books.length,
+                  itemBuilder: (context, index) {
+                    final book = _toBook(books[index]);
+                    return BookGridItem(
+                      book: book,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ReaderScreen(book: book),
+                          ),
+                        );
+                      },
+                      onLongPress: () => _confirmRemove(context, book),
                     );
                   },
-                  onLongPress: () => _confirmRemove(context, book),
                 );
               },
             ),
           },
+        ),
+      ],
+          ),
         );
       },
     );
@@ -312,6 +336,54 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       filePath: PathResolver.resolve(dbBook.filePath),
       createdAt: dbBook.createdAt,
       updatedAt: dbBook.updatedAt,
+    );
+  }
+}
+
+// ── Desktop inline header for the collection detail pane ──────────────────────
+
+class _DesktopShelfHeader extends StatelessWidget {
+  final String name;
+  final VoidCallback? onAddBooks;
+
+  const _DesktopShelfHeader({required this.name, this.onAddBooks});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  name,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              if (onAddBooks != null)
+                IconButton(
+                  icon: const Icon(Icons.add_rounded),
+                  tooltip: 'Add books',
+                  onPressed: onAddBooks,
+                  style: IconButton.styleFrom(
+                    foregroundColor: colorScheme.primary,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Divider(
+          height: 1,
+          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ],
     );
   }
 }

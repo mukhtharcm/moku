@@ -15,6 +15,7 @@ class LibraryState extends Equatable {
   final String? errorMessage;
   final String searchQuery;
   final Map<String, double> progressMap;
+  final String? selectedBookId;
 
   const LibraryState({
     this.status = LibraryStatus.initial,
@@ -24,6 +25,7 @@ class LibraryState extends Equatable {
     this.errorMessage,
     this.searchQuery = '',
     this.progressMap = const {},
+    this.selectedBookId,
   });
 
   LibraryState copyWith({
@@ -34,6 +36,8 @@ class LibraryState extends Equatable {
     String? errorMessage,
     String? searchQuery,
     Map<String, double>? progressMap,
+    String? selectedBookId,
+    bool clearSelectedBook = false,
   }) {
     return LibraryState(
       status: status ?? this.status,
@@ -43,6 +47,8 @@ class LibraryState extends Equatable {
       errorMessage: errorMessage ?? this.errorMessage,
       searchQuery: searchQuery ?? this.searchQuery,
       progressMap: progressMap ?? this.progressMap,
+      selectedBookId:
+          clearSelectedBook ? null : (selectedBookId ?? this.selectedBookId),
     );
   }
 
@@ -78,7 +84,18 @@ class LibraryState extends Equatable {
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   }
 
+  Book? get selectedBook {
+    if (selectedBookId == null) return null;
+    try {
+      return books.firstWhere((b) => b.id == selectedBookId);
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
-  List<Object?> get props =>
-      [status, books, viewMode, sortMode, errorMessage, searchQuery, progressMap];
+  List<Object?> get props => [
+    status, books, viewMode, sortMode, errorMessage,
+    searchQuery, progressMap, selectedBookId,
+  ];
 }

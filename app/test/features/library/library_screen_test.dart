@@ -33,6 +33,9 @@ class TestLibraryCubit extends Cubit<LibraryState> implements LibraryCubit {
   }
 
   @override
+  void selectBook(String? bookId) {}
+
+  @override
   void toggleViewMode() {
     final nextMode = state.viewMode == LibraryView.grid
         ? LibraryView.list

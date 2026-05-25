@@ -161,6 +161,13 @@ class LibraryCubit extends Cubit<LibraryState> {
     emit(state.copyWith(sortMode: mode));
   }
 
+  void selectBook(String? bookId) {
+    emit(state.copyWith(
+      selectedBookId: bookId,
+      clearSelectedBook: bookId == null,
+    ));
+  }
+
   Book _mapDbBookToModel(db.Book dbBook) {
     return Book(
       id: dbBook.id,

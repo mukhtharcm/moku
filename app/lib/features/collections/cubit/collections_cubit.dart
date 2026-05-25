@@ -73,6 +73,13 @@ class CollectionsCubit extends Cubit<CollectionsState> {
     _autoSync?.flushNow();
   }
 
+  void selectCollection(String? collectionId) {
+    emit(state.copyWith(
+      selectedCollectionId: collectionId,
+      clearSelectedCollection: collectionId == null,
+    ));
+  }
+
   Future<void> addBookToCollection(String collectionId, String bookId) async {
     await _database.addBookToCollection(collectionId, bookId);
     _autoSync?.bump();
