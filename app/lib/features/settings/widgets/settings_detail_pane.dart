@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/database/database.dart';
 import '../../../core/localization/app_locale_cubit.dart';
 import '../../../core/services/app_version_service.dart';
 import '../../../core/sync/sync_config.dart';
 import '../../../core/theme/theme_cubit.dart';
+import '../../../core/ui/ui.dart';
 import '../../../l10n/l10n.dart';
 import '../screens/sync_settings_screen.dart';
 import 'settings_sidebar.dart';
@@ -44,10 +44,7 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
       child: Text(
         title,
-        style: Theme.of(context)
-            .textTheme
-            .titleLarge
-            ?.copyWith(fontWeight: FontWeight.w700),
+        style: MokuText.sectionHeading(),
       ),
     );
   }
@@ -65,11 +62,7 @@ class _GroupLabel extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 6),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.2,
-        ),
+        style: MokuText.sectionLabel(color: colorScheme.onSurfaceVariant),
       ),
     );
   }
@@ -373,7 +366,7 @@ class _AboutSection extends StatelessWidget {
                       size: 18, color: colorScheme.primary),
                   title: Text(
                     l10n.appTitle,
-                    style: GoogleFonts.literata(fontWeight: FontWeight.w600),
+                    style: MokuText.bookTitleSmall(),
                   ),
                   subtitle: FutureBuilder<AppVersionInfo?>(
                     future: AppVersionService.versionInfo,

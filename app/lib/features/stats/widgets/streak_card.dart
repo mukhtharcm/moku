@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/ui/ui.dart';
 import '../../../l10n/l10n.dart';
 import 'stats_semantics.dart';
 
@@ -82,11 +83,9 @@ class _StreakItem extends StatelessWidget {
             children: [
               Text(
                 value,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: MokuText.sectionHeading(),
               ),
-              Text(label, style: theme.textTheme.bodySmall),
+              Text(label, style: MokuText.caption()),
             ],
           ),
         ],

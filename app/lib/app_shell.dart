@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'core/ui/ui.dart';
 import 'l10n/l10n.dart';
 
 // Screens: mobile + tablet use full-screen; desktop uses split panes below
@@ -344,17 +345,12 @@ class _NoCatalogSelected extends StatelessWidget {
           const SizedBox(height: 20),
           Text(
             'Pick a catalog',
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.w600),
+            style: MokuText.sectionHeading(),
           ),
           const SizedBox(height: 8),
           Text(
             'Select a source from the sidebar to browse books.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+            style: MokuText.body(color: colorScheme.onSurfaceVariant),
           ),
         ],
       ),
