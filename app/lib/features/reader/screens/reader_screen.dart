@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../../../core/database/database.dart'
     hide Book, Bookmark, Highlight, BookCollection;
@@ -75,10 +76,14 @@ class _ReaderViewState extends State<_ReaderView>
   late WebViewController _webController;
   bool _webViewReady = false;
 
-  // Desktop sidebar
+  // Desktop-specific
   bool _sidebarVisible = false;
+  bool _sidebarInitialized = false;
+  late final FocusNode _keyboardFocus;
+  // Seeded to 28pt on macOS so the first frame already clears traffic lights.
+  double _titleBarHeight =
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS ? 28.0 : 0.0;
 
-  // Store cubit reference to safely call from lifecycle callbacks
   late ReaderCubit _cubit;
 
   // Selection state for highlight toolbar
@@ -115,6 +120,16 @@ class _ReaderViewState extends State<_ReaderView>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _keyboardFocus = FocusNode();
+    _syncTitleBarHeight();
+    // Open the sidebar by default on desktop after the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_sidebarInitialized) {
+        final w = MediaQuery.sizeOf(context).width;
+        if (w >= 1000) setState(() => _sidebarVisible = true);
+        _sidebarInitialized = true;
+      }
+    });
 
     // Zen hint fade controller (1 s fade‑out)
     _zenHintController = AnimationController(
@@ -182,6 +197,7 @@ class _ReaderViewState extends State<_ReaderView>
     _zenHintTimer?.cancel();
     _bookmarkToastTimer?.cancel();
     _zenHintController.dispose();
+    _keyboardFocus.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _cubit.finalizeSession();
     super.dispose();
@@ -1126,8 +1142,9 @@ window.addEventListener('load', function() {
               if (!state.showControls)
                 _buildReaderAccessibilitySurface(context, state),
 
-              // Top controls
-              if (state.showControls && !state.zenMode)
+              // Top/bottom overlay controls — mobile only.
+              // On desktop the persistent _DesktopReaderToolbar replaces these.
+              if (state.showControls && !state.zenMode && !isDesktop)
                 _TopControls(
                   title: bookTitleLabel(context, state.book.title),
                   chapterTitle: readerChapterTitle(
@@ -1143,7 +1160,7 @@ window.addEventListener('load', function() {
                 ),
 
               // Bottom controls
-              if (state.showControls && !state.zenMode)
+              if (state.showControls && !state.zenMode && !isDesktop)
                 _BottomControls(
                   state: state,
                   bookmarkConfirmed: _bookmarkToastVisible,
@@ -1351,48 +1368,197 @@ window.addEventListener('load', function() {
             ],
           );
 
-        return Scaffold(
+        final readerContent = isDesktop && !state.zenMode
+            ? Row(
+                children: [
+                  if (_sidebarVisible) ...[  
+                    SizedBox(
+                      width: 260,
+                      child: _ReaderSidePanel(
+                        book: state.book,
+                        readerTheme: state.readerTheme,
+                      ),
+                    ),
+                    VerticalDivider(
+                      thickness: 1,
+                      width: 1,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .outlineVariant
+                          .withValues(alpha: 0.3),
+                    ),
+                  ],
+                  Expanded(child: readerStack),
+                ],
+              )
+            : readerStack;
+
+        final scaffold = Scaffold(
           backgroundColor: state.readerTheme.backgroundColor,
           body: isDesktop && !state.zenMode
-              ? Row(
+              ? Column(
                   children: [
-                    if (_sidebarVisible) ...[  
-                      SizedBox(
-                        width: 260,
-                        child: _ReaderSidePanel(
-                          book: state.book,
-                          readerTheme: state.readerTheme,
-                        ),
-                      ),
-                      VerticalDivider(
-                        thickness: 1,
-                        width: 1,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .outlineVariant
-                            .withValues(alpha: 0.3),
-                      ),
-                    ],
-                    Expanded(child: readerStack),
+                    _DesktopReaderToolbar(
+                      titleBarHeight: _titleBarHeight,
+                      state: state,
+                      sidebarVisible: _sidebarVisible,
+                      bookmarkConfirmed: _bookmarkToastVisible,
+                      onBack: () => Navigator.pop(context),
+                      onToggleSidebar: () =>
+                          setState(() => _sidebarVisible = !_sidebarVisible),
+                      onBookmark: () => _addBookmarkFromKeyboard(),
+                      onSettings: () => _showSettingsSheet(context),
+                    ),
+                    Expanded(child: readerContent),
                   ],
                 )
-              : readerStack,
+              : readerContent,
         );
+
+        // On desktop, wrap in a KeyboardListener for navigation shortcuts.
+        if (isDesktop) {
+          return KeyboardListener(
+            focusNode: _keyboardFocus,
+            autofocus: true,
+            onKeyEvent: _handleKeyEvent,
+            child: scaffold,
+          );
+        }
+        return scaffold;
       },
     );
   }
 
   void _showSettingsSheet(BuildContext context) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= 1000;
+    final cubit = context.read<ReaderCubit>();
+
+    if (isDesktop) {
+      showDialog(
+        context: context,
+        builder: (_) => BlocProvider.value(
+          value: cubit,
+          child: Dialog(
+            child: SizedBox(
+              width: 400,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: BlocProvider.value(
+                    value: cubit,
+                    child: const _ReaderSettingsSheet(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (_) => BlocProvider.value(
-        value: context.read<ReaderCubit>(),
+        value: cubit,
         child: const _ReaderSettingsSheet(),
       ),
     );
   }
-}
+
+  Future<void> _syncTitleBarHeight() async {
+    if (kIsWeb) return;
+    if (defaultTargetPlatform != TargetPlatform.macOS &&
+        defaultTargetPlatform != TargetPlatform.linux &&
+        defaultTargetPlatform != TargetPlatform.windows) {
+      return;
+    }
+    try {
+      final h = await windowManager.getTitleBarHeight();
+      if (mounted && h > 0 && h.toDouble() != _titleBarHeight) {
+        setState(() => _titleBarHeight = h.toDouble());
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _addBookmarkFromKeyboard() async {
+    final cubit = _cubit;
+    await cubit.addBookmark(
+      readerChapterTitle(context, cubit.state, cubit.state.currentChapter),
+    );
+    if (!mounted) return;
+    _showBookmarkToast();
+  }
+
+  void _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) return;
+    final cubit = _cubit;
+    final key = event.logicalKey;
+    final isMeta = HardwareKeyboard.instance.isMetaPressed;
+    final isCtrl = HardwareKeyboard.instance.isControlPressed;
+    final hasModifier = isMeta || isCtrl;
+
+    if (key == LogicalKeyboardKey.escape) {
+      if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+      return;
+    }
+
+    // ⌘B / Ctrl+B  bookmark
+    if (hasModifier && key == LogicalKeyboardKey.keyB) {
+      _addBookmarkFromKeyboard();
+      return;
+    }
+
+    // ⌘[ / Ctrl+[ or ⌘← / Ctrl+← : prev chapter
+    final prevChapter =
+        (hasModifier && key == LogicalKeyboardKey.bracketLeft) ||
+        (hasModifier && key == LogicalKeyboardKey.arrowLeft);
+    if (prevChapter) {
+      if (cubit.state.hasPreviousChapter) cubit.previousChapter();
+      return;
+    }
+
+    // ⌘] / Ctrl+] or ⌘→ / Ctrl+→ : next chapter
+    final nextChapter =
+        (hasModifier && key == LogicalKeyboardKey.bracketRight) ||
+        (hasModifier && key == LogicalKeyboardKey.arrowRight);
+    if (nextChapter) {
+      if (cubit.state.hasNextChapter) cubit.nextChapter();
+      return;
+    }
+
+    if (hasModifier) return; // don't intercept other Cmd shortcuts
+
+    // ← : prev page
+    if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.pageUp) {
+      final prev = (cubit.state.currentPage - 1)
+          .clamp(0, cubit.state.totalPages - 1);
+      if (prev != cubit.state.currentPage) {
+        _webController.runJavaScript('mokuPagination.goToPage($prev);');
+      } else if (cubit.state.hasPreviousChapter) {
+        _pendingStartPosition = 'last';
+        cubit.previousChapter();
+      }
+      return;
+    }
+
+    // → / Space : next page
+    if (key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.space ||
+        key == LogicalKeyboardKey.pageDown) {
+      final next = (cubit.state.currentPage + 1)
+          .clamp(0, cubit.state.totalPages - 1);
+      if (next != cubit.state.currentPage) {
+        _webController.runJavaScript('mokuPagination.goToPage($next);');
+      } else if (cubit.state.hasNextChapter) {
+        cubit.nextChapter();
+      }
+    }  // end next-page if
+  }    // end _handleKeyEvent
+
+} // end _ReaderViewState
 
 // Parses a CSS hex colour string (#RRGGBB / #AARRGGBB) to a Flutter Color.
 Color _parseHighlightColor(String hex) {
@@ -1402,7 +1568,162 @@ Color _parseHighlightColor(String hex) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. _ReaderSidePanel  (desktop only)
+// 3. _DesktopReaderToolbar
+// ---------------------------------------------------------------------------
+
+/// Persistent top bar shown on desktop (≥1000px) instead of the tap-to-show
+/// overlay controls. Always visible, uses the active reader theme colours so
+/// it blends with the reading surface.
+class _DesktopReaderToolbar extends StatelessWidget {
+  final double titleBarHeight;
+  final ReaderState state;
+  final bool sidebarVisible;
+  final bool bookmarkConfirmed;
+  final VoidCallback onBack;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback onBookmark;
+  final VoidCallback onSettings;
+
+  const _DesktopReaderToolbar({
+    required this.titleBarHeight,
+    required this.state,
+    required this.sidebarVisible,
+    required this.bookmarkConfirmed,
+    required this.onBack,
+    required this.onToggleSidebar,
+    required this.onBookmark,
+    required this.onSettings,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = state.readerTheme.backgroundColor;
+    final fg = state.readerTheme.textColor;
+    final dim = fg.withValues(alpha: 0.45);
+    final dividerColor = fg.withValues(alpha: 0.12);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final chapterCount = state.chapters.length;
+    final chapterLabel = chapterCount > 0
+        ? '${state.currentChapter + 1} / $chapterCount'
+        : '';
+
+    return Container(
+      color: bg,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Space above toolbar for the macOS title bar / traffic lights.
+          SizedBox(height: titleBarHeight),
+
+          // ── Toolbar row ──────────────────────────────────────────────────
+          SizedBox(
+            height: 44,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  // Back
+                  IconButton(
+                    icon: Icon(Icons.arrow_back_rounded, color: fg, size: 18),
+                    onPressed: onBack,
+                    tooltip: 'Close Reader  Esc',
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  const SizedBox(width: 4),
+
+                  // Book + chapter title
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          bookTitleLabel(context, state.book.title),
+                          style: GoogleFonts.literata(
+                            color: fg,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            height: 1.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          readerChapterTitle(
+                              context, state, state.currentChapter),
+                          style: TextStyle(
+                            color: dim,
+                            fontSize: 11,
+                            height: 1.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Chapter progress
+                  if (chapterLabel.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Text(
+                        chapterLabel,
+                        style: TextStyle(color: dim, fontSize: 11),
+                      ),
+                    ),
+
+                  // Bookmark
+                  IconButton(
+                    icon: Icon(
+                      bookmarkConfirmed
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_outline_rounded,
+                      color: bookmarkConfirmed ? colorScheme.primary : fg,
+                      size: 18,
+                    ),
+                    onPressed: onBookmark,
+                    tooltip: 'Bookmark  ⌘B',
+                    visualDensity: VisualDensity.compact,
+                  ),
+
+                  // Reading settings
+                  IconButton(
+                    icon: Icon(Icons.text_fields_rounded,
+                        color: fg, size: 18),
+                    onPressed: onSettings,
+                    tooltip: 'Reading Settings',
+                    visualDensity: VisualDensity.compact,
+                  ),
+
+                  // Sidebar toggle
+                  IconButton(
+                    icon: Icon(
+                      Icons.format_list_bulleted_rounded,
+                      color:
+                          sidebarVisible ? colorScheme.primary : fg,
+                      size: 18,
+                    ),
+                    onPressed: onToggleSidebar,
+                    tooltip: sidebarVisible ? 'Hide sidebar' : 'Show sidebar',
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Subtle bottom divider
+          Divider(height: 1, color: dividerColor),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 4. _ReaderSidePanel  (desktop only)
 // ---------------------------------------------------------------------------
 
 class _ReaderSidePanel extends StatefulWidget {
