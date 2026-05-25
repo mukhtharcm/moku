@@ -265,12 +265,6 @@ class _AppShellState extends State<AppShell> with WindowListener {
             ),
           ),
 
-          // ── Sync progress strip — hairline bar at bottom of the window ────
-          const Positioned(
-            left: 0, right: 0, bottom: 0,
-            child: _SyncProgressStrip(),
-          ),
-
           // ── Full-width drag handle in the title-bar zone ───────────────
           if (nativeDesktop && _titleBarHeight > 0)
             Positioned(
@@ -393,17 +387,25 @@ class _AppShellState extends State<AppShell> with WindowListener {
           children: _screens,
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (i) => setState(() => _currentIndex = i),
-        destinations: List.generate(
-          _destinations.length,
-          (i) => NavigationDestination(
-            icon: Icon(_destinations[i].icon),
-            selectedIcon: Icon(_destinations[i].selectedIcon),
-            label: labels[i],
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Sync progress strip — 2px hairline above the nav bar, visible
+          // on every page of the mobile layout.
+          const _SyncProgressStrip(),
+          NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (i) => setState(() => _currentIndex = i),
+            destinations: List.generate(
+              _destinations.length,
+              (i) => NavigationDestination(
+                icon: Icon(_destinations[i].icon),
+                selectedIcon: Icon(_destinations[i].selectedIcon),
+                label: labels[i],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -526,7 +528,10 @@ class _IconRail extends StatelessWidget {
             );
           }),
 
+          // Sync indicator in the gap above settings.
+          // Shows a small spinning icon while syncing — visible on every page.
           const Spacer(),
+          _SyncRailIndicator(),
 
           // Settings pinned to the bottom
           _IconRailItem(
@@ -600,12 +605,11 @@ class _IconRailItem extends StatelessWidget {
   }
 }
 
-// ── Sync progress strip (desktop) ────────────────────────────────────────────
+// ── Sync indicators ─────────────────────────────────────────────────────────
 
-/// A 2 px bar pinned to the bottom of the window that shows sync state:
-/// • Idle / connected    — invisible
-/// • Syncing, no file   — indeterminate shimmer
-/// • Downloading file   — determinate fill (bytesReceived / bytesTotal)
+/// 2 px progress bar shown above the mobile NavigationBar and at the
+/// bottom of the desktop rail. Invisible when idle; indeterminate shimmer
+/// while syncing metadata; determinate fill during a file download.
 class _SyncProgressStrip extends StatelessWidget {
   const _SyncProgressStrip();
 
@@ -623,12 +627,51 @@ class _SyncProgressStrip extends StatelessWidget {
         return SizedBox(
           height: 2,
           child: LinearProgressIndicator(
-            value: fileProgress, // null = indeterminate, 0.0-1.0 = determinate
+            value: fileProgress,
             backgroundColor: Colors.transparent,
             valueColor: AlwaysStoppedAnimation(
-              Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.75),
             ),
             minHeight: 2,
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Small spinning sync icon shown in the icon rail between the last nav item
+/// and the settings icon. Only appears while a sync is in flight so it
+/// doesn't clutter the rail when idle.
+class _SyncRailIndicator extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<SyncConfigCubit, SyncConfigState>(
+      buildWhen: (prev, curr) => prev.status != curr.status,
+      builder: (context, state) {
+        if (state.status != SyncStatus.syncing) {
+          return const SizedBox(height: 8); // small gap above settings
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: SizedBox(
+            width: 44,
+            height: 32,
+            child: Center(
+              child: SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  valueColor: AlwaysStoppedAnimation(
+                    Theme.of(context)
+                        .colorScheme
+                        .onSurfaceVariant
+                        .withValues(alpha: 0.45),
+                  ),
+                ),
+              ),
+            ),
           ),
         );
       },

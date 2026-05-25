@@ -329,6 +329,10 @@ class AutoSyncService with WidgetsBindingObserver {
 
     configCubit.setStatus(SyncStatus.syncing);
     developer.log('run: trigger=${trigger.name}', name: 'AutoSync');
+    // Yield to the event loop so the UI can render the syncing state
+    // before we block on network I/O. Without this, fast syncs complete
+    // in the same microtask queue flush and the indicator never shows.
+    await Future<void>.delayed(Duration.zero);
 
     SyncResult? result;
     try {
