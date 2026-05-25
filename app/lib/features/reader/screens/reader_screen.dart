@@ -9,6 +9,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../core/database/database.dart'
     hide Book, Bookmark, Highlight, BookCollection;
+import '../../../core/database/database.dart' as db_rec
+    show Bookmark, Highlight;
 import '../../../core/localization/bidi_text.dart';
 import '../../../core/models/book.dart';
 import '../../../core/models/book_localizations.dart';
@@ -72,6 +74,9 @@ class _ReaderViewState extends State<_ReaderView>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late WebViewController _webController;
   bool _webViewReady = false;
+
+  // Desktop sidebar
+  bool _sidebarVisible = false;
 
   // Store cubit reference to safely call from lifecycle callbacks
   late ReaderCubit _cubit;
@@ -1108,10 +1113,9 @@ window.addEventListener('load', function() {
           SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
         }
 
-        return Scaffold(
-          backgroundColor: state.readerTheme.backgroundColor,
-          body: Stack(
-            children: [
+        final isDesktop = MediaQuery.sizeOf(context).width >= 1000;
+        final readerStack = Stack(
+          children: [
               // WebView reader — always respect top safe area to avoid notch
               SafeArea(
                 top: true,
@@ -1132,6 +1136,10 @@ window.addEventListener('load', function() {
                     state.currentChapter,
                   ),
                   onZenMode: () => context.read<ReaderCubit>().toggleZenMode(),
+                  onToggleSidebar: isDesktop
+                      ? () => setState(() => _sidebarVisible = !_sidebarVisible)
+                      : null,
+                  sidebarVisible: _sidebarVisible,
                 ),
 
               // Bottom controls
@@ -1341,7 +1349,34 @@ window.addEventListener('load', function() {
                   ),
                 ),
             ],
-          ),
+          );
+
+        return Scaffold(
+          backgroundColor: state.readerTheme.backgroundColor,
+          body: isDesktop && !state.zenMode
+              ? Row(
+                  children: [
+                    if (_sidebarVisible) ...[  
+                      SizedBox(
+                        width: 260,
+                        child: _ReaderSidePanel(
+                          book: state.book,
+                          readerTheme: state.readerTheme,
+                        ),
+                      ),
+                      VerticalDivider(
+                        thickness: 1,
+                        width: 1,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .outlineVariant
+                            .withValues(alpha: 0.3),
+                      ),
+                    ],
+                    Expanded(child: readerStack),
+                  ],
+                )
+              : readerStack,
         );
       },
     );
@@ -1359,19 +1394,326 @@ window.addEventListener('load', function() {
   }
 }
 
+// Parses a CSS hex colour string (#RRGGBB / #AARRGGBB) to a Flutter Color.
+Color _parseHighlightColor(String hex) {
+  final s = hex.replaceFirst('#', '');
+  final value = int.tryParse(s.length == 6 ? 'FF$s' : s, radix: 16);
+  return Color(value ?? 0xFFFFEB3B);
+}
+
 // ---------------------------------------------------------------------------
-// 3. _TopControls
+// 3. _ReaderSidePanel  (desktop only)
+// ---------------------------------------------------------------------------
+
+class _ReaderSidePanel extends StatefulWidget {
+  final Book book;
+  final ReaderTheme readerTheme;
+
+  const _ReaderSidePanel({
+    required this.book,
+    required this.readerTheme,
+  });
+
+  @override
+  State<_ReaderSidePanel> createState() => _ReaderSidePanelState();
+}
+
+class _ReaderSidePanelState extends State<_ReaderSidePanel>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs;
+  List<db_rec.Bookmark> _bookmarks = [];
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 3, vsync: this);
+    _loadBookmarks();
+  }
+
+  Future<void> _loadBookmarks() async {
+    final db = context.read<ReaderCubit>().database;
+    final bm = await db.getBookmarksForBook(widget.book.id);
+    if (mounted) setState(() { _bookmarks = bm; _loaded = true; });
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<ReaderCubit>().state;
+    final colorScheme = Theme.of(context).colorScheme;
+    final bg = Color.lerp(
+      widget.readerTheme.backgroundColor,
+      colorScheme.surface,
+      0.08,
+    )!;
+
+    return Material(
+      color: bg,
+      child: Column(
+        children: [
+          // ── Tab bar ──────────────────────────────────────────────────────
+          Container(
+            color: bg,
+            child: TabBar(
+              controller: _tabs,
+              labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+              unselectedLabelStyle: const TextStyle(fontSize: 11),
+              indicatorSize: TabBarIndicatorSize.tab,
+              tabs: [
+                Tab(icon: const Icon(Icons.list_rounded, size: 16), text: 'Contents'),
+                Tab(icon: const Icon(Icons.bookmark_outline_rounded, size: 16), text: 'Bookmarks'),
+                Tab(icon: const Icon(Icons.highlight_rounded, size: 16), text: 'Highlights'),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+
+          // ── Tab content ──────────────────────────────────────────────────
+          Expanded(
+            child: !_loaded
+                ? const Center(child: CircularProgressIndicator())
+                : TabBarView(
+                    controller: _tabs,
+                    children: [
+                      _TocTab(state: state),
+                      _BookmarksSideTab(
+                        bookmarks: _bookmarks,
+                        state: state,
+                        onRefresh: _loadBookmarks,
+                      ),
+                      _HighlightsSideTab(
+                        highlights: state.highlights,
+                        state: state,
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ToC tab ────────────────────────────────────────────────────────────────────
+
+class _TocTab extends StatelessWidget {
+  final ReaderState state;
+  const _TocTab({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    if (state.chapters.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      itemCount: state.chapters.length,
+      itemBuilder: (context, index) {
+        final ch = state.chapters[index];
+        final isCurrent = state.currentChapter == index;
+        return InkWell(
+          onTap: () {
+            context.read<ReaderCubit>().goToChapter(index);
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  width: isCurrent ? 3 : 0,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                if (isCurrent) const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    ch.title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          isCurrent ? FontWeight.w600 : FontWeight.normal,
+                      color: isCurrent ? colorScheme.primary : null,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Bookmarks tab ───────────────────────────────────────────────────────────────
+
+class _BookmarksSideTab extends StatelessWidget {
+  final List<db_rec.Bookmark> bookmarks;
+  final ReaderState state;
+  final VoidCallback onRefresh;
+
+  const _BookmarksSideTab({
+    required this.bookmarks,
+    required this.state,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    if (bookmarks.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.bookmark_border_rounded, size: 36,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+            const SizedBox(height: 12),
+            Text('No bookmarks yet',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                )),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      itemCount: bookmarks.length,
+      itemBuilder: (_, i) {
+        final bm = bookmarks[i];
+        final chTitle = readerChapterTitle(context, state, bm.chapterIndex);
+        return ListTile(
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          leading: Icon(Icons.bookmark_rounded,
+              size: 16, color: colorScheme.primary),
+          title: Text(bm.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13)),
+          subtitle: Text(chTitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11)),
+          onTap: () {
+            context.read<ReaderCubit>().goToChapter(bm.chapterIndex);
+          },
+        );
+      },
+    );
+  }
+}
+
+// Highlights tab ──────────────────────────────────────────────────────────────
+
+class _HighlightsSideTab extends StatelessWidget {
+  final List<db_rec.Highlight> highlights;
+  final ReaderState state;
+
+  const _HighlightsSideTab({
+    required this.highlights,
+    required this.state,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    if (highlights.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.highlight_off_rounded, size: 36,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+            const SizedBox(height: 12),
+            Text('No highlights yet',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                )),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      itemCount: highlights.length,
+      itemBuilder: (_, i) {
+        final h = highlights[i];
+        final chTitle = readerChapterTitle(context, state, h.chapterIndex);
+        return InkWell(
+          onTap: () => context.read<ReaderCubit>().goToHighlight(
+              h.chapterIndex, h.selectedText),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _parseHighlightColor(h.color).withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border(
+                      left: BorderSide(
+                          color: _parseHighlightColor(h.color), width: 3),
+                    ),
+                  ),
+                  child: Text(
+                    h.selectedText,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  chTitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 4. _TopControls
 // ---------------------------------------------------------------------------
 
 class _TopControls extends StatelessWidget {
   final String title;
   final String chapterTitle;
   final VoidCallback? onZenMode;
+  final VoidCallback? onToggleSidebar;
+  final bool sidebarVisible;
 
   const _TopControls({
     required this.title,
     required this.chapterTitle,
     this.onZenMode,
+    this.onToggleSidebar,
+    this.sidebarVisible = false,
   });
 
   @override
@@ -1429,6 +1771,17 @@ class _TopControls extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (onToggleSidebar != null)
+                  IconButton(
+                    icon: Icon(
+                      sidebarVisible
+                          ? Icons.format_list_bulleted_rounded
+                          : Icons.format_list_bulleted_rounded,
+                      color: sidebarVisible ? Colors.white : Colors.white70,
+                    ),
+                    onPressed: onToggleSidebar,
+                    tooltip: sidebarVisible ? 'Hide panel' : 'Show panel',
+                  ),
                 if (onZenMode != null)
                   IconButton(
                     icon: const Icon(Icons.spa_outlined, color: Colors.white),
