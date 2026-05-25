@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -121,7 +122,6 @@ class _ReaderViewState extends State<_ReaderView>
 
     _webController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.transparent)
       ..addJavaScriptChannel('MokuBridge', onMessageReceived: _onJsMessage)
       ..setNavigationDelegate(
         NavigationDelegate(
@@ -148,6 +148,12 @@ class _ReaderViewState extends State<_ReaderView>
           },
         ),
       );
+
+    // setBackgroundColor calls setOpaque internally, which is not implemented
+    // on macOS in webview_flutter_wkwebview — skip it there.
+    if (!kIsWeb && defaultTargetPlatform != TargetPlatform.macOS) {
+      _webController.setBackgroundColor(Colors.transparent);
+    }
   }
 
   @override
