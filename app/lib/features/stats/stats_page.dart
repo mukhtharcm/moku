@@ -51,10 +51,10 @@ class _StatsView extends StatelessWidget {
                 constraints: const BoxConstraints(maxWidth: 900),
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(
-                    24,
+                    20,
                     isDesktop ? 20 : 16,
-                    24,
-                    24,
+                    20,
+                    20,
                   ),
                   children: [
                     if (isDesktop) ...[
@@ -172,11 +172,11 @@ class _StatCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: iconColor, size: 22),
-              const SizedBox(height: 8),
+              Icon(icon, color: iconColor, size: 18),
+              const SizedBox(height: 6),
               Text(
                 value,
-                style: theme.textTheme.titleLarge?.copyWith(
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -199,21 +199,24 @@ class _RecentSessions extends StatelessWidget {
     return StatsSemanticSection(
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              StatsSemanticNode(
-                label: context.l10n.statsRecentSessions,
-                header: true,
-                child: Text(
-                  context.l10n.statsRecentSessions,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: StatsSemanticNode(
+                  label: context.l10n.statsRecentSessions,
+                  header: true,
+                  child: Text(
+                    context.l10n.statsRecentSessions,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               ...sessions.map((s) => _SessionTile(session: s)),
             ],
           ),

@@ -38,7 +38,7 @@ class _LibrarySidebarState extends State<LibrarySidebar> {
           children: [
             // ── Search ─────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(

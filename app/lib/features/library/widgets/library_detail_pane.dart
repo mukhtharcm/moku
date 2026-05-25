@@ -93,7 +93,7 @@ class _BookDetailView extends StatelessWidget {
 
     return Scaffold(
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
