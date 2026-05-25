@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import '../tokens.dart';
 import '../moku_text.dart';
+import '../ui.dart';
 
 // ── MokuPanelHeader ──────────────────────────────────────────────────────────
 /// Top header row inside a sidebar or panel.
@@ -35,7 +36,7 @@ class MokuPanelHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -47,7 +48,7 @@ class MokuPanelHeader extends StatelessWidget {
                 child: Text(
                   label.toUpperCase(),
                   style: MokuText.sectionLabel(
-                    color: colorScheme.onSurfaceVariant
+                    color: colors.textSecondary
                         .withValues(alpha: 0.6),
                   ),
                 ),
@@ -58,7 +59,7 @@ class MokuPanelHeader extends StatelessWidget {
         ),
         Divider(
           height: 1,
-          color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+          color: colors.border,
         ),
       ],
     );
@@ -91,28 +92,34 @@ class MokuPanelItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final vPad = compact ? MokuSpacing.s1 + 2 : MokuSpacing.s2 + 2;
 
     return InkWell(
       onTap: onTap,
-      borderRadius: MokuRadius.mdAll,
+      borderRadius: MokuRadius.smAll,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 140),
         curve: Curves.easeOut,
-        margin: const EdgeInsets.symmetric(
-          horizontal: MokuSpacing.s1 + 2,
-          vertical: 1,
-        ),
-        padding: EdgeInsets.symmetric(
-          horizontal: MokuSpacing.s2 + 2,
-          vertical: vPad,
+        margin: const EdgeInsets.symmetric(vertical: 1),
+        padding: EdgeInsets.only(
+          // Left padding shrinks to make room for the accent border
+          left: selected ? MokuSpacing.s2 - 2 : MokuSpacing.s2 + 2,
+          right: MokuSpacing.s2 + 2,
+          top: vPad,
+          bottom: vPad,
         ),
         decoration: BoxDecoration(
-          color: selected
-              ? colorScheme.primaryContainer.withValues(alpha: 0.55)
-              : Colors.transparent,
-          borderRadius: MokuRadius.mdAll,
+          // No background fill — selection is communicated by the left
+          // border and text weight only. Much less Material-y.
+          border: Border(
+            left: BorderSide(
+              color: selected
+                  ? colors.accent
+                  : Colors.transparent,
+              width: 2.5,
+            ),
+          ),
         ),
         child: Row(
           children: [
@@ -132,8 +139,8 @@ class MokuPanelItem extends StatelessWidget {
                     style: MokuText.panelItem(
                       selected: selected,
                       color: selected
-                          ? colorScheme.primary
-                          : colorScheme.onSurface,
+                          ? colors.accent
+                          : colors.textPrimary,
                     ),
                   ),
                   if (subtitle != null) ...[
@@ -143,7 +150,7 @@ class MokuPanelItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: MokuText.caption(
-                        color: colorScheme.onSurfaceVariant
+                        color: colors.textSecondary
                             .withValues(alpha: 0.65),
                       ),
                     ),
@@ -232,14 +239,14 @@ class MokuProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     return ClipRRect(
       borderRadius: BorderRadius.circular(MokuRadius.pill),
       child: LinearProgressIndicator(
         value: progress,
         minHeight: height,
         backgroundColor:
-            colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            colors.surfaceElevated.withValues(alpha: 0.5),
       ),
     );
   }

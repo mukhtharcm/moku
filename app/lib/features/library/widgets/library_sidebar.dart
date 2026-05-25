@@ -26,7 +26,7 @@ class _LibrarySidebarState extends State<LibrarySidebar> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
 
     return BlocBuilder<LibraryCubit, LibraryState>(
@@ -67,7 +67,7 @@ class _LibrarySidebarState extends State<LibrarySidebar> {
               trailing: PopupMenuButton<LibrarySortMode>(
                 tooltip: '',
                 child: Icon(Icons.sort_rounded,
-                    size: 16, color: colorScheme.onSurfaceVariant),
+                    size: 16, color: colors.textSecondary),
                 onSelected: (m) =>
                     context.read<LibraryCubit>().setSortMode(m),
                 itemBuilder: (_) => LibrarySortMode.values.map((m) {
@@ -78,7 +78,7 @@ class _LibrarySidebarState extends State<LibrarySidebar> {
                       if (m == state.sortMode) ...[
                         const Spacer(),
                         Icon(Icons.check_rounded,
-                            size: 14, color: colorScheme.primary),
+                            size: 14, color: colors.accent),
                       ],
                     ]),
                   );
@@ -136,9 +136,7 @@ class _LibrarySidebarState extends State<LibrarySidebar> {
                                           Text(
                                             '${(progress * 100).round()}%',
                                             style: MokuText.micro(
-                                              color: colorScheme
-                                                  .onSurfaceVariant
-                                                  .withValues(alpha: 0.6),
+                                              color: colors.textTertiary,
                                             ),
                                           ),
                                         ],
@@ -193,7 +191,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
 
     if (hasSearch) {
@@ -203,11 +201,11 @@ class _EmptyState extends StatelessWidget {
           children: [
             Icon(Icons.search_off_rounded,
                 size: 36,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35)),
+                color: colors.textTertiary),
             const SizedBox(height: MokuSpacing.s3),
             Text(l10n.libraryEmptySearchTitle,
                 style: MokuText.bodySmall(
-                    color: colorScheme.onSurfaceVariant)),
+                    color: colors.textSecondary)),
           ],
         ),
       );
@@ -221,11 +219,11 @@ class _EmptyState extends StatelessWidget {
           children: [
             Icon(Icons.auto_stories_outlined,
                 size: 36,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35)),
+                color: colors.textTertiary),
             const SizedBox(height: MokuSpacing.s3),
             Text(l10n.libraryEmptyTitle,
                 style: MokuText.bodySmall(
-                    color: colorScheme.onSurfaceVariant),
+                    color: colors.textSecondary),
                 textAlign: TextAlign.center),
           ],
         ),

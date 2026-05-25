@@ -1,16 +1,18 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../ui/tokens.dart';
+import '../ui/app_colors.dart';
 
 class MokuTheme {
-  // Brand colors — warm, bookish palette
-  static const Color primarySeed = Color(0xFF6B4EFF); // deep violet
-  static const Color warmAccent = Color(0xFFFF8A65); // warm coral
-  static const Color _cream = Color(0xFFFAF7F2); // warm cream background
-  static const Color _inkDark = Color(0xFF1C1917); // warm ink
-  static const Color _paperWhite = Color(0xFFFFFBF7);
-  static const Color _nightSurface = Color(0xFF1A1816);
-  static const Color _nightCard = Color(0xFF252220);
+  // Delegate to design tokens — single source of truth
+  static const Color primarySeed  = MokuColors.violet;
+  static const Color warmAccent   = MokuColors.coral;
+  static const Color _cream       = MokuColors.cream;
+  static const Color _inkDark     = MokuColors.ink;
+  static const Color _paperWhite  = MokuColors.paper;
+  static const Color _nightSurface = MokuColors.nightBase;
+  static const Color _nightCard   = MokuColors.nightCard;
 
   static TextTheme _buildTextTheme(Brightness brightness) {
     final base = brightness == Brightness.dark
@@ -62,6 +64,7 @@ class MokuTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: _cream,
+      extensions: const <ThemeExtension<dynamic>>[kMokuLight],
       textTheme: _buildTextTheme(Brightness.light),
       appBarTheme: AppBarTheme(
         centerTitle: false,
@@ -78,12 +81,9 @@ class MokuTheme {
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: _paperWhite,
+        color: MokuColors.paperWarm,  // warmer fill, no border
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.25),
-          ),
+          borderRadius: BorderRadius.circular(10),
         ),
         margin: EdgeInsets.zero,
       ),
@@ -245,6 +245,7 @@ class MokuTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: _nightSurface,
+      extensions: const <ThemeExtension<dynamic>>[kMokuDark],
       textTheme: _buildTextTheme(Brightness.dark),
       appBarTheme: AppBarTheme(
         centerTitle: false,
@@ -263,10 +264,7 @@ class MokuTheme {
         elevation: 0,
         color: _nightCard,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.15),
-          ),
+          borderRadius: BorderRadius.circular(10),
         ),
         margin: EdgeInsets.zero,
       ),

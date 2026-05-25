@@ -155,21 +155,22 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final isTablet = width >= 600;
-    final isDesktop = width >= 1000;
 
     final bool nativeDesktop = !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.macOS ||
             defaultTargetPlatform == TargetPlatform.linux ||
             defaultTargetPlatform == TargetPlatform.windows);
 
-    final layout = isDesktop
+    // On native desktop, the three-pane shell is always used regardless of
+    // width. The context panel is always visible (narrower below 1000px) so
+    // sidebar-only actions remain reachable on small windows.
+    final layout = nativeDesktop
         ? _buildDesktopLayout(context, nativeDesktop)
-        : isTablet
+        : width >= 600
             ? _buildTabletLayout(context, nativeDesktop)
             : _buildMobileLayout(context);
 
-    // On native desktop, wrap in KeyboardListener for shell shortcuts.
+    // Wrap in KeyboardListener on native desktop.
     if (nativeDesktop) {
       return KeyboardListener(
         focusNode: _shellFocus,
@@ -184,11 +185,16 @@ class _AppShellState extends State<AppShell> {
   // ── Desktop: icon rail + context panel + main pane ──────────────────────
 
   Widget _buildDesktopLayout(BuildContext context, bool nativeDesktop) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final hasSidebar = _currentIndex != 3;
+    final width = MediaQuery.sizeOf(context).width;
+    final colors = context.colors;
+    // Context panel is always visible on desktop for every section except
+    // Stats (index 3) which fills the full main pane as a dashboard.
+    // Width-responsive: 220px on narrow windows, 260px on wider ones.
+    final hasPanel = _currentIndex != 3;
+    final panelWidth = width >= 1000 ? 260.0 : 220.0;
     final railBg = Theme.of(context).navigationRailTheme.backgroundColor ??
-        colorScheme.surfaceContainerLow;
-    final dividerColor = colorScheme.outlineVariant.withValues(alpha: 0.3);
+        colors.surfaceMuted;
+    final dividerColor = colors.border;
 
     return Scaffold(
       body: Stack(
@@ -215,9 +221,9 @@ class _AppShellState extends State<AppShell> {
                 ),
                 VerticalDivider(
                     thickness: 1, width: 1, color: dividerColor),
-                if (hasSidebar) ...[
+                if (hasPanel) ...[
                   SizedBox(
-                    width: 260,
+                    width: panelWidth,
                     child: _buildContextPanel(context),
                   ),
                   VerticalDivider(
@@ -275,10 +281,10 @@ class _AppShellState extends State<AppShell> {
   // ── Tablet: single NavigationRail + full screen content ─────────────────
 
   Widget _buildTabletLayout(BuildContext context, bool nativeDesktop) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final railBg = Theme.of(context).navigationRailTheme.backgroundColor ??
-        colorScheme.surfaceContainerLow;
-    final dividerColor = colorScheme.outlineVariant.withValues(alpha: 0.3);
+        colors.surfaceMuted;
+    final dividerColor = colors.border;
 
     return Scaffold(
       body: Stack(
@@ -401,7 +407,7 @@ class _DiscoverMainPane extends StatelessWidget {
 class _NoCatalogSelected extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -409,7 +415,7 @@ class _NoCatalogSelected extends StatelessWidget {
           Icon(
             Icons.explore_outlined,
             size: 64,
-            color: colorScheme.primary.withValues(alpha: 0.15),
+            color: colors.accent.withValues(alpha: 0.15),
           ),
           const SizedBox(height: 20),
           Text(
@@ -418,8 +424,8 @@ class _NoCatalogSelected extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Select a source from the sidebar to browse books.',
-            style: MokuText.body(color: colorScheme.onSurfaceVariant),
+            'Choose a catalog from the panel on the left to start browsing books.',
+            style: MokuText.body(color: colors.textSecondary),
           ),
         ],
       ),
@@ -455,10 +461,10 @@ class _IconRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final theme = Theme.of(context);
     final railBg = theme.navigationRailTheme.backgroundColor ??
-        colorScheme.surfaceContainerLow;
+        colors.surfaceMuted;
 
     final mainDests = destinations.sublist(0, 4);
     final bottomDest = destinations[4];
@@ -521,7 +527,7 @@ class _IconRailItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
 
     return Tooltip(
       message: label,
@@ -537,7 +543,7 @@ class _IconRailItem extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               color: isSelected
-                  ? colorScheme.primaryContainer.withValues(alpha: 0.7)
+                  ? colors.accentMuted
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
             ),
@@ -545,8 +551,8 @@ class _IconRailItem extends StatelessWidget {
               isSelected ? selectedIcon : icon,
               size: 22,
               color: isSelected
-                  ? colorScheme.primary
-                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  ? colors.accent
+                  : colors.textSecondary,
             ),
           ),
         ),

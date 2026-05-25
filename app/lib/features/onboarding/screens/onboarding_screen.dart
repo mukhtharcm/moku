@@ -7,6 +7,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../l10n/l10n.dart';
 import '../../library/cubit/library_cubit.dart';
 import '../../../app_shell.dart';
+import '../../../core/ui/ui.dart';
 
 const _kOnboardingCompleted = 'onboarding_completed';
 
@@ -89,7 +90,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
 
     return Scaffold(
@@ -136,7 +137,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           child: Text(
                             l10n.onboardingSkip,
                             style: TextStyle(
-                              color: colorScheme.onSurfaceVariant.withValues(
+                              color: colors.textSecondary.withValues(
                                 alpha: 0.6,
                               ),
                             ),
@@ -160,8 +161,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                             height: 8,
                             decoration: BoxDecoration(
                               color: isActive
-                                  ? colorScheme.primary
-                                  : colorScheme.onSurface.withValues(
+                                  ? colors.accent
+                                  : colors.textPrimary.withValues(
                                       alpha: 0.15,
                                     ),
                               borderRadius: BorderRadius.circular(4),
@@ -194,7 +195,7 @@ class _WelcomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
 
     return SafeArea(
@@ -215,7 +216,7 @@ class _WelcomePage extends StatelessWidget {
                 fontSize: 32,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.5,
-                color: colorScheme.onSurface,
+                color: colors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -227,7 +228,7 @@ class _WelcomePage extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.w400,
-                color: colorScheme.onSurfaceVariant,
+                color: colors.textSecondary,
                 height: 1.4,
               ),
               textAlign: TextAlign.center,
@@ -237,7 +238,7 @@ class _WelcomePage extends StatelessWidget {
               l10n.onboardingWelcomeBody,
               style: GoogleFonts.inter(
                 fontSize: 15,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                color: colors.textSecondary,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
@@ -283,7 +284,7 @@ class _ImportPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
 
     return SafeArea(
@@ -294,7 +295,7 @@ class _ImportPage extends StatelessWidget {
             const Spacer(flex: 2),
 
             // Illustration — stack of books
-            _BooksStackIcon(size: 120, color: colorScheme.primary),
+            _BooksStackIcon(size: 120, color: colors.accent),
             const SizedBox(height: 32),
 
             Text(
@@ -303,7 +304,7 @@ class _ImportPage extends StatelessWidget {
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.3,
-                color: colorScheme.onSurface,
+                color: colors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -313,7 +314,7 @@ class _ImportPage extends StatelessWidget {
               l10n.onboardingImportBody,
               style: GoogleFonts.inter(
                 fontSize: 15,
-                color: colorScheme.onSurfaceVariant,
+                color: colors.textSecondary,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
@@ -351,7 +352,7 @@ class _ImportPage extends StatelessWidget {
                 l10n.onboardingImportLater,
                 style: GoogleFonts.inter(
                   fontSize: 14,
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  color: colors.textSecondary,
                 ),
               ),
             ),
@@ -372,7 +373,7 @@ class _SyncPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
 
     return SafeArea(
@@ -383,7 +384,7 @@ class _SyncPage extends StatelessWidget {
             const Spacer(flex: 2),
 
             // Sync icon
-            _SyncIcon(size: 120, color: colorScheme.primary),
+            _SyncIcon(size: 120, color: colors.accent),
             const SizedBox(height: 32),
 
             Text(
@@ -392,7 +393,7 @@ class _SyncPage extends StatelessWidget {
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.3,
-                color: colorScheme.onSurface,
+                color: colors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -403,7 +404,7 @@ class _SyncPage extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: colorScheme.onSurface,
+                color: colors.textPrimary,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
@@ -413,7 +414,7 @@ class _SyncPage extends StatelessWidget {
               l10n.onboardingSyncServerBody,
               style: GoogleFonts.inter(
                 fontSize: 14,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                color: colors.textSecondary,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,

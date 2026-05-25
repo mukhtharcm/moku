@@ -433,7 +433,7 @@ class _ReaderViewState extends State<_ReaderView>
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.outlineVariant,
+                  color: context.colors.borderStrong,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1312,9 +1312,7 @@ window.addEventListener('load', function() {
                     minHeight: state.zenMode ? 1.5 : 2.5,
                     backgroundColor: Colors.transparent,
                     valueColor: AlwaysStoppedAnimation(
-                      Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.6),
+                      context.colors.accent.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -1613,7 +1611,7 @@ class _DesktopReaderToolbar extends StatelessWidget {
     final fg = state.readerTheme.textColor;
     final dim = fg.withValues(alpha: 0.45);
     final dividerColor = fg.withValues(alpha: 0.12);
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
 
     final chapterCount = state.chapters.length;
     final chapterLabel = chapterCount > 0
@@ -1692,7 +1690,7 @@ class _DesktopReaderToolbar extends StatelessWidget {
                       bookmarkConfirmed
                           ? Icons.bookmark_rounded
                           : Icons.bookmark_outline_rounded,
-                      color: bookmarkConfirmed ? colorScheme.primary : fg,
+                      color: bookmarkConfirmed ? colors.accent : fg,
                       size: 18,
                     ),
                     onPressed: onBookmark,
@@ -1714,7 +1712,7 @@ class _DesktopReaderToolbar extends StatelessWidget {
                     icon: Icon(
                       Icons.format_list_bulleted_rounded,
                       color:
-                          sidebarVisible ? colorScheme.primary : fg,
+                          sidebarVisible ? colors.accent : fg,
                       size: 18,
                     ),
                     onPressed: onToggleSidebar,
@@ -1779,7 +1777,7 @@ class _ReaderSidePanelState extends State<_ReaderSidePanel>
   @override
   Widget build(BuildContext context) {
     final state = context.watch<ReaderCubit>().state;
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     // Use the reader theme background directly — no lerp, no tint.
     final bg = widget.readerTheme.backgroundColor;
     final fg = widget.readerTheme.textColor;
@@ -1795,10 +1793,10 @@ class _ReaderSidePanelState extends State<_ReaderSidePanel>
             child: TabBar(
               controller: _tabs,
               labelStyle: MokuText.micro(
-                  weight: FontWeight.w700, color: colorScheme.primary),
+                  weight: FontWeight.w700, color: colors.accent),
               unselectedLabelStyle:
                   MokuText.micro(color: fg.withValues(alpha: 0.5)),
-              indicatorColor: colorScheme.primary,
+              indicatorColor: colors.accent,
               indicatorSize: TabBarIndicatorSize.tab,
               dividerColor: divCol,
               tabs: const [
@@ -1851,7 +1849,7 @@ class _TocTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     if (state.chapters.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -1873,7 +1871,7 @@ class _TocTab extends StatelessWidget {
               border: isCurrent
                   ? Border(
                       left: BorderSide(
-                          color: colorScheme.primary, width: 3))
+                          color: colors.accent, width: 3))
                   : const Border(left: BorderSide(width: 3, color: Colors.transparent)),
             ),
             child: Text(
@@ -1881,7 +1879,7 @@ class _TocTab extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: isCurrent
-                  ? MokuText.bookTitleSmall(color: colorScheme.primary)
+                  ? MokuText.bookTitleSmall(color: colors.accent)
                   : MokuText.bodySmall(
                       color: readerFg.withValues(alpha: 0.8)),
             ),
@@ -1909,7 +1907,7 @@ class _BookmarksSideTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     if (bookmarks.isEmpty) {
       return Center(
         child: Column(
@@ -1936,7 +1934,7 @@ class _BookmarksSideTab extends StatelessWidget {
         return MokuPanelItem(
           compact: true,
           leading: Icon(Icons.bookmark_rounded,
-              size: 14, color: colorScheme.primary),
+              size: 14, color: colors.accent),
           title: bm.title,
           subtitle: chTitle,
           onTap: () =>
@@ -2219,13 +2217,11 @@ class _BottomControls extends StatelessWidget {
                             overlayShape: const RoundSliderOverlayShape(
                               overlayRadius: 14,
                             ),
-                            activeTrackColor: Theme.of(
-                              context,
-                            ).colorScheme.primary,
+                            activeTrackColor: context.colors.accent,
                             inactiveTrackColor: Colors.white.withValues(
                               alpha: 0.2,
                             ),
-                            thumbColor: Theme.of(context).colorScheme.primary,
+                            thumbColor: context.colors.accent,
                           ),
                           child: Slider(
                             value: overallProgress,
@@ -2291,7 +2287,7 @@ class _BottomControls extends StatelessWidget {
                             ? Icons.bookmark_added_rounded
                             : Icons.bookmark_add_outlined,
                         color: bookmarkConfirmed
-                            ? Theme.of(context).colorScheme.primary
+                            ? context.colors.accent
                             : Colors.white,
                       ),
                       onPressed: onBookmark,
@@ -2327,7 +2323,7 @@ class _ReaderSettingsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
 
     return BlocBuilder<ReaderCubit, ReaderState>(
@@ -2348,7 +2344,7 @@ class _ReaderSettingsSheet extends StatelessWidget {
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 20),
                     decoration: BoxDecoration(
-                      color: colorScheme.outlineVariant,
+                      color: colors.borderStrong,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -2358,7 +2354,7 @@ class _ReaderSettingsSheet extends StatelessWidget {
                 Text(
                   l10n.readerTypography,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                    color: colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -2385,7 +2381,7 @@ class _ReaderSettingsSheet extends StatelessWidget {
                 Text(
                   l10n.readerReadingDirection,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                    color: colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -2453,7 +2449,7 @@ class _ReaderSettingsSheet extends StatelessWidget {
                     Icon(
                       Icons.format_line_spacing,
                       size: 20,
-                      color: colorScheme.onSurfaceVariant,
+                      color: colors.textSecondary,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -2476,7 +2472,7 @@ class _ReaderSettingsSheet extends StatelessWidget {
                     Icon(
                       Icons.padding,
                       size: 20,
-                      color: colorScheme.onSurfaceVariant,
+                      color: colors.textSecondary,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -2498,7 +2494,7 @@ class _ReaderSettingsSheet extends StatelessWidget {
                 Text(
                   l10n.readerTheme,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                    color: colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -2517,7 +2513,7 @@ class _ReaderSettingsSheet extends StatelessWidget {
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: isActive
-                                ? colorScheme.primary
+                                ? colors.accent
                                 : Colors.grey.withValues(alpha: 0.4),
                             width: isActive ? 3 : 1,
                           ),
@@ -2568,7 +2564,7 @@ class _TocDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
 
     return Positioned.fill(
@@ -2582,7 +2578,7 @@ class _TocDrawer extends StatelessWidget {
               onTap: () {}, // prevent closing when tapping drawer
               child: Container(
                 width: MediaQuery.of(context).size.width * 0.75,
-                color: colorScheme.surface,
+                color: colors.surface,
                 child: SafeArea(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -2622,12 +2618,12 @@ class _TocDrawer extends StatelessWidget {
                                       ? FontWeight.w600
                                       : FontWeight.normal,
                                   color: isActive
-                                      ? colorScheme.primary
-                                      : colorScheme.onSurface,
+                                      ? colors.accent
+                                      : colors.textPrimary,
                                 ),
                               ),
                               selected: isActive,
-                              selectedTileColor: colorScheme.primaryContainer
+                              selectedTileColor: colors.accentMuted
                                   .withValues(alpha: 0.3),
                               onTap: () => onChapterTap(index),
                             );

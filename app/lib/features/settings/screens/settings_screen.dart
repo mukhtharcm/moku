@@ -9,6 +9,7 @@ import '../../../core/sync/sync_config.dart';
 import '../../../core/theme/theme_cubit.dart';
 import '../../../l10n/l10n.dart';
 import 'sync_settings_screen.dart';
+import '../../../core/ui/ui.dart';
 
 const _systemLocaleOption = '__system__';
 
@@ -17,7 +18,7 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final l10n = context.l10n;
 
     return Scaffold(
@@ -32,7 +33,7 @@ class SettingsScreen extends StatelessWidget {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 700),
+          constraints: const BoxConstraints(maxWidth: MokuSpacing.contentNarrow),
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
@@ -72,7 +73,7 @@ class SettingsScreen extends StatelessWidget {
                           ),
                           leading: Icon(
                             Icons.language_rounded,
-                            color: colorScheme.primary,
+                            color: colors.accent,
                           ),
                           title: Text(l10n.settingsLanguageTitle),
                         ),
@@ -87,7 +88,7 @@ class SettingsScreen extends StatelessWidget {
                               localeTag == _systemLocaleOption
                                   ? Icons.settings_suggest_rounded
                                   : Icons.translate_rounded,
-                              color: colorScheme.onSurfaceVariant,
+                              color: colors.textSecondary,
                             ),
                           ),
                         ),
@@ -119,7 +120,7 @@ class SettingsScreen extends StatelessWidget {
                           value: ThemeMode.system,
                           secondary: Icon(
                             Icons.brightness_auto_rounded,
-                            color: colorScheme.onSurfaceVariant,
+                            color: colors.textSecondary,
                           ),
                         ),
                         RadioListTile<ThemeMode>(
@@ -127,7 +128,7 @@ class SettingsScreen extends StatelessWidget {
                           value: ThemeMode.light,
                           secondary: Icon(
                             Icons.light_mode_rounded,
-                            color: colorScheme.onSurfaceVariant,
+                            color: colors.textSecondary,
                           ),
                         ),
                         RadioListTile<ThemeMode>(
@@ -135,7 +136,7 @@ class SettingsScreen extends StatelessWidget {
                           value: ThemeMode.dark,
                           secondary: Icon(
                             Icons.dark_mode_rounded,
-                            color: colorScheme.onSurfaceVariant,
+                            color: colors.textSecondary,
                           ),
                         ),
                       ],
@@ -162,7 +163,7 @@ class SettingsScreen extends StatelessWidget {
                         : Icons.battery_std_rounded,
                     color: state.powerSaver
                         ? Colors.green
-                        : colorScheme.onSurfaceVariant,
+                        : colors.textSecondary,
                   ),
                   title: Text(l10n.settingsPowerSaverTitle),
                   subtitle: Text(l10n.settingsPowerSaverSubtitle),
@@ -190,7 +191,7 @@ class SettingsScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: isConnected
                           ? Colors.green.withValues(alpha: 0.1)
-                          : colorScheme.surfaceContainerHighest.withValues(
+                          : colors.surfaceElevated.withValues(
                               alpha: 0.5,
                             ),
                       borderRadius: BorderRadius.circular(12),
@@ -201,7 +202,7 @@ class SettingsScreen extends StatelessWidget {
                           : Icons.cloud_outlined,
                       color: isConnected
                           ? Colors.green
-                          : colorScheme.onSurfaceVariant,
+                          : colors.textSecondary,
                       size: 22,
                     ),
                   ),
@@ -215,12 +216,12 @@ class SettingsScreen extends StatelessWidget {
                     style: TextStyle(
                       color: isConnected
                           ? Colors.green
-                          : colorScheme.onSurfaceVariant,
+                          : colors.textSecondary,
                     ),
                   ),
                   trailing: Icon(
                     Icons.chevron_right_rounded,
-                    color: colorScheme.onSurfaceVariant,
+                    color: colors.textSecondary,
                   ),
                   onTap: () => Navigator.push(
                     context,
@@ -247,7 +248,7 @@ class SettingsScreen extends StatelessWidget {
                 ListTile(
                   leading: Icon(
                     Icons.auto_stories_rounded,
-                    color: colorScheme.primary,
+                    color: colors.accent,
                   ),
                   title: Text(
                     l10n.appTitle,
@@ -282,12 +283,12 @@ class SettingsScreen extends StatelessWidget {
                   height: 1,
                   indent: 16,
                   endIndent: 16,
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  color: colors.border,
                 ),
                 ListTile(
                   leading: Icon(
                     Icons.code_rounded,
-                    color: colorScheme.onSurfaceVariant,
+                    color: colors.textSecondary,
                   ),
                   title: Text(l10n.settingsOpenSourceTitle),
                   subtitle: Text(l10n.settingsOpenSourceSubtitle),
@@ -316,7 +317,7 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
+          color: context.colors.accent,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
         ),

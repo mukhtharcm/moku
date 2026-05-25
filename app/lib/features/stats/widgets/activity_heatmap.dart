@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/l10n.dart';
 import 'stats_semantics.dart';
+import '../../../core/ui/ui.dart';
 
 class ActivityHeatmap extends StatelessWidget {
   final Map<DateTime, int> dailyMinutes;
@@ -148,7 +149,7 @@ class ActivityHeatmap extends StatelessWidget {
 
   Color _cellColor(BuildContext context, double intensity) {
     if (intensity == 0) {
-      return Theme.of(context).colorScheme.surfaceContainerHighest;
+      return context.colors.surfaceElevated;
     }
     return Colors.orange.withValues(alpha: 0.2 + intensity * 0.8);
   }

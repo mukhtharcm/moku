@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/models/models.dart';
 import '../../../core/models/book_localizations.dart';
 import 'book_cover.dart';
+import '../../../core/ui/ui.dart';
 
 class BookGridItem extends StatelessWidget {
   final Book book;
@@ -19,7 +20,7 @@ class BookGridItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final title = bookTitleLabel(context, book.title);
     final author = bookAuthorLabel(context, book.author);
 
@@ -50,7 +51,7 @@ class BookGridItem extends StatelessWidget {
                           bottomLeft: Radius.circular(12),
                           bottomRight: Radius.circular(12),
                         ),
-                        color: colorScheme.surfaceContainerHighest.withValues(
+                        color: colors.surfaceElevated.withValues(
                           alpha: 0.6,
                         ),
                       ),
@@ -63,7 +64,7 @@ class BookGridItem extends StatelessWidget {
                               bottomLeft: Radius.circular(12),
                               bottomRight: Radius.circular(12),
                             ),
-                            color: colorScheme.primary,
+                            color: colors.accent,
                           ),
                         ),
                       ),
@@ -86,7 +87,7 @@ class BookGridItem extends StatelessWidget {
           Text(
             author,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+              color: colors.textSecondary,
               fontSize: 11,
             ),
             maxLines: 1,
