@@ -28,9 +28,13 @@ class _StatsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final isDesktop = MediaQuery.sizeOf(context).width >= 1000;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.statsTitle), centerTitle: false),
+      // On desktop the nav rail already communicates location — skip the AppBar.
+      appBar: isDesktop
+          ? null
+          : AppBar(title: Text(l10n.statsTitle), centerTitle: false),
       body: BlocBuilder<StatsCubit, StatsState>(
         builder: (context, state) {
           if (state.status == StatsStatus.loading ||
@@ -46,8 +50,23 @@ class _StatsView extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 900),
                 child: ListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.fromLTRB(
+                    24,
+                    isDesktop ? 20 : 16,
+                    24,
+                    24,
+                  ),
                   children: [
+                    if (isDesktop) ...[
+                      Text(
+                        l10n.statsTitle,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                     StreakCard(
                       currentStreak: state.currentStreak,
                       longestStreak: state.longestStreak,

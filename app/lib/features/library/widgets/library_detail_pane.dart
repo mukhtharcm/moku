@@ -243,7 +243,7 @@ class _BookDetailView extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    book.description!,
+                    _stripHtml(book.description!),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       height: 1.6,
                       color: colorScheme.onSurface.withValues(alpha: 0.85),
@@ -516,4 +516,18 @@ class _ContinueReadingGrid extends StatelessWidget {
       },
     );
   }
+}
+
+// Strips HTML tags and decodes common entities.
+String _stripHtml(String html) {
+  return html
+      .replaceAll(RegExp(r'<[^>]*>'), ' ')
+      .replaceAll('&amp;', '&')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#39;', "'")
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll(RegExp(r' {2,}'), ' ')
+      .trim();
 }
