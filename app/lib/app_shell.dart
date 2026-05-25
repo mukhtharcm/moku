@@ -161,15 +161,11 @@ class _AppShellState extends State<AppShell> {
             defaultTargetPlatform == TargetPlatform.linux ||
             defaultTargetPlatform == TargetPlatform.windows);
 
-    // On native desktop platforms the layout is always the desktop shell —
-    // platform determines the UX model, not the window width.
-    // The context panel is shown when the window is wide enough (≥1000px)
-    // but the icon rail + main pane are always present on desktop.
-    final showContextPanel = width >= 1000;
-
+    // On native desktop, the three-pane shell is always used regardless of
+    // width. The context panel is always visible (narrower below 1000px) so
+    // sidebar-only actions remain reachable on small windows.
     final layout = nativeDesktop
-        ? _buildDesktopLayout(context, nativeDesktop,
-            showContextPanel: showContextPanel)
+        ? _buildDesktopLayout(context, nativeDesktop)
         : width >= 600
             ? _buildTabletLayout(context, nativeDesktop)
             : _buildMobileLayout(context);
@@ -188,11 +184,14 @@ class _AppShellState extends State<AppShell> {
 
   // ── Desktop: icon rail + context panel + main pane ──────────────────────
 
-  Widget _buildDesktopLayout(BuildContext context, bool nativeDesktop,
-      {bool showContextPanel = true}) {
+  Widget _buildDesktopLayout(BuildContext context, bool nativeDesktop) {
+    final width = MediaQuery.sizeOf(context).width;
     final colors = context.colors;
-    // Stats (index 3) has no context panel; others need showContextPanel=true.
-    final hasContextPanel = showContextPanel && _currentIndex != 3;
+    // Context panel is always visible on desktop for every section except
+    // Stats (index 3) which fills the full main pane as a dashboard.
+    // Width-responsive: 220px on narrow windows, 260px on wider ones.
+    final hasPanel = _currentIndex != 3;
+    final panelWidth = width >= 1000 ? 260.0 : 220.0;
     final railBg = Theme.of(context).navigationRailTheme.backgroundColor ??
         colors.surfaceMuted;
     final dividerColor = colors.border;
@@ -222,9 +221,9 @@ class _AppShellState extends State<AppShell> {
                 ),
                 VerticalDivider(
                     thickness: 1, width: 1, color: dividerColor),
-                if (hasContextPanel) ...[
+                if (hasPanel) ...[
                   SizedBox(
-                    width: 260,
+                    width: panelWidth,
                     child: _buildContextPanel(context),
                   ),
                   VerticalDivider(
@@ -425,7 +424,7 @@ class _NoCatalogSelected extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Select a source from the sidebar to browse books.',
+            'Choose a catalog from the panel on the left to start browsing books.',
             style: MokuText.body(color: colors.textSecondary),
           ),
         ],
