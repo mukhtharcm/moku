@@ -90,7 +90,7 @@ class MokuText {
   /// Sidebar / panel item label.
   static TextStyle panelItem({Color? color, bool selected = false}) =>
       GoogleFonts.dmSans(
-        fontSize: MokuTypeSize.body,
+        fontSize: MokuTypeSize.bodyM,
         fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
         height: 1.3,
         color: color,
@@ -98,9 +98,9 @@ class MokuText {
 
   /// Small label above a group (all-caps / tracked).
   static TextStyle sectionLabel({Color? color}) => GoogleFonts.dmSans(
-        fontSize: MokuTypeSize.tiny,
+        fontSize: MokuTypeSize.small,
         fontWeight: FontWeight.w600,
-        letterSpacing: 0.8,
+        letterSpacing: 0.7,
         color: color,
       );
 

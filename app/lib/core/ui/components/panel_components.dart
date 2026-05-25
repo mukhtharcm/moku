@@ -92,7 +92,7 @@ class MokuPanelItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final vPad = compact ? MokuSpacing.s1 : MokuSpacing.s1 + 2;
+    final vPad = compact ? MokuSpacing.s1 : MokuSpacing.s2;
 
     // Neutral selection — desktop-app style row highlight, slightly
     // tinted with the primary so the active row still reads as "active".

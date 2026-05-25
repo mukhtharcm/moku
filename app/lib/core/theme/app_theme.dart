@@ -393,19 +393,23 @@ class MokuTheme {
   // smaller fonts on buttons, denser list tiles, hairline rules.
 
   static ThemeData desktopify(ThemeData base) {
+    // Desktop overrides: use the same visual density as the platform default
+    // (Flutter already maps to compact on macOS/Linux/Windows via adaptivePlatformDensity)
+    // but keep button/listTile sizes intentionally roomy — desktop ≠ cramped.
     final ruleColor = base.dividerTheme.color ?? base.colorScheme.outlineVariant;
     final cs = base.colorScheme;
     return base.copyWith(
-      visualDensity: VisualDensity.compact,
+      // Let Flutter's default density handle platform conventions; don't force compact.
+      visualDensity: VisualDensity.standard,
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: cs.primary,
           foregroundColor: cs.onPrimary,
           shape: RoundedRectangleBorder(borderRadius: MokuRadius.smAll),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          minimumSize: const Size(0, 30),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          minimumSize: const Size(0, 34),
           textStyle: GoogleFonts.dmSans(
-            fontSize: MokuTypeSize.body,
+            fontSize: MokuTypeSize.bodyM,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.1,
           ),
@@ -416,10 +420,10 @@ class MokuTheme {
           foregroundColor: cs.onSurface,
           side: BorderSide(color: ruleColor),
           shape: RoundedRectangleBorder(borderRadius: MokuRadius.smAll),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          minimumSize: const Size(0, 30),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          minimumSize: const Size(0, 34),
           textStyle: GoogleFonts.dmSans(
-            fontSize: MokuTypeSize.body,
+            fontSize: MokuTypeSize.bodyM,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -428,19 +432,19 @@ class MokuTheme {
         style: TextButton.styleFrom(
           foregroundColor: cs.primary,
           shape: RoundedRectangleBorder(borderRadius: MokuRadius.smAll),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          minimumSize: const Size(0, 28),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          minimumSize: const Size(0, 32),
           textStyle: GoogleFonts.dmSans(
-            fontSize: MokuTypeSize.body,
+            fontSize: MokuTypeSize.bodyM,
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
       inputDecorationTheme: base.inputDecorationTheme.copyWith(
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         hintStyle: GoogleFonts.dmSans(
-          fontSize: MokuTypeSize.body,
+          fontSize: MokuTypeSize.bodyM,
           color: cs.onSurfaceVariant.withValues(alpha: 0.7),
         ),
       ),
@@ -455,14 +459,14 @@ class MokuTheme {
       ),
       listTileTheme: base.listTileTheme.copyWith(
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-        minVerticalPadding: 4,
-        dense: true,
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        minVerticalPadding: 6,
+        dense: false,
       ),
       appBarTheme: base.appBarTheme.copyWith(
-        toolbarHeight: 44,
+        toolbarHeight: 48,
         titleTextStyle: GoogleFonts.instrumentSerif(
-          fontSize: 20,
+          fontSize: 22,
           fontWeight: FontWeight.w400,
           color: cs.onSurface,
           letterSpacing: -0.2,

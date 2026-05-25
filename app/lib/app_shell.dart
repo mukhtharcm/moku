@@ -537,14 +537,14 @@ class _IconRailItem extends StatelessWidget {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 120),
               width: 44,
-              height: 34,
+              height: 44,
               decoration: BoxDecoration(
                 color: isSelected ? selectedBg : Colors.transparent,
                 borderRadius: MokuRadius.smAll,
               ),
               child: Icon(
                 isSelected ? selectedIcon : icon,
-                size: 19,
+                size: 24,
                 color: isSelected
                     ? colorScheme.primary
                     : colorScheme.onSurfaceVariant,

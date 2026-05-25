@@ -134,7 +134,9 @@ class _ReaderViewState extends State<_ReaderView>
             (defaultTargetPlatform == TargetPlatform.macOS ||
                 defaultTargetPlatform == TargetPlatform.linux ||
                 defaultTargetPlatform == TargetPlatform.windows);
-        if (nativeDesktop) setState(() => _sidebarVisible = true);
+        // Start with sidebar closed — reader defaults to full-content focus.
+        // Users can open it via the toolbar toggle or keyboard shortcut.
+        if (nativeDesktop) setState(() => _sidebarVisible = false);
         _sidebarInitialized = true;
       }
     });
@@ -1359,7 +1361,9 @@ window.addEventListener('load', function() {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                l10n.readerExitZenMode,
+                                isDesktop
+                                    ? 'Exit Zen  Esc / Z'
+                                    : l10n.readerExitZenMode,
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.9),
                                   fontSize: 13,
@@ -1416,6 +1420,7 @@ window.addEventListener('load', function() {
                           setState(() => _sidebarVisible = !_sidebarVisible),
                       onBookmark: () => _addBookmarkFromKeyboard(),
                       onSettings: () => _showSettingsSheet(context),
+                      onZenMode: () => context.read<ReaderCubit>().toggleZenMode(),
                     ),
                     Expanded(child: readerContent),
                   ],
@@ -1508,11 +1513,22 @@ window.addEventListener('load', function() {
     final hasModifier = isMeta || isCtrl;
 
     if (key == LogicalKeyboardKey.escape) {
+      // If in zen mode, escape exits zen first; second press closes reader.
+      if (cubit.state.zenMode) {
+        cubit.toggleZenMode();
+        return;
+      }
       if (widget.onClose != null) {
         widget.onClose!();
       } else if (mounted && Navigator.canPop(context)) {
         Navigator.pop(context);
       }
+      return;
+    }
+
+    // Z — toggle zen mode
+    if (key == LogicalKeyboardKey.keyZ && !hasModifier) {
+      cubit.toggleZenMode();
       return;
     }
 
@@ -1595,6 +1611,7 @@ class _DesktopReaderToolbar extends StatelessWidget {
   final VoidCallback onToggleSidebar;
   final VoidCallback onBookmark;
   final VoidCallback onSettings;
+  final VoidCallback onZenMode;
 
   const _DesktopReaderToolbar({
     required this.titleBarHeight,
@@ -1605,6 +1622,7 @@ class _DesktopReaderToolbar extends StatelessWidget {
     required this.onToggleSidebar,
     required this.onBookmark,
     required this.onSettings,
+    required this.onZenMode,
   });
 
   @override
@@ -1706,6 +1724,18 @@ class _DesktopReaderToolbar extends StatelessWidget {
                         color: fg, size: 18),
                     onPressed: onSettings,
                     tooltip: 'Reading Settings',
+                    visualDensity: VisualDensity.compact,
+                  ),
+
+                  // Zen mode
+                  IconButton(
+                    icon: Icon(
+                      Icons.crop_free_rounded,
+                      color: fg,
+                      size: 18,
+                    ),
+                    onPressed: onZenMode,
+                    tooltip: 'Zen Mode  Z',
                     visualDensity: VisualDensity.compact,
                   ),
 
