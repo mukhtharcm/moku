@@ -125,8 +125,11 @@ class _ReaderViewState extends State<_ReaderView>
     // Open the sidebar by default on desktop after the first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && !_sidebarInitialized) {
-        final w = MediaQuery.sizeOf(context).width;
-        if (w >= 1000) setState(() => _sidebarVisible = true);
+        final nativeDesktop = !kIsWeb &&
+            (defaultTargetPlatform == TargetPlatform.macOS ||
+                defaultTargetPlatform == TargetPlatform.linux ||
+                defaultTargetPlatform == TargetPlatform.windows);
+        if (nativeDesktop) setState(() => _sidebarVisible = true);
         _sidebarInitialized = true;
       }
     });
@@ -1129,7 +1132,7 @@ window.addEventListener('load', function() {
           SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
         }
 
-        final isDesktop = MediaQuery.sizeOf(context).width >= 1000;
+        final isDesktop = !kIsWeb && (defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.linux || defaultTargetPlatform == TargetPlatform.windows);
         final readerStack = Stack(
           children: [
               // WebView reader — always respect top safe area to avoid notch
@@ -1430,7 +1433,7 @@ window.addEventListener('load', function() {
   }
 
   void _showSettingsSheet(BuildContext context) {
-    final isDesktop = MediaQuery.sizeOf(context).width >= 1000;
+    final isDesktop = !kIsWeb && (defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.linux || defaultTargetPlatform == TargetPlatform.windows);
     final cubit = context.read<ReaderCubit>();
 
     if (isDesktop) {
