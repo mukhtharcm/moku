@@ -135,7 +135,7 @@ class _AppShellState extends State<AppShell> {
           if (_titleBarHeight > 0)
             Positioned(
               top: 0, left: 0,
-              width: 64,
+              width: 72,
               height: _titleBarHeight,
               child: ColoredBox(color: railBg),
             ),
@@ -399,7 +399,7 @@ class _IconRail extends StatelessWidget {
     final bottomDest = destinations[4];
 
     return Container(
-      width: 64,
+      width: 72,
       color: railBg,
       child: Column(
         children: [
