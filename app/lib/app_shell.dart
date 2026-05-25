@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'l10n/l10n.dart';
@@ -18,6 +19,8 @@ import 'features/library/widgets/library_detail_pane.dart';
 import 'features/collections/widgets/shelves_sidebar.dart';
 import 'features/collections/widgets/shelves_detail_pane.dart';
 import 'features/search/widgets/discover_sidebar.dart';
+import 'features/search/cubit/search_cubit.dart';
+import 'features/search/cubit/search_state.dart';
 import 'features/settings/widgets/settings_sidebar.dart';
 import 'features/settings/widgets/settings_detail_pane.dart';
 
@@ -305,18 +308,57 @@ class _AppShellState extends State<AppShell> {
 }
 
 // ── Discover main pane ───────────────────────────────────────────────────────
-// The full browse / search experience lives here, driven by SearchCubit
-// which was already open. The sidebar just picks which catalog is active.
+// When no catalog is selected yet, show a placeholder — the sidebar already
+// lists the available catalogs. Once a catalog is selected via the sidebar,
+// the full SearchScreen takes over for browse + search.
 
 class _DiscoverMainPane extends StatelessWidget {
   const _DiscoverMainPane();
 
   @override
   Widget build(BuildContext context) {
-    // Re-use SearchScreen's body content but without the outer scaffold's
-    // catalog-list view (the sidebar drives catalog selection instead).
-    // We still need a Scaffold for AppBar + proper layout.
-    return const discover.SearchScreen();
+    return BlocBuilder<SearchCubit, SearchState>(
+      builder: (context, state) {
+        if (state.isAtCatalogList) {
+          return _NoCatalogSelected();
+        }
+        return const discover.SearchScreen();
+      },
+    );
+  }
+}
+
+class _NoCatalogSelected extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.explore_outlined,
+            size: 64,
+            color: colorScheme.primary.withValues(alpha: 0.15),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Pick a catalog',
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Select a source from the sidebar to browse books.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
