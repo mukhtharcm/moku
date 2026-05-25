@@ -82,28 +82,36 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                 ],
               ),
             ),
-            _ => GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 0.55,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: books.length,
-              itemBuilder: (context, index) {
-                final book = _toBook(books[index]);
-
-                return BookGridItem(
-                  book: book,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ReaderScreen(book: book),
-                      ),
+            _ => LayoutBuilder(
+              builder: (context, constraints) {
+                final cols = constraints.maxWidth > 900
+                    ? 6
+                    : constraints.maxWidth > 600
+                        ? 4
+                        : 3;
+                return GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: cols,
+                    childAspectRatio: 0.55,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemCount: books.length,
+                  itemBuilder: (context, index) {
+                    final book = _toBook(books[index]);
+                    return BookGridItem(
+                      book: book,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ReaderScreen(book: book),
+                          ),
+                        );
+                      },
+                      onLongPress: () => _confirmRemove(context, book),
                     );
                   },
-                  onLongPress: () => _confirmRemove(context, book),
                 );
               },
             ),
