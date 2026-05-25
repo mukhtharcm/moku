@@ -96,23 +96,29 @@ class MokuPanelItem extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: MokuRadius.mdAll,
+      borderRadius: MokuRadius.smAll,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 140),
         curve: Curves.easeOut,
-        margin: const EdgeInsets.symmetric(
-          horizontal: MokuSpacing.s1 + 2,
-          vertical: 1,
-        ),
-        padding: EdgeInsets.symmetric(
-          horizontal: MokuSpacing.s2 + 2,
-          vertical: vPad,
+        margin: const EdgeInsets.symmetric(vertical: 1),
+        padding: EdgeInsets.only(
+          // Left padding shrinks to make room for the accent border
+          left: selected ? MokuSpacing.s2 - 2 : MokuSpacing.s2 + 2,
+          right: MokuSpacing.s2 + 2,
+          top: vPad,
+          bottom: vPad,
         ),
         decoration: BoxDecoration(
-          color: selected
-              ? colorScheme.primaryContainer.withValues(alpha: 0.55)
-              : Colors.transparent,
-          borderRadius: MokuRadius.mdAll,
+          // No background fill — selection is communicated by the left
+          // border and text weight only. Much less Material-y.
+          border: Border(
+            left: BorderSide(
+              color: selected
+                  ? colorScheme.primary
+                  : Colors.transparent,
+              width: 2.5,
+            ),
+          ),
         ),
         child: Row(
           children: [
