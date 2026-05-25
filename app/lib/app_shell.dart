@@ -20,6 +20,13 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
 
+  // macOS standard title bar is 28pt. We seed with this so the first
+  // frame already clears the traffic lights, then update from the real
+  // window measurement (viewPadding.top is always 0 on macOS —
+  // the Flutter engine doesn't propagate NSView.safeAreaInsets).
+  double _titleBarHeight =
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS ? 28.0 : 0.0;
+
   final _screens = const [
     LibraryScreen(),
     SearchScreen(),
@@ -29,6 +36,27 @@ class _AppShellState extends State<AppShell> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _syncTitleBarHeight();
+  }
+
+  Future<void> _syncTitleBarHeight() async {
+    if (kIsWeb) return;
+    if (defaultTargetPlatform != TargetPlatform.macOS &&
+        defaultTargetPlatform != TargetPlatform.linux &&
+        defaultTargetPlatform != TargetPlatform.windows) return;
+    try {
+      final h = await windowManager.getTitleBarHeight();
+      if (mounted && h.toDouble() != _titleBarHeight) {
+        setState(() => _titleBarHeight = h.toDouble());
+      }
+    } catch (_) {
+      // window_manager unavailable; keep the seeded default.
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final width = MediaQuery.sizeOf(context).width;
@@ -36,11 +64,9 @@ class _AppShellState extends State<AppShell> {
     final isDesktop = width >= 1000;
     final colorScheme = Theme.of(context).colorScheme;
 
-    // On macOS with TitleBarStyle.hidden the Flutter engine correctly reports
-    // the title-bar height (~28pt) via viewPadding.top (fullSizeContentView
-    // makes the window report that inset as a safe-area). We use it to push
-    // the rail's leading content below the traffic-light buttons.
-    final topInset = MediaQuery.viewPaddingOf(context).top;
+    // Use the measured title-bar height (seeded to 28pt on macOS so the
+    // first frame is already correct; viewPadding.top is always 0 on macOS).
+    final topInset = _titleBarHeight;
 
     // Only wrap interactive areas in DragToMoveArea on real desktop OSes.
     final bool nativeDesktop = !kIsWeb &&
