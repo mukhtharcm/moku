@@ -36,7 +36,7 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with WindowListener {
   int _currentIndex = 0;
   Book? _readingBook; // non-null = desktop inline reader is active
   late final FocusNode _shellFocus;
@@ -62,6 +62,13 @@ class _AppShellState extends State<AppShell> {
     super.initState();
     _shellFocus = FocusNode();
     _syncTitleBarHeight();
+    // Listen for fullscreen transitions so we can zero/restore titleBarHeight.
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.macOS ||
+         defaultTargetPlatform == TargetPlatform.linux ||
+         defaultTargetPlatform == TargetPlatform.windows)) {
+      windowManager.addListener(this);
+    }
   }
 
   Future<void> _syncTitleBarHeight() async {
@@ -113,8 +120,26 @@ class _AppShellState extends State<AppShell> {
 
   @override
   void dispose() {
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.macOS ||
+         defaultTargetPlatform == TargetPlatform.linux ||
+         defaultTargetPlatform == TargetPlatform.windows)) {
+      windowManager.removeListener(this);
+    }
     _shellFocus.dispose();
     super.dispose();
+  }
+
+  @override
+  void onWindowEnterFullScreen() {
+    // In macOS fullscreen the title bar collapses — clear the reserved space.
+    if (mounted) setState(() => _titleBarHeight = 0);
+  }
+
+  @override
+  void onWindowLeaveFullScreen() {
+    // Re-read the real title-bar height when returning to windowed mode.
+    _syncTitleBarHeight();
   }
 
   void _openBookInline(Book book) => setState(() => _readingBook = book);

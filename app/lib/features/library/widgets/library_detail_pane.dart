@@ -337,144 +337,229 @@ class _WelcomePane extends StatelessWidget {
       );
     }
 
-    return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (currentlyReading.isNotEmpty) ...[
-                  Row(
-                    children: [
-                      Icon(Icons.play_circle_outline_rounded,
-                          size: 18, color: colorScheme.primary),
-                      const SizedBox(width: 8),
-                      Text(
-                        l10n.libraryContinueReading,
-                        style: MokuText.sectionHeading(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _ContinueReadingGrid(
-                    books: currentlyReading.take(6).toList(),
-                    progressMap: state.progressMap,
-                  ),
-                  const SizedBox(height: 32),
-                ],
-                Row(
-                  children: [
-                    Text(
-                      l10n.librarySectionTitle,
-                      style: MokuText.sectionHeading(),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${state.books.length}',
-                      style: MokuText.caption(color: colorScheme.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Select a book from the sidebar to view details.',
-                  style: MokuText.body(color: colorScheme.onSurfaceVariant),
-                ),
-              ],
-            ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 36),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Currently reading hero ───────────────────────────────────────
+          if (currentlyReading.isNotEmpty) ..._buildContinueReadingHero(
+            context,
+            currentlyReading.first,
+            state.progressMap[currentlyReading.first.id] ?? 0,
           ),
-        ),
+
+          // ── All books grid ───────────────────────────────────────────────
+          const SizedBox(height: 36),
+          Row(children: [
+            Text(l10n.librarySectionTitle, style: MokuText.sectionHeading()),
+            const SizedBox(width: 8),
+            Text('${state.books.length}',
+                style: MokuText.caption(
+                    color: colorScheme.onSurfaceVariant)),
+          ]),
+          const SizedBox(height: 16),
+          _LibraryGrid(
+            books: state.books,
+            progressMap: state.progressMap,
+            onTap: (book) {
+              context.read<LibraryCubit>().selectBook(book.id);
+              if (onOpenBook != null) onOpenBook!(book);
+            },
+          ),
+        ],
       ),
     );
   }
+
+  List<Widget> _buildContinueReadingHero(
+    BuildContext context,
+    Book book,
+    double progress,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
+    final pct = (progress * 100).round();
+
+    return [
+      Row(
+        children: [
+          Icon(Icons.play_circle_outline_rounded,
+              size: 16, color: colorScheme.primary),
+          const SizedBox(width: 6),
+          Text(l10n.libraryContinueReading,
+              style: MokuText.sectionLabel(
+                  color: colorScheme.onSurfaceVariant)),
+        ],
+      ),
+      const SizedBox(height: 16),
+      InkWell(
+        onTap: () {
+          context.read<LibraryCubit>().selectBook(book.id);
+          if (onOpenBook != null) onOpenBook!(book);
+        },
+        borderRadius: BorderRadius.circular(MokuRadius.md),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 620),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(MokuRadius.md),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Cover
+              ClipRRect(
+                borderRadius: BorderRadius.circular(MokuRadius.sm),
+                child: SizedBox(
+                  width: 80,
+                  height: 116,
+                  child: BookCoverWidget(book: book, borderRadius: MokuRadius.sm),
+                ),
+              ),
+              const SizedBox(width: 20),
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      bookTitleLabel(context, book.title),
+                      style: MokuText.bookTitle(),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (book.author.isNotEmpty) ...[  
+                      const SizedBox(height: 4),
+                      Text(book.author,
+                          style: MokuText.bodySmall(
+                              color: colorScheme.onSurfaceVariant)),
+                    ],
+                    const SizedBox(height: 16),
+                    // Progress bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(2),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 4,
+                        backgroundColor: colorScheme.surfaceContainerHighest,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '$pct% read',
+                      style: MokuText.caption(
+                          color: colorScheme.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () {
+                        context.read<LibraryCubit>().selectBook(book.id);
+                        if (onOpenBook != null) onOpenBook!(book);
+                      },
+                      child: Text(l10n.libraryContinueReading),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ];
+  }
 }
 
-class _ContinueReadingGrid extends StatelessWidget {
+// ── Library cover grid ────────────────────────────────────────────────────────
+
+class _LibraryGrid extends StatelessWidget {
   final List<Book> books;
   final Map<String, double> progressMap;
+  final void Function(Book) onTap;
 
-  const _ContinueReadingGrid({
+  const _LibraryGrid({
     required this.books,
     required this.progressMap,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cols = constraints.maxWidth > 600 ? 3 : 2;
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-            childAspectRatio: 2.8,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemCount: books.length,
-          itemBuilder: (context, index) {
-            final book = books[index];
-            final progress = progressMap[book.id] ?? 0.0;
-            return InkWell(
-              onTap: () {
-                context.read<LibraryCubit>().selectBook(book.id);
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: SizedBox(
-                          width: 44,
-                          height: 64,
-                          child:
-                              BookCoverWidget(book: book, borderRadius: 6),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              bookTitleLabel(context, book.title),
-                              style: MokuText.bookTitleSmall(),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+    return LayoutBuilder(builder: (context, constraints) {
+      // Aim for ~140px-wide covers; minimum 2 columns.
+      final cols = (constraints.maxWidth / 156).floor().clamp(2, 8);
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: cols,
+          childAspectRatio: 0.62, // cover portrait ratio + title below
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 16,
+        ),
+        itemCount: books.length,
+        itemBuilder: (context, i) {
+          final book = books[i];
+          final progress = progressMap[book.id] ?? 0;
+          return InkWell(
+            onTap: () => onTap(book),
+            borderRadius: BorderRadius.circular(MokuRadius.sm),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Cover
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(MokuRadius.sm),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        BookCoverWidget(
+                            book: book,
+                            borderRadius: MokuRadius.sm.toDouble()),
+                        // Progress strip at bottom
+                        if (progress > 0)
+                          Positioned(
+                            left: 0, right: 0, bottom: 0,
+                            child: LinearProgressIndicator(
+                              value: progress,
+                              minHeight: 3,
+                              backgroundColor:
+                                  colorScheme.surfaceContainerHighest
+                                      .withValues(alpha: 0.6),
                             ),
-                            const SizedBox(height: 6),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(2),
-                              child: LinearProgressIndicator(
-                                value: progress,
-                                minHeight: 3,
-                                backgroundColor: colorScheme
-                                    .surfaceContainerHighest
-                                    .withValues(alpha: 0.5),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
-        );
-      },
-    );
+                const SizedBox(height: 6),
+                Text(
+                  bookTitleLabel(context, book.title),
+                  style: MokuText.bodySmall(
+                      weight: FontWeight.w600),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (book.author.isNotEmpty)
+                  Text(
+                    book.author,
+                    style: MokuText.caption(
+                        color: colorScheme.onSurfaceVariant),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          );
+        },
+      );
+    });
   }
 }
 
