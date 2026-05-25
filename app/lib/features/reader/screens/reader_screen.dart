@@ -19,6 +19,7 @@ import '../../../core/models/reader_content_profile.dart';
 import '../../../core/services/book_service.dart';
 import '../../../core/sync/auto_sync_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/ui.dart';
 import '../../../l10n/l10n.dart';
 import '../reader_accessibility.dart';
 import '../reader_localizations.dart';
@@ -1771,49 +1772,58 @@ class _ReaderSidePanelState extends State<_ReaderSidePanel>
   Widget build(BuildContext context) {
     final state = context.watch<ReaderCubit>().state;
     final colorScheme = Theme.of(context).colorScheme;
-    final bg = Color.lerp(
-      widget.readerTheme.backgroundColor,
-      colorScheme.surface,
-      0.08,
-    )!;
+    // Use the reader theme background directly — no lerp, no tint.
+    final bg = widget.readerTheme.backgroundColor;
+    final fg = widget.readerTheme.textColor;
+    final divCol = fg.withValues(alpha: 0.1);
 
     return Material(
       color: bg,
       child: Column(
         children: [
-          // ── Tab bar ──────────────────────────────────────────────────────
+          // Tab bar — styled to match the app's typography
           Container(
             color: bg,
             child: TabBar(
               controller: _tabs,
-              labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-              unselectedLabelStyle: const TextStyle(fontSize: 11),
+              labelStyle: MokuText.micro(
+                  weight: FontWeight.w700, color: colorScheme.primary),
+              unselectedLabelStyle:
+                  MokuText.micro(color: fg.withValues(alpha: 0.5)),
+              indicatorColor: colorScheme.primary,
               indicatorSize: TabBarIndicatorSize.tab,
-              tabs: [
-                Tab(icon: const Icon(Icons.list_rounded, size: 16), text: 'Contents'),
-                Tab(icon: const Icon(Icons.bookmark_outline_rounded, size: 16), text: 'Bookmarks'),
-                Tab(icon: const Icon(Icons.highlight_rounded, size: 16), text: 'Highlights'),
+              dividerColor: divCol,
+              tabs: const [
+                Tab(
+                    icon: Icon(Icons.list_rounded, size: 15),
+                    text: 'CONTENTS'),
+                Tab(
+                    icon: Icon(Icons.bookmark_outline_rounded, size: 15),
+                    text: 'MARKS'),
+                Tab(
+                    icon: Icon(Icons.highlight_rounded, size: 15),
+                    text: 'NOTES'),
               ],
             ),
           ),
-          Divider(height: 1, color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
 
-          // ── Tab content ──────────────────────────────────────────────────
           Expanded(
             child: !_loaded
                 ? const Center(child: CircularProgressIndicator())
                 : TabBarView(
                     controller: _tabs,
                     children: [
-                      _TocTab(state: state),
+                      _TocTab(state: state, readerFg: fg),
                       _BookmarksSideTab(
                         bookmarks: _bookmarks,
                         state: state,
+                        readerFg: fg,
                         onRefresh: _loadBookmarks,
                       ),
                       _HighlightsSideTab(
                         highlights: state.highlights,
                         state: state,
+                        readerFg: fg,
                       ),
                     ],
                   ),
@@ -1824,11 +1834,12 @@ class _ReaderSidePanelState extends State<_ReaderSidePanel>
   }
 }
 
-// ToC tab ────────────────────────────────────────────────────────────────────
+// ToC tab
 
 class _TocTab extends StatelessWidget {
   final ReaderState state;
-  const _TocTab({required this.state});
+  final Color readerFg;
+  const _TocTab({required this.state, required this.readerFg});
 
   @override
   Widget build(BuildContext context) {
@@ -1837,43 +1848,34 @@ class _TocTab extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: MokuSpacing.s1),
       itemCount: state.chapters.length,
       itemBuilder: (context, index) {
         final ch = state.chapters[index];
         final isCurrent = state.currentChapter == index;
         return InkWell(
-          onTap: () {
-            context.read<ReaderCubit>().goToChapter(index);
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-            child: Row(
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  width: isCurrent ? 3 : 0,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                if (isCurrent) const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    ch.title,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight:
-                          isCurrent ? FontWeight.w600 : FontWeight.normal,
-                      color: isCurrent ? colorScheme.primary : null,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+          onTap: () => context.read<ReaderCubit>().goToChapter(index),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            padding: const EdgeInsets.symmetric(
+              horizontal: MokuSpacing.panelPadding,
+              vertical: MokuSpacing.s2,
+            ),
+            decoration: BoxDecoration(
+              border: isCurrent
+                  ? Border(
+                      left: BorderSide(
+                          color: colorScheme.primary, width: 3))
+                  : const Border(left: BorderSide(width: 3, color: Colors.transparent)),
+            ),
+            child: Text(
+              ch.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: isCurrent
+                  ? MokuText.bookTitleSmall(color: colorScheme.primary)
+                  : MokuText.bodySmall(
+                      color: readerFg.withValues(alpha: 0.8)),
             ),
           ),
         );
@@ -1882,16 +1884,18 @@ class _TocTab extends StatelessWidget {
   }
 }
 
-// Bookmarks tab ───────────────────────────────────────────────────────────────
+// Bookmarks tab
 
 class _BookmarksSideTab extends StatelessWidget {
   final List<db_rec.Bookmark> bookmarks;
   final ReaderState state;
+  final Color readerFg;
   final VoidCallback onRefresh;
 
   const _BookmarksSideTab({
     required this.bookmarks,
     required this.state,
+    required this.readerFg,
     required this.onRefresh,
   });
 
@@ -1903,115 +1907,114 @@ class _BookmarksSideTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.bookmark_border_rounded, size: 36,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
-            const SizedBox(height: 12),
+            Icon(Icons.bookmark_border_rounded,
+                size: 32,
+                color: readerFg.withValues(alpha: 0.25)),
+            const SizedBox(height: MokuSpacing.s3),
             Text('No bookmarks yet',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                )),
+                style: MokuText.caption(
+                    color: readerFg.withValues(alpha: 0.45))),
           ],
         ),
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: MokuSpacing.s1),
       itemCount: bookmarks.length,
       itemBuilder: (_, i) {
         final bm = bookmarks[i];
-        final chTitle = readerChapterTitle(context, state, bm.chapterIndex);
-        return ListTile(
-          dense: true,
-          visualDensity: VisualDensity.compact,
+        final chTitle =
+            readerChapterTitle(context, state, bm.chapterIndex);
+        return MokuPanelItem(
+          compact: true,
           leading: Icon(Icons.bookmark_rounded,
-              size: 16, color: colorScheme.primary),
-          title: Text(bm.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13)),
-          subtitle: Text(chTitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11)),
-          onTap: () {
-            context.read<ReaderCubit>().goToChapter(bm.chapterIndex);
-          },
+              size: 14, color: colorScheme.primary),
+          title: bm.title,
+          subtitle: chTitle,
+          onTap: () =>
+              context.read<ReaderCubit>().goToChapter(bm.chapterIndex),
         );
       },
     );
   }
 }
 
-// Highlights tab ──────────────────────────────────────────────────────────────
+// Highlights tab
 
 class _HighlightsSideTab extends StatelessWidget {
   final List<db_rec.Highlight> highlights;
   final ReaderState state;
+  final Color readerFg;
 
   const _HighlightsSideTab({
     required this.highlights,
     required this.state,
+    required this.readerFg,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     if (highlights.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.highlight_off_rounded, size: 36,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
-            const SizedBox(height: 12),
+            Icon(Icons.highlight_off_rounded,
+                size: 32,
+                color: readerFg.withValues(alpha: 0.25)),
+            const SizedBox(height: MokuSpacing.s3),
             Text('No highlights yet',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                )),
+                style: MokuText.caption(
+                    color: readerFg.withValues(alpha: 0.45))),
           ],
         ),
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: MokuSpacing.s1),
       itemCount: highlights.length,
       itemBuilder: (_, i) {
         final h = highlights[i];
-        final chTitle = readerChapterTitle(context, state, h.chapterIndex);
+        final chTitle =
+            readerChapterTitle(context, state, h.chapterIndex);
+        final highlightColor = _parseHighlightColor(h.color);
         return InkWell(
-          onTap: () => context.read<ReaderCubit>().goToHighlight(
-              h.chapterIndex, h.selectedText),
+          onTap: () => context
+              .read<ReaderCubit>()
+              .goToHighlight(h.chapterIndex, h.selectedText),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+                horizontal: MokuSpacing.s3,
+                vertical: MokuSpacing.s2),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  padding: const EdgeInsets.fromLTRB(
+                      MokuSpacing.s2, MokuSpacing.s1,
+                      MokuSpacing.s2, MokuSpacing.s1 + 2),
                   decoration: BoxDecoration(
-                    color: _parseHighlightColor(h.color).withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border(
-                      left: BorderSide(
-                          color: _parseHighlightColor(h.color), width: 3),
+                    color: highlightColor.withValues(alpha: 0.2),
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(MokuRadius.xs),
+                      bottomRight: Radius.circular(MokuRadius.xs),
                     ),
+                    border: Border(
+                        left: BorderSide(
+                            color: highlightColor, width: 2.5)),
                   ),
                   child: Text(
                     h.selectedText,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12),
+                    style: MokuText.bodySmall(
+                        color: readerFg.withValues(alpha: 0.8)),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  chTitle,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
+                const SizedBox(height: MokuSpacing.s1),
+                Text(chTitle,
+                    style: MokuText.caption(
+                        color: readerFg.withValues(alpha: 0.4))),
               ],
             ),
           ),
@@ -2020,6 +2023,9 @@ class _HighlightsSideTab extends StatelessWidget {
     );
   }
 }
+// ---------------------------------------------------------------------------
+// 3. _ReaderSidePanel  (desktop only)
+// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // 4. _TopControls

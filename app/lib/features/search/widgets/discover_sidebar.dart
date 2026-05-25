@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/services/opds_catalog_service.dart';
+import '../../../core/ui/ui.dart';
 import '../../../l10n/l10n.dart';
 import '../catalog_error_localizations.dart';
 import '../cubit/search_cubit.dart';
@@ -14,54 +14,46 @@ class DiscoverSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final l10n = context.l10n;
 
     return BlocBuilder<SearchCubit, SearchState>(
       builder: (context, state) {
         return Column(
           children: [
-            // ── Header ────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
-              child: Row(
-                children: [
-                  Text(
-                    l10n.searchTitle,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.library_add_outlined, size: 18),
-                    tooltip: l10n.searchManageCatalogs,
-                    onPressed: () => _showManageCatalogs(context),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ],
+            MokuPanelHeader(
+              label: l10n.searchTitle,
+              trailing: IconButton(
+                icon: const Icon(Icons.library_add_outlined, size: 18),
+                tooltip: l10n.searchManageCatalogs,
+                onPressed: () => _showManageCatalogs(context),
+                visualDensity: VisualDensity.compact,
               ),
             ),
-            const Divider(height: 1),
-
-            // ── Catalog list ──────────────────────────────────────
             Expanded(
               child: state.catalogs.isEmpty
                   ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: MokuSpacing.s1),
                       itemCount: state.catalogs.length,
                       itemBuilder: (context, index) {
                         final catalog = state.catalogs[index];
                         final isSelected =
                             state.selectedCatalogId == catalog.id;
-                        return _CatalogTile(
-                          catalog: catalog,
-                          isSelected: isSelected,
-                          onTap: () =>
-                              context.read<SearchCubit>().openCatalog(catalog.id),
+                        return MokuPanelItem(
+                          leading: Icon(
+                            catalog.isCustom
+                                ? Icons.link_rounded
+                                : Icons.auto_awesome_outlined,
+                            size: 16,
+                          ),
+                          title: catalogTitleLabel(context, catalog),
+                          selected: isSelected,
+                          trailing: const Icon(
+                              Icons.chevron_right_rounded, size: 14),
+                          onTap: () => context
+                              .read<SearchCubit>()
+                              .openCatalog(catalog.id),
                         );
                       },
                     ),
@@ -202,72 +194,6 @@ class DiscoverSidebar extends StatelessWidget {
               ],
             );
           },
-        ),
-      ),
-    );
-  }
-}
-
-class _CatalogTile extends StatelessWidget {
-  final CatalogSource catalog;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _CatalogTile({
-    required this.catalog,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? colorScheme.primaryContainer.withValues(alpha: 0.5)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              catalog.isCustom
-                  ? Icons.link_rounded
-                  : Icons.auto_awesome_outlined,
-              size: 18,
-              color: isSelected
-                  ? colorScheme.primary
-                  : colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                catalogTitleLabel(context, catalog),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
-                  color: isSelected
-                      ? colorScheme.primary
-                      : colorScheme.onSurface,
-                ),
-              ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 16,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-            ),
-          ],
         ),
       ),
     );
