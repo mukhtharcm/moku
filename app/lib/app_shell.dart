@@ -155,21 +155,26 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final isTablet = width >= 600;
-    final isDesktop = width >= 1000;
 
     final bool nativeDesktop = !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.macOS ||
             defaultTargetPlatform == TargetPlatform.linux ||
             defaultTargetPlatform == TargetPlatform.windows);
 
-    final layout = isDesktop
-        ? _buildDesktopLayout(context, nativeDesktop)
-        : isTablet
+    // On native desktop platforms the layout is always the desktop shell —
+    // platform determines the UX model, not the window width.
+    // The context panel is shown when the window is wide enough (≥1000px)
+    // but the icon rail + main pane are always present on desktop.
+    final showContextPanel = width >= 1000;
+
+    final layout = nativeDesktop
+        ? _buildDesktopLayout(context, nativeDesktop,
+            showContextPanel: showContextPanel)
+        : width >= 600
             ? _buildTabletLayout(context, nativeDesktop)
             : _buildMobileLayout(context);
 
-    // On native desktop, wrap in KeyboardListener for shell shortcuts.
+    // Wrap in KeyboardListener on native desktop.
     if (nativeDesktop) {
       return KeyboardListener(
         focusNode: _shellFocus,
@@ -183,9 +188,11 @@ class _AppShellState extends State<AppShell> {
 
   // ── Desktop: icon rail + context panel + main pane ──────────────────────
 
-  Widget _buildDesktopLayout(BuildContext context, bool nativeDesktop) {
+  Widget _buildDesktopLayout(BuildContext context, bool nativeDesktop,
+      {bool showContextPanel = true}) {
     final colors = context.colors;
-    final hasSidebar = _currentIndex != 3;
+    // Stats (index 3) has no context panel; others need showContextPanel=true.
+    final hasContextPanel = showContextPanel && _currentIndex != 3;
     final railBg = Theme.of(context).navigationRailTheme.backgroundColor ??
         colors.surfaceMuted;
     final dividerColor = colors.border;
@@ -215,7 +222,7 @@ class _AppShellState extends State<AppShell> {
                 ),
                 VerticalDivider(
                     thickness: 1, width: 1, color: dividerColor),
-                if (hasSidebar) ...[
+                if (hasContextPanel) ...[
                   SizedBox(
                     width: 260,
                     child: _buildContextPanel(context),

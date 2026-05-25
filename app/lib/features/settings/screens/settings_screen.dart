@@ -33,7 +33,7 @@ class SettingsScreen extends StatelessWidget {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 700),
+          constraints: const BoxConstraints(maxWidth: MokuSpacing.contentNarrow),
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [

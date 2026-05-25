@@ -55,7 +55,7 @@ class _StatsView extends StatelessWidget {
             onRefresh: () => context.read<StatsCubit>().load(),
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900),
+                constraints: const BoxConstraints(maxWidth: MokuSpacing.contentWide),
                 child: ListView(
                   padding: const EdgeInsets.all(MokuSpacing.s4),
                   children: [
@@ -109,7 +109,7 @@ class _DesktopDashboard extends StatelessWidget {
         ),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 960),
+            constraints: const BoxConstraints(maxWidth: MokuSpacing.contentWide),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

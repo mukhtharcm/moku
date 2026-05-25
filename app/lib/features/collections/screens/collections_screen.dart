@@ -81,7 +81,7 @@ class CollectionsScreen extends StatelessWidget {
 
           return Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
+              constraints: const BoxConstraints(maxWidth: MokuSpacing.contentWide),
               child: ListView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                 itemCount: state.collections.length,

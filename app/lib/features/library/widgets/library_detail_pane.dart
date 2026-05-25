@@ -104,7 +104,7 @@ class _BookDetailView extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
+            constraints: const BoxConstraints(maxWidth: MokuSpacing.contentNarrow),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -339,7 +339,7 @@ class _WelcomePane extends StatelessWidget {
         padding: const EdgeInsets.all(32),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
+            constraints: const BoxConstraints(maxWidth: MokuSpacing.contentWide),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

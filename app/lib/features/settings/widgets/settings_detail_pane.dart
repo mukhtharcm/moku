@@ -222,7 +222,7 @@ class _AppearanceSection extends StatelessWidget {
           MokuSpacing.s8, MokuSpacing.s6,
           MokuSpacing.s8, MokuSpacing.s8),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
+        constraints: const BoxConstraints(maxWidth: MokuSpacing.contentNarrow),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -328,7 +328,7 @@ class _BatterySection extends StatelessWidget {
           MokuSpacing.s8, MokuSpacing.s6,
           MokuSpacing.s8, MokuSpacing.s8),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
+        constraints: const BoxConstraints(maxWidth: MokuSpacing.contentNarrow),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -378,7 +378,7 @@ class _SyncSection extends StatelessWidget {
           MokuSpacing.s8, MokuSpacing.s6,
           MokuSpacing.s8, MokuSpacing.s8),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
+        constraints: const BoxConstraints(maxWidth: MokuSpacing.contentNarrow),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -475,7 +475,7 @@ class _AboutSection extends StatelessWidget {
           MokuSpacing.s8, MokuSpacing.s6,
           MokuSpacing.s8, MokuSpacing.s8),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
+        constraints: const BoxConstraints(maxWidth: MokuSpacing.contentNarrow),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

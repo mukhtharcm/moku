@@ -68,8 +68,8 @@ class MokuSpacing {
   static const double s10 = 40;
   static const double s12 = 48;
 
-  // Semantic aliases
-  static const double pagePadding   = s6;
+  static const double contentNarrow = 640; // detail panes, settings sections
+  static const double contentWide   = 960; // dashboards, grids, welcome panes
   static const double panelPadding  = s4;
   static const double cardPadding   = s3;
   static const double tileVPadding  = s2;
