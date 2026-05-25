@@ -92,11 +92,15 @@ class AutoSyncService with WidgetsBindingObserver {
   /// multiple times — the latest engine wins.
   void attach(SyncEngine engine) {
     _engine = engine;
+    engine.onProgress = (progress) {
+      configCubit.setProgress(progress);
+    };
     _start();
   }
 
   /// Detach (e.g. on logout). Cancels all timers; queued bumps are dropped.
   void detach() {
+    _engine?.onProgress = null;
     _engine = null;
     _stop();
   }
@@ -122,6 +126,12 @@ class AutoSyncService with WidgetsBindingObserver {
       _run(SyncTrigger.dirtyBump);
     });
   }
+
+  /// Called when a PocketBase realtime event arrives. Marks the service dirty
+  /// so the next debounced run picks up the change. Faster than syncNow()
+  /// and doesn't bypass suppression — avoids hammering the server when
+  /// many realtime events arrive in rapid succession.
+  void markDirty() => bump();
 
   /// Called from the reader on every page-turn. Reading-progress updates
   /// happen far more often than any other write; we treat them specially

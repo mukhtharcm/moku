@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'core/sync/sync_config.dart';
 import 'core/ui/ui.dart';
 import 'l10n/l10n.dart';
 
@@ -262,6 +263,12 @@ class _AppShellState extends State<AppShell> with WindowListener {
                 Expanded(child: _buildMainPane(context)),
               ],
             ),
+          ),
+
+          // ── Sync progress strip — hairline bar at bottom of the window ────
+          const Positioned(
+            left: 0, right: 0, bottom: 0,
+            child: _SyncProgressStrip(),
           ),
 
           // ── Full-width drag handle in the title-bar zone ───────────────
@@ -589,6 +596,42 @@ class _IconRailItem extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Sync progress strip (desktop) ────────────────────────────────────────────
+
+/// A 2 px bar pinned to the bottom of the window that shows sync state:
+/// • Idle / connected    — invisible
+/// • Syncing, no file   — indeterminate shimmer
+/// • Downloading file   — determinate fill (bytesReceived / bytesTotal)
+class _SyncProgressStrip extends StatelessWidget {
+  const _SyncProgressStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<SyncConfigCubit, SyncConfigState>(
+      buildWhen: (prev, curr) =>
+          prev.status != curr.status ||
+          prev.progress != curr.progress,
+      builder: (context, state) {
+        if (state.status != SyncStatus.syncing) {
+          return const SizedBox.shrink();
+        }
+        final fileProgress = state.progress?.fileProgress;
+        return SizedBox(
+          height: 2,
+          child: LinearProgressIndicator(
+            value: fileProgress, // null = indeterminate, 0.0-1.0 = determinate
+            backgroundColor: Colors.transparent,
+            valueColor: AlwaysStoppedAnimation(
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+            ),
+            minHeight: 2,
+          ),
+        );
+      },
     );
   }
 }
