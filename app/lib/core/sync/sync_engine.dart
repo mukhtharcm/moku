@@ -378,6 +378,7 @@ class SyncEngine {
     int filesTotal = -1,
   }) async {
     final client = http.Client();
+    IOSink? sink;
     try {
       final request = http.Request('GET', url);
       final streamed = await client
@@ -386,7 +387,7 @@ class SyncEngine {
       if (streamed.statusCode != 200) return -1;
 
       final contentLength = streamed.contentLength ?? -1;
-      final sink = destFile.openWrite();
+      sink = destFile.openWrite();
       int received = 0;
 
       await for (final chunk in streamed.stream) {
@@ -402,7 +403,14 @@ class SyncEngine {
         ));
       }
       await sink.close();
+      sink = null;
       return received;
+    } catch (_) {
+      // Stream interrupted or timed out — close the sink and delete the
+      // partial file so retries start clean.
+      try { await sink?.close(); } catch (_) {}
+      try { if (await destFile.exists()) await destFile.delete(); } catch (_) {}
+      rethrow; // let the caller's catch handle it
     } finally {
       client.close();
     }
@@ -435,13 +443,13 @@ class SyncEngine {
         filesDone: filesDone,
         filesTotal: filesTotal,
       );
-      if (written < 100) {
+      if (written < 1024) {
         // Empty or suspiciously small: server returned an error body
         // instead of the epub, or the transfer was truncated.
         try { await file.delete(); } catch (_) {}
         _reportError(
           'books',
-          'Downloaded file for ${record.id} is too small ($written bytes)',
+          'Downloaded file for ${record.id} is too small ($written bytes, minimum 1024)',
           null,
         );
         return;
@@ -2654,7 +2662,7 @@ class SyncEngine {
         file,
         fileName: remoteFilename,
       );
-      if (written < 100) {
+      if (written < 1024) {
         try { await file.delete(); } catch (_) {}
         return;
       }
