@@ -42,7 +42,13 @@ class _AppShellState extends State<AppShell> with WindowListener {
   late final FocusNode _shellFocus;
 
   // ── Title-bar height (macOS) ─────────────────────────────────────────────
+  // Seeded to the platform default; updated once the window is ready.
+  // _windowedTitleBarHeight caches the last known non-zero value so we can
+  // restore it instantly when leaving fullscreen (getTitleBarHeight() is
+  // unreliable mid-transition and often returns 0).
   double _titleBarHeight =
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS ? 28.0 : 0.0;
+  double _windowedTitleBarHeight =
       !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS ? 28.0 : 0.0;
 
   // ── Settings section selection (desktop only) ────────────────────────────
@@ -80,11 +86,13 @@ class _AppShellState extends State<AppShell> with WindowListener {
     }
     try {
       final h = await windowManager.getTitleBarHeight();
-      // getTitleBarHeight() returns 0 when fullSizeContentView is active
-      // (the content rect equals the full frame, so the delta is 0).
-      // In that case keep the seeded platform default — don't overwrite it.
-      if (mounted && h > 0 && h.toDouble() != _titleBarHeight) {
-        setState(() => _titleBarHeight = h.toDouble());
+      if (!mounted) return;
+      if (h > 0) {
+        // Cache the real windowed height so we can restore it after fullscreen.
+        _windowedTitleBarHeight = h.toDouble();
+        if (h.toDouble() != _titleBarHeight) {
+          setState(() => _titleBarHeight = h.toDouble());
+        }
       }
     } catch (_) {}
   }
@@ -138,8 +146,11 @@ class _AppShellState extends State<AppShell> with WindowListener {
 
   @override
   void onWindowLeaveFullScreen() {
-    // Re-read the real title-bar height when returning to windowed mode.
-    _syncTitleBarHeight();
+    // Restore immediately from cache — getTitleBarHeight() is unreliable
+    // mid-transition and often returns 0 while the animation is still running.
+    if (mounted) setState(() => _titleBarHeight = _windowedTitleBarHeight);
+    // Then confirm with the real value once the transition has settled.
+    Future.delayed(const Duration(milliseconds: 300), _syncTitleBarHeight);
   }
 
   void _openBookInline(Book book) => setState(() => _readingBook = book);
