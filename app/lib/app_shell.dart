@@ -28,7 +28,98 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final width = MediaQuery.sizeOf(context).width;
+    final isTablet = width >= 600;
+    final isDesktop = width >= 1000;
+    final colorScheme = Theme.of(context).colorScheme;
 
+    // ── Tablet / Desktop: side NavigationRail ───────────────────────────────
+    if (isTablet) {
+      return Scaffold(
+        body: Row(
+          children: [
+            NavigationRail(
+              extended: isDesktop,
+              selectedIndex: _currentIndex,
+              onDestinationSelected: (index) =>
+                  setState(() => _currentIndex = index),
+              minWidth: 72,
+              minExtendedWidth: 220,
+              leading: isDesktop
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.auto_stories_rounded,
+                            color: colorScheme.primary,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            l10n.appTitle,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Icon(
+                        Icons.auto_stories_rounded,
+                        color: colorScheme.primary,
+                        size: 22,
+                      ),
+                    ),
+              destinations: [
+                NavigationRailDestination(
+                  icon: const Icon(Icons.auto_stories_outlined),
+                  selectedIcon: const Icon(Icons.auto_stories_rounded),
+                  label: Text(l10n.navLibrary),
+                ),
+                NavigationRailDestination(
+                  icon: const Icon(Icons.explore_outlined),
+                  selectedIcon: const Icon(Icons.explore_rounded),
+                  label: Text(l10n.navDiscover),
+                ),
+                NavigationRailDestination(
+                  icon: const Icon(Icons.collections_bookmark_outlined),
+                  selectedIcon: const Icon(Icons.collections_bookmark_rounded),
+                  label: Text(l10n.navShelves),
+                ),
+                NavigationRailDestination(
+                  icon: const Icon(Icons.bar_chart_outlined),
+                  selectedIcon: const Icon(Icons.bar_chart_rounded),
+                  label: Text(l10n.navStats),
+                ),
+                NavigationRailDestination(
+                  icon: const Icon(Icons.settings_outlined),
+                  selectedIcon: const Icon(Icons.settings_rounded),
+                  label: Text(l10n.navSettings),
+                ),
+              ],
+            ),
+            VerticalDivider(
+              thickness: 1,
+              width: 1,
+              color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+            ),
+            Expanded(
+              child: IndexedStack(
+                index: _currentIndex,
+                children: _screens,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // ── Mobile: bottom NavigationBar ────────────────────────────────────────
     return Scaffold(
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
@@ -40,9 +131,8 @@ class _AppShellState extends State<AppShell> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() => _currentIndex = index);
-        },
+        onDestinationSelected: (index) =>
+            setState(() => _currentIndex = index),
         destinations: [
           NavigationDestination(
             icon: const Icon(Icons.auto_stories_outlined),

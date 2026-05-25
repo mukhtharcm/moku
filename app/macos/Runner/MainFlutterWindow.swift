@@ -8,6 +8,9 @@ class MainFlutterWindow: NSWindow {
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
 
+    // Enforce a sensible minimum size for desktop
+    self.minSize = NSSize(width: 820, height: 600)
+
     RegisterGeneratedPlugins(registry: flutterViewController)
 
     super.awakeFromNib()

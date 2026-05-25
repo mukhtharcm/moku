@@ -42,27 +42,32 @@ class _StatsView extends StatelessWidget {
           }
           return RefreshIndicator(
             onRefresh: () => context.read<StatsCubit>().load(),
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                StreakCard(
-                  currentStreak: state.currentStreak,
-                  longestStreak: state.longestStreak,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    StreakCard(
+                      currentStreak: state.currentStreak,
+                      longestStreak: state.longestStreak,
+                    ),
+                    const SizedBox(height: 16),
+                    _SummaryCards(state: state),
+                    const SizedBox(height: 16),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: ActivityHeatmap(dailyMinutes: state.dailyMinutes),
+                      ),
+                    ),
+                    if (state.recentSessions.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      _RecentSessions(sessions: state.recentSessions),
+                    ],
+                  ],
                 ),
-                const SizedBox(height: 16),
-                _SummaryCards(state: state),
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: ActivityHeatmap(dailyMinutes: state.dailyMinutes),
-                  ),
-                ),
-                if (state.recentSessions.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  _RecentSessions(sessions: state.recentSessions),
-                ],
-              ],
+              ),
             ),
           );
         },

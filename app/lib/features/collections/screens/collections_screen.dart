@@ -78,17 +78,22 @@ class CollectionsScreen extends StatelessWidget {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-            itemCount: state.collections.length,
-            itemBuilder: (context, index) {
-              final collection = state.collections[index];
-              return _CollectionCard(
-                collection: collection,
-                onTap: () => _openCollection(context, collection),
-                onDelete: () => _confirmDelete(context, collection),
-              );
-            },
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                itemCount: state.collections.length,
+                itemBuilder: (context, index) {
+                  final collection = state.collections[index];
+                  return _CollectionCard(
+                    collection: collection,
+                    onTap: () => _openCollection(context, collection),
+                    onDelete: () => _confirmDelete(context, collection),
+                  );
+                },
+              ),
+            ),
           );
         },
       ),

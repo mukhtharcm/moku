@@ -278,8 +278,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       );
                     }, childCount: books.length),
                     gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 150,
                           childAspectRatio: 0.52,
                           crossAxisSpacing: 14,
                           mainAxisSpacing: 18,
@@ -378,6 +378,41 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   void _showBookOptions(BuildContext context, Book book) {
+    // On tablet/desktop use a dialog; on mobile keep the bottom sheet.
+    if (MediaQuery.sizeOf(context).width >= 600) {
+      showDialog(
+        context: context,
+        builder: (ctx) => SimpleDialog(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.info_outline_rounded),
+              title: Text(context.l10n.libraryBookInfo),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showBookInfo(context, book);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.delete_outline_rounded,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(
+                context.l10n.commonDelete,
+                style:
+                    TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDelete(context, book);
+              },
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
@@ -413,7 +448,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 ),
                 title: Text(
                   context.l10n.commonDelete,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.error),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -428,6 +464,60 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   void _showBookInfo(BuildContext context, Book book) {
+    // On tablet/desktop use a proper dialog.
+    if (MediaQuery.sizeOf(context).width >= 600) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(bookTitleLabel(context, book.title)),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    bookAuthorLabel(context, book.author),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  if (book.description != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      book.description!,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  _InfoRow(
+                    context.l10n.libraryInfoChapters,
+                    '${book.totalChapters}',
+                  ),
+                  if (book.publisher != null)
+                    _InfoRow(
+                        context.l10n.libraryInfoPublisher, book.publisher!),
+                  if (book.language != null)
+                    _InfoRow(
+                        context.l10n.libraryInfoLanguage, book.language!),
+                  if (book.isbn != null)
+                    _InfoRow(context.l10n.libraryInfoIsbn, book.isbn!),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(context.l10n.commonCancel),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
