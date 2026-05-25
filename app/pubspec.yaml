@@ -57,6 +57,7 @@ dependencies:
   intl: ^0.20.2
   pocketbase: ^0.23.2
   url_launcher: ^6.3.2
+  window_manager: ^0.5.1
   xml: ^6.6.1
   html: ^0.15.6
   pdfrx: ^1.0.97

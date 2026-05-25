@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:window_manager/window_manager.dart';
 
 import 'l10n/l10n.dart';
 import 'features/library/screens/library_screen.dart';
@@ -33,6 +36,61 @@ class _AppShellState extends State<AppShell> {
     final isDesktop = width >= 1000;
     final colorScheme = Theme.of(context).colorScheme;
 
+    // On macOS with TitleBarStyle.hidden the Flutter engine correctly reports
+    // the title-bar height (~28pt) via viewPadding.top (fullSizeContentView
+    // makes the window report that inset as a safe-area). We use it to push
+    // the rail's leading content below the traffic-light buttons.
+    final topInset = MediaQuery.viewPaddingOf(context).top;
+
+    // Only wrap interactive areas in DragToMoveArea on real desktop OSes.
+    final bool nativeDesktop = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.macOS ||
+            defaultTargetPlatform == TargetPlatform.linux ||
+            defaultTargetPlatform == TargetPlatform.windows);
+
+    Widget railLeading;
+    if (isDesktop) {
+      railLeading = Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          topInset > 0 ? topInset + 8 : 20,
+          20,
+          4,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.auto_stories_rounded,
+              color: colorScheme.primary,
+              size: 22,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              l10n.appTitle,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      );
+    } else {
+      railLeading = Padding(
+        padding: EdgeInsets.only(top: topInset, bottom: 4),
+        child: Icon(
+          Icons.auto_stories_rounded,
+          color: colorScheme.primary,
+          size: 22,
+        ),
+      );
+    }
+
+    if (nativeDesktop) {
+      railLeading = DragToMoveArea(child: railLeading);
+    }
+
     // ── Tablet / Desktop: side NavigationRail ───────────────────────────────
     if (isTablet) {
       return Scaffold(
@@ -45,36 +103,7 @@ class _AppShellState extends State<AppShell> {
                   setState(() => _currentIndex = index),
               minWidth: 72,
               minExtendedWidth: 220,
-              leading: isDesktop
-                  ? Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.auto_stories_rounded,
-                            color: colorScheme.primary,
-                            size: 22,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            l10n.appTitle,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                        ],
-                      ),
-                    )
-                  : Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Icon(
-                        Icons.auto_stories_rounded,
-                        color: colorScheme.primary,
-                        size: 22,
-                      ),
-                    ),
+              leading: railLeading,
               destinations: [
                 NavigationRailDestination(
                   icon: const Icon(Icons.auto_stories_outlined),

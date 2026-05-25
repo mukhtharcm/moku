@@ -15,4 +15,13 @@ class MainFlutterWindow: NSWindow {
 
     super.awakeFromNib()
   }
+
+  // Hides the window before window_manager shows it with the correct
+  // title bar style, preventing a flash of the native chrome.
+  override public func order(
+    _ place: NSWindow.OrderingMode, relativeTo otherWin: Int
+  ) {
+    super.order(place, relativeTo: otherWin)
+    hiddenWindowAtLaunch()
+  }
 }
