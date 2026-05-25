@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/models/models.dart';
 import '../../../core/models/book_localizations.dart';
+import '../../../core/ui/ui.dart';
 import '../../../l10n/l10n.dart';
 import '../cubit/library_cubit.dart';
 import '../cubit/library_state.dart';
@@ -11,7 +11,11 @@ import 'book_cover.dart';
 import '../../reader/screens/reader_screen.dart';
 
 class LibraryDetailPane extends StatelessWidget {
-  const LibraryDetailPane({super.key});
+  /// When provided (desktop inline mode) opening a book calls this callback
+  /// instead of pushing a route. The shell replaces the main pane.
+  final void Function(Book)? onOpenBook;
+
+  const LibraryDetailPane({super.key, this.onOpenBook});
 
   @override
   Widget build(BuildContext context) {
@@ -26,15 +30,19 @@ class LibraryDetailPane extends StatelessWidget {
             onDelete: () => _confirmDelete(context, book),
           );
         }
-        return _WelcomePane(state: state);
+        return _WelcomePane(state: state, onOpenBook: onOpenBook);
       },
     );
   }
 
   void _openReader(BuildContext context, Book book) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ReaderScreen(book: book)),
-    );
+    if (onOpenBook != null) {
+      onOpenBook!(book);
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ReaderScreen(book: book)),
+      );
+    }
   }
 
   void _confirmDelete(BuildContext context, Book book) {
@@ -127,23 +135,12 @@ class _BookDetailView extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             title,
-                            style: GoogleFonts.literata(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              height: 1.25,
-                              color: colorScheme.onSurface,
-                            ),
+                            style: MokuText.bookTitle(color: colorScheme.onSurface),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             author,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: colorScheme.primary,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                            style: MokuText.body(color: colorScheme.primary, weight: FontWeight.w500),
                           ),
                           const SizedBox(height: 16),
                           // Progress
@@ -164,9 +161,7 @@ class _BookDetailView extends StatelessWidget {
                                 progress: (progress * 100).toInt(),
                               ),
                               style:
-                                  Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
+                                  MokuText.caption(color: colorScheme.onSurfaceVariant),
                             ),
                             const SizedBox(height: 16),
                           ],
@@ -180,14 +175,7 @@ class _BookDetailView extends StatelessWidget {
                             ),
                             child: Text(
                               book.format.name.toUpperCase(),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
-                                    color: colorScheme.onSecondaryContainer,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.8,
-                                  ),
+                              style: MokuText.micro(color: colorScheme.onSecondaryContainer),
                             ),
                           ),
                         ],
@@ -236,18 +224,12 @@ class _BookDetailView extends StatelessWidget {
                   const SizedBox(height: 28),
                   Text(
                     'About',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                    style: MokuText.sectionLabel(color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     _stripHtml(book.description!),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      height: 1.6,
-                      color: colorScheme.onSurface.withValues(alpha: 0.85),
-                    ),
+                    style: MokuText.body(color: colorScheme.onSurface.withValues(alpha: 0.85)),
                   ),
                 ],
 
@@ -303,17 +285,12 @@ class _MetaItem extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-            letterSpacing: 0.6,
-          ),
+          style: MokuText.caption(color: colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w500,
-          ),
+          style: MokuText.body(weight: FontWeight.w500),
         ),
       ],
     );
@@ -324,7 +301,8 @@ class _MetaItem extends StatelessWidget {
 
 class _WelcomePane extends StatelessWidget {
   final LibraryState state;
-  const _WelcomePane({required this.state});
+  final void Function(Book)? onOpenBook;
+  const _WelcomePane({required this.state, this.onOpenBook});
 
   @override
   Widget build(BuildContext context) {
@@ -342,15 +320,10 @@ class _WelcomePane extends StatelessWidget {
                 color: colorScheme.primary.withValues(alpha: 0.2)),
             const SizedBox(height: 20),
             Text(l10n.libraryEmptyTitle,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w600)),
+                style: MokuText.sectionHeading()),
             const SizedBox(height: 8),
             Text(l10n.libraryEmptyBody,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
+                style: MokuText.body(color: colorScheme.onSurfaceVariant),
                 textAlign: TextAlign.center),
             const SizedBox(height: 24),
             FilledButton.icon(
@@ -380,10 +353,7 @@ class _WelcomePane extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         l10n.libraryContinueReading,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                        style: MokuText.sectionHeading(),
                       ),
                     ],
                   ),
@@ -398,26 +368,19 @@ class _WelcomePane extends StatelessWidget {
                   children: [
                     Text(
                       l10n.librarySectionTitle,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700),
+                      style: MokuText.sectionHeading(),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '${state.books.length}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                      style: MokuText.caption(color: colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Select a book from the sidebar to view details.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+                  style: MokuText.body(color: colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -484,11 +447,7 @@ class _ContinueReadingGrid extends StatelessWidget {
                           children: [
                             Text(
                               bookTitleLabel(context, book.title),
-                              style: GoogleFonts.literata(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                height: 1.3,
-                              ),
+                              style: MokuText.bookTitleSmall(),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),

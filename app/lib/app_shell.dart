@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'core/ui/ui.dart';
 import 'l10n/l10n.dart';
 
 // Screens: mobile + tablet use full-screen; desktop uses split panes below
+import 'core/models/book.dart';
+import 'features/library/cubit/library_cubit.dart';
 import 'features/library/screens/library_screen.dart';
+import 'features/reader/screens/reader_screen.dart';
 import 'features/search/screens/search_screen.dart' as discover;
 import 'features/collections/screens/collections_screen.dart';
 import 'features/stats/stats_page.dart';
@@ -33,6 +38,8 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
+  Book? _readingBook; // non-null = desktop inline reader is active
+  late final FocusNode _shellFocus;
 
   // ── Title-bar height (macOS) ─────────────────────────────────────────────
   double _titleBarHeight =
@@ -53,6 +60,7 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
+    _shellFocus = FocusNode();
     _syncTitleBarHeight();
   }
 
@@ -104,6 +112,47 @@ class _AppShellState extends State<AppShell> {
   ];
 
   @override
+  void dispose() {
+    _shellFocus.dispose();
+    super.dispose();
+  }
+
+  void _openBookInline(Book book) => setState(() => _readingBook = book);
+  void _closeReader()            => setState(() => _readingBook = null);
+
+  void _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) return;
+    final key = event.logicalKey;
+    final meta = HardwareKeyboard.instance.isMetaPressed;
+    final ctrl = HardwareKeyboard.instance.isControlPressed;
+    final cmd = meta || ctrl;
+
+    // ⌘O / Ctrl+O  — import book
+    if (cmd && key == LogicalKeyboardKey.keyO) {
+      context.read<LibraryCubit>().importBook();
+      return;
+    }
+
+    // ⌘F / Ctrl+F  — jump to Discover (search)
+    if (cmd && key == LogicalKeyboardKey.keyF) {
+      setState(() => _currentIndex = 1);
+      return;
+    }
+
+    // ←1–5  — jump directly to section (no modifier needed)
+    if (!cmd) {
+      final digit = {
+        LogicalKeyboardKey.digit1: 0,
+        LogicalKeyboardKey.digit2: 1,
+        LogicalKeyboardKey.digit3: 2,
+        LogicalKeyboardKey.digit4: 3,
+        LogicalKeyboardKey.digit5: 4,
+      }[key];
+      if (digit != null) setState(() => _currentIndex = digit);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final isTablet = width >= 600;
@@ -114,9 +163,22 @@ class _AppShellState extends State<AppShell> {
             defaultTargetPlatform == TargetPlatform.linux ||
             defaultTargetPlatform == TargetPlatform.windows);
 
-    if (isDesktop) return _buildDesktopLayout(context, nativeDesktop);
-    if (isTablet) return _buildTabletLayout(context, nativeDesktop);
-    return _buildMobileLayout(context);
+    final layout = isDesktop
+        ? _buildDesktopLayout(context, nativeDesktop)
+        : isTablet
+            ? _buildTabletLayout(context, nativeDesktop)
+            : _buildMobileLayout(context);
+
+    // On native desktop, wrap in KeyboardListener for shell shortcuts.
+    if (nativeDesktop) {
+      return KeyboardListener(
+        focusNode: _shellFocus,
+        autofocus: true,
+        onKeyEvent: _handleKeyEvent,
+        child: layout,
+      );
+    }
+    return layout;
   }
 
   // ── Desktop: icon rail + context panel + main pane ──────────────────────
@@ -192,8 +254,16 @@ class _AppShellState extends State<AppShell> {
   }
 
   Widget _buildMainPane(BuildContext context) {
+    // Inline reader: takes over the main pane on desktop.
+    if (_readingBook != null) {
+      return ReaderScreen(
+        key: ValueKey(_readingBook!.id),
+        book: _readingBook!,
+        onClose: _closeReader,
+      );
+    }
     return switch (_currentIndex) {
-      0 => const LibraryDetailPane(),
+      0 => LibraryDetailPane(onOpenBook: _openBookInline),
       1 => const _DiscoverMainPane(),
       2 => const ShelvesDetailPane(),
       3 => const StatsPage(),
@@ -344,17 +414,12 @@ class _NoCatalogSelected extends StatelessWidget {
           const SizedBox(height: 20),
           Text(
             'Pick a catalog',
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.w600),
+            style: MokuText.sectionHeading(),
           ),
           const SizedBox(height: 8),
           Text(
             'Select a source from the sidebar to browse books.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+            style: MokuText.body(color: colorScheme.onSurfaceVariant),
           ),
         ],
       ),

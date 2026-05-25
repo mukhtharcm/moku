@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/database/database.dart';
+import '../../core/ui/ui.dart';
 import '../../l10n/l10n.dart';
 import 'cubit/stats_cubit.dart';
 import 'cubit/stats_state.dart';
@@ -60,10 +61,7 @@ class _StatsView extends StatelessWidget {
                     if (isDesktop) ...[
                       Text(
                         l10n.statsTitle,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                        style: MokuText.sectionHeading(),
                       ),
                       const SizedBox(height: 20),
                     ],
@@ -162,7 +160,7 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+
     return StatsSemanticNode(
       label: label,
       value: value,
@@ -176,11 +174,9 @@ class _StatCard extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 value,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: MokuText.sectionHeading(),
               ),
-              Text(visualLabel ?? label, style: theme.textTheme.bodySmall),
+              Text(visualLabel ?? label, style: MokuText.caption()),
             ],
           ),
         ),
@@ -195,7 +191,7 @@ class _RecentSessions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+
     return StatsSemanticSection(
       child: Card(
         child: Padding(
@@ -210,9 +206,7 @@ class _RecentSessions extends StatelessWidget {
                   header: true,
                   child: Text(
                     context.l10n.statsRecentSessions,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: MokuText.bodySmall(weight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -232,7 +226,7 @@ class _SessionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+
     final localizations = MaterialLocalizations.of(context);
     final h = session.durationSeconds ~/ 3600;
     final m = (session.durationSeconds % 3600) ~/ 60;
@@ -256,7 +250,7 @@ class _SessionTile extends StatelessWidget {
             ),
             subtitle: Text(dateLabel),
             trailing: Chip(
-              label: Text(duration, style: theme.textTheme.bodySmall),
+              label: Text(duration, style: MokuText.caption()),
               padding: EdgeInsets.zero,
               visualDensity: VisualDensity.compact,
             ),
