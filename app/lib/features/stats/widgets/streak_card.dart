@@ -4,6 +4,8 @@ import '../../../core/ui/ui.dart';
 import '../../../l10n/l10n.dart';
 import 'stats_semantics.dart';
 
+/// Hero streak card — Instrument Serif numbers, no Material Card chrome.
+/// Used both standalone (mobile) and embedded in _Surface (desktop).
 class StreakCard extends StatelessWidget {
   final int currentStreak;
   final int longestStreak;
@@ -16,76 +18,92 @@ class StreakCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = context.l10n;
+    final cs = Theme.of(context).colorScheme;
+    final isDesktop = MediaQuery.sizeOf(context).width >= 1000;
+
     return StatsSemanticSection(
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Row(
-            children: [
-              _StreakItem(
-                icon: Icons.local_fire_department_rounded,
-                iconColor: currentStreak > 0 ? Colors.orange : Colors.grey,
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: MokuSpacing.s5,
+          vertical: isDesktop ? MokuSpacing.s5 : MokuSpacing.s4,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _BigStreakStat(
                 value: '$currentStreak',
                 label: l10n.statsCurrentStreak,
-                theme: theme,
+                icon: Icons.local_fire_department_rounded,
+                iconColor: currentStreak > 0
+                    ? const Color(0xFFE6621E)
+                    : cs.onSurfaceVariant.withValues(alpha: 0.4),
+                isDesktop: isDesktop,
               ),
-              const SizedBox(width: 16),
-              VerticalDivider(
-                width: 16,
-                thickness: 1,
-                color: theme.dividerColor,
-              ),
-              const SizedBox(width: 16),
-              _StreakItem(
-                icon: Icons.emoji_events_rounded,
-                iconColor: longestStreak > 0 ? Colors.amber : Colors.grey,
+            ),
+            Container(
+              width: 1,
+              height: isDesktop ? 64 : 48,
+              color: cs.outlineVariant.withValues(alpha: 0.5),
+            ),
+            Expanded(
+              child: _BigStreakStat(
                 value: '$longestStreak',
                 label: l10n.statsLongestStreak,
-                theme: theme,
+                icon: Icons.emoji_events_rounded,
+                iconColor: longestStreak > 0
+                    ? const Color(0xFFD4A017)
+                    : cs.onSurfaceVariant.withValues(alpha: 0.4),
+                isDesktop: isDesktop,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _StreakItem extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
+class _BigStreakStat extends StatelessWidget {
   final String value;
   final String label;
-  final ThemeData theme;
+  final IconData icon;
+  final Color iconColor;
+  final bool isDesktop;
 
-  const _StreakItem({
-    required this.icon,
-    required this.iconColor,
+  const _BigStreakStat({
     required this.value,
     required this.label,
-    required this.theme,
+    required this.icon,
+    required this.iconColor,
+    required this.isDesktop,
   });
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final numSize = isDesktop ? MokuTypeSize.h1 : MokuTypeSize.h2;
+
     return StatsSemanticNode(
       label: label,
       value: value,
       child: Row(
         children: [
-          Icon(icon, size: 36, color: iconColor),
-          const SizedBox(width: 10),
+          Icon(icon, size: isDesktop ? 32 : 26, color: iconColor),
+          const SizedBox(width: MokuSpacing.s3),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 value,
-                style: MokuText.sectionHeading(),
+                style: MokuText.serifNum(numSize, color: cs.onSurface),
               ),
-              Text(label, style: MokuText.caption()),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: MokuText.caption(color: cs.onSurfaceVariant),
+              ),
             ],
           ),
         ],

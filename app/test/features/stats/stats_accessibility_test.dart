@@ -82,10 +82,10 @@ void main() {
         );
         expect(
           tester.getSemantics(
-            find.bySemanticsLabel(l10n.statsSessionCount(count: 2)),
+            find.bySemanticsLabel(l10n.statsSessions),
           ),
           _matchesReadOnlyNode(
-            label: l10n.statsSessionCount(count: 2),
+            label: l10n.statsSessions,
             value: '2',
           ),
         );
@@ -98,7 +98,7 @@ void main() {
           _matchesReadOnlyNode(
             label: 'Dune',
             value:
-                '${localizations.formatShortDate(today)}, '
+                '${localizations.formatShortDate(today)} · '
                 '${l10n.statsDurationHoursMinutes(hours: 1, minutes: 0)}',
           ),
         );
