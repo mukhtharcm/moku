@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/models/models.dart';
 import '../../../l10n/l10n.dart';
@@ -20,10 +19,7 @@ class CollectionsScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           l10n.collectionsTitle,
-          style: GoogleFonts.literata(
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
-          ),
+          
         ),
       ),
       body: BlocBuilder<CollectionsCubit, CollectionsState>(

@@ -1,6 +1,6 @@
+import '../../../core/ui/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/database/database.dart';
 import '../../../core/localization/app_locale_cubit.dart';
@@ -24,10 +24,7 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           l10n.settingsTitle,
-          style: GoogleFonts.literata(
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
-          ),
+          
         ),
       ),
       body: Center(
@@ -251,7 +248,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   title: Text(
                     l10n.appTitle,
-                    style: GoogleFonts.literata(fontWeight: FontWeight.w600),
+                    style: MokuText.sectionHeading(),
                   ),
                   subtitle: FutureBuilder<AppVersionInfo?>(
                     future: AppVersionService.versionInfo,

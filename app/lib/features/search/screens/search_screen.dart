@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/localization/bidi_text.dart';
@@ -57,10 +56,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
               title: Text(
                 _appBarTitle(context, state),
-                style: GoogleFonts.literata(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
-                ),
+                
               ),
               actions: [
                 IconButton(
