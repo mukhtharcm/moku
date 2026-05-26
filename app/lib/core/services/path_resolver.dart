@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -10,6 +11,14 @@ import 'package:path_provider/path_provider.dart';
 /// (absolute or relative) into a valid absolute path.
 class PathResolver {
   static String? _basePath;
+
+  /// Test-only override. Call [clearOverride] in tearDown.
+  @visibleForTesting
+  static void overrideBasePath(String path) => _basePath = path;
+
+  /// Removes a test override.
+  @visibleForTesting
+  static void clearOverride() => _basePath = null;
 
   /// Must be called before any [resolve] calls — typically in main().
   static Future<void> init() async {

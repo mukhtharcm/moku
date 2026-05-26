@@ -1,8 +1,13 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:moku/core/database/database.dart';
+import 'package:moku/core/services/path_resolver.dart';
 import 'package:moku/core/sync/sync_engine.dart';
 import 'package:pocketbase/pocketbase.dart';
 
@@ -802,7 +807,183 @@ void main() {
       },
     );
   });
+
+// ── _streamDownload / _downloadAndCreateBook tests ───────────────────────────
+
+group('SyncEngine file download', () {
+  late AppDatabase database;
+  late FakePocketBase pb;
+  late Directory tmpDir;
+
+  setUp(() async {
+    database = AppDatabase(NativeDatabase.memory());
+    pb = FakePocketBase();
+    tmpDir = await Directory.systemTemp.createTemp('moku_test_');
+    PathResolver.overrideBasePath(tmpDir.path);
+  });
+
+  tearDown(() async {
+    await database.close();
+    await tmpDir.delete(recursive: true);
+    PathResolver.clearOverride();
+  });
+
+  SyncEngine _makeEngine(http.Client httpClient) {
+    return SyncEngine(
+      pb: pb,
+      db: database,
+      httpClientFactory: () => httpClient,
+    );
+  }
+
+  RecordModel _bookRecord({
+    String id = 'rec1',
+    String epubFile = 'book.epub',
+    String fileHash = 'abc123',
+  }) {
+    return RecordModel({
+      'id': id,
+      'title': 'Test Book',
+      'author': 'Author',
+      'description': '',
+      'format': 'epub',
+      'total_chapters': 5,
+      'file_hash': fileHash,
+      'epub_file': epubFile,
+      'book_file': '',
+      'cover_image': '',
+      'isbn': '',
+      'language': '',
+      'publisher': '',
+      'publish_date': '',
+      'deleted_at': '',
+      'user': 'user-1',
+      'created': '2026-05-25T12:00:00Z',
+      'updated': '2026-05-25T12:00:00Z',
+    });
+  }
+
+  test('successful download creates DB record and correct file', () async {
+    final epubBytes = Uint8List(4096)..fillRange(0, 4096, 42); // 4 KB
+    final client = MockClient((request) async {
+      return http.Response.bytes(epubBytes, 200);
+    });
+    final engine = _makeEngine(client);
+    await engine.syncAll();
+
+    // Seed the record so _pullBooks finds it
+    pb.seedRecords('books', [_bookRecord()]);
+    await engine.syncAll();
+
+    final books = await database.getAllBooks();
+    expect(books, hasLength(1));
+    expect(books.first.title, 'Test Book');
+
+    final file = File(PathResolver.resolve(books.first.filePath));
+    expect(await file.exists(), isTrue);
+    expect(await file.length(), 4096);
+  });
+
+  test('download below 1 KB threshold: no DB record, no file left on disk',
+      () async {
+    final tinyBytes = Uint8List(512)..fillRange(0, 512, 1); // 512 B < 1 KB
+    final client = MockClient((request) async {
+      return http.Response.bytes(tinyBytes, 200);
+    });
+    final engine = _makeEngine(client);
+
+    pb.seedRecords('books', [_bookRecord()]);
+    await engine.syncAll();
+
+    final books = await database.getAllBooks();
+    expect(books, isEmpty, reason: 'DB record must not be created for tiny response');
+
+    final mokuBooksDir = Directory('${tmpDir.path}/moku_books');
+    final files = mokuBooksDir.existsSync()
+        ? mokuBooksDir.listSync().whereType<File>().toList()
+        : <File>[];
+    expect(files, isEmpty, reason: 'Partial file must be cleaned up');
+  });
+
+  test('interrupted stream (exception mid-download): no DB record, no file',
+      () async {
+    int callCount = 0;
+    final client = MockClient((request) async {
+      callCount++;
+      // Simulate a broken connection by throwing before delivering body
+      throw const SocketException('Connection reset by peer');
+    });
+    final engine = _makeEngine(client);
+
+    pb.seedRecords('books', [_bookRecord()]);
+    await engine.syncAll();
+
+    final books = await database.getAllBooks();
+    expect(books, isEmpty, reason: 'No record on stream failure');
+
+    final mokuBooksDir = Directory('${tmpDir.path}/moku_books');
+    final files = mokuBooksDir.existsSync()
+        ? mokuBooksDir.listSync().whereType<File>().toList()
+        : <File>[];
+    expect(files, isEmpty, reason: 'No partial file on stream failure');
+    expect(callCount, greaterThan(0));
+  });
+
+  test('HTTP non-200: no DB record, no file', () async {
+    final client = MockClient((request) async {
+      return http.Response('Not Found', 404);
+    });
+    final engine = _makeEngine(client);
+
+    pb.seedRecords('books', [_bookRecord()]);
+    await engine.syncAll();
+
+    final books = await database.getAllBooks();
+    expect(books, isEmpty);
+  });
+
+  test('re-download on missing file updates filePath, preserves existing record id',
+      () async {
+    // Insert a book record pointing to a non-existent file
+    final now = DateTime.now();
+    await database.insertBook(
+      BooksCompanion.insert(
+        id: 'pb_rec1',
+        title: 'Test Book',
+        author: 'Author',
+        filePath: 'moku_books/gone.epub',
+        format: const Value('epub'),
+        totalChapters: const Value(5),
+        createdAt: now,
+        updatedAt: now,
+        remoteId: const Value('rec1'),
+        deletedAt: const Value(null),
+      ),
+      syncPending: false,
+    );
+
+    final epubBytes = Uint8List(8192)..fillRange(0, 8192, 7);
+    final client = MockClient((request) async {
+      return http.Response.bytes(epubBytes, 200);
+    });
+    final engine = _makeEngine(client);
+
+    pb.seedRecords('books', [_bookRecord()]);
+    await engine.syncAll();
+
+    final books = await database.getAllBooks();
+    // Still one record, same local id
+    expect(books, hasLength(1));
+    expect(books.first.id, 'pb_rec1');
+
+    // filePath updated to the new download
+    final newFile = File(PathResolver.resolve(books.first.filePath));
+    expect(await newFile.exists(), isTrue);
+    expect(await newFile.length(), 8192);
+  });
+});
 }
+
 
 class FakePocketBase extends PocketBase {
   FakePocketBase({this.userId = 'user-1'}) : super('http://127.0.0.1:8090') {
@@ -981,3 +1162,4 @@ class FakeRecordService extends RecordService {
         actualDate == expectedDate;
   }
 }
+
