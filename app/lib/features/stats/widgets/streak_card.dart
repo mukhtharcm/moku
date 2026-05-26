@@ -36,7 +36,7 @@ class StreakCard extends StatelessWidget {
                 label: l10n.statsCurrentStreak,
                 icon: Icons.local_fire_department_rounded,
                 iconColor: currentStreak > 0
-                    ? const Color(0xFFE6621E)
+                    ? MokuColors.statFire
                     : cs.onSurfaceVariant.withValues(alpha: 0.4),
                 isDesktop: isDesktop,
               ),
@@ -52,7 +52,7 @@ class StreakCard extends StatelessWidget {
                 label: l10n.statsLongestStreak,
                 icon: Icons.emoji_events_rounded,
                 iconColor: longestStreak > 0
-                    ? const Color(0xFFD4A017)
+                    ? MokuColors.statGold
                     : cs.onSurfaceVariant.withValues(alpha: 0.4),
                 isDesktop: isDesktop,
               ),

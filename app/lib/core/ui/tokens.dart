@@ -54,6 +54,14 @@ class MokuColors {
   static const successGreen = Color(0xFF3F8F5C);
   static const errorRed     = Color(0xFFC0392B);
   static const warningAmber = Color(0xFFD18E2C);
+  static const infoBlue     = Color(0xFF3B82F6);  // sync info / connected
+
+  // Stats accent palette — icon badge tints
+  static const statBlue   = Color(0xFF3B82F6);
+  static const statGreen  = Color(0xFF22C55E);
+  static const statPurple = Color(0xFFA855F7);
+  static const statFire   = Color(0xFFE6621E);  // current streak
+  static const statGold   = Color(0xFFD4A017);  // longest streak
 
   // Reader themes (bg / fg pairs)
   static const readerLightBg  = paperWhite;
@@ -149,4 +157,25 @@ class MokuShadow {
       offset: const Offset(0, 1),
     ),
   ];
+}
+
+// ── Motion ────────────────────────────────────────────────────────────────────
+/// Standard animation durations. Use these instead of naked millisecond values.
+class MokuMotion {
+  MokuMotion._();
+
+  /// Micro-interaction — selection highlight, toggle. 120 ms.
+  static const Duration instant = Duration(milliseconds: 120);
+
+  /// UI state transition — panel appear/hide, chip select. 200 ms.
+  static const Duration fast = Duration(milliseconds: 200);
+
+  /// Page element entrance — card slide, icon swap. 300 ms.
+  static const Duration normal = Duration(milliseconds: 300);
+
+  /// Screen-level transition — page push/pop, sheet reveal. 400 ms.
+  static const Duration slow = Duration(milliseconds: 400);
+
+  /// Long animation — onboarding carousel, splash fade. 600 ms.
+  static const Duration xslow = Duration(milliseconds: 600);
 }

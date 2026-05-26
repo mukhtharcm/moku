@@ -35,7 +35,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     super.initState();
     _fadeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: MokuMotion.xslow,
     );
     _fadeAnimation = CurvedAnimation(
       parent: _fadeController,
@@ -54,7 +54,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   void _goToPage(int page) {
     _pageController.animateToPage(
       page,
-      duration: const Duration(milliseconds: 400),
+      duration: MokuMotion.slow,
       curve: Curves.easeInOut,
     );
   }
@@ -73,14 +73,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
-        transitionDuration: const Duration(milliseconds: 500),
+        transitionDuration: MokuMotion.slow,
       ),
     );
 
     // Trigger import after navigation if requested
     if (importBook) {
       // Small delay to let the app shell mount
-      Future.delayed(const Duration(milliseconds: 600), () {
+      Future.delayed(MokuMotion.xslow, () {
         if (mounted) return;
         // The library cubit will be available in the new context
       });
@@ -153,7 +153,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         children: List.generate(3, (i) {
                           final isActive = i == _currentPage;
                           return AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
+                            duration: MokuMotion.normal,
                             curve: Curves.easeOut,
                             margin: const EdgeInsets.symmetric(horizontal: 4),
                             width: isActive ? 24 : 8,
@@ -164,7 +164,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                   : colorScheme.onSurface.withValues(
                                       alpha: 0.15,
                                     ),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(MokuRadius.xs),
                             ),
                           );
                         }),
@@ -239,7 +239,7 @@ class _WelcomePage extends StatelessWidget {
                 onPressed: onNext,
                 style: FilledButton.styleFrom(
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(MokuRadius.xl),
                   ),
                 ),
                 child: Text(
@@ -308,7 +308,7 @@ class _ImportPage extends StatelessWidget {
                 ),
                 style: FilledButton.styleFrom(
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(MokuRadius.xl),
                   ),
                 ),
               ),
@@ -388,7 +388,7 @@ class _SyncPage extends StatelessWidget {
                 ),
                 style: FilledButton.styleFrom(
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(MokuRadius.xl),
                   ),
                 ),
               ),

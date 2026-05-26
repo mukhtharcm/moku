@@ -167,7 +167,7 @@ class _ReaderViewState extends State<_ReaderView>
                   .replaceAll("'", "\\'")
                   .replaceAll('\n', '\\n');
               // Small delay to let highlights render first
-              Future.delayed(const Duration(milliseconds: 200), () {
+              Future.delayed(MokuMotion.fast, () {
                 _webController.runJavaScript(
                   "scrollToHighlightText('$escaped');",
                 );
@@ -1284,7 +1284,7 @@ window.addEventListener('load', function() {
                           child: DecoratedBox(
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.78),
-                              borderRadius: BorderRadius.circular(999),
+                              borderRadius: BorderRadius.circular(MokuRadius.pill),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
@@ -1354,7 +1354,7 @@ window.addEventListener('load', function() {
                 right: 0,
                 child: AnimatedOpacity(
                   opacity: state.zenMode ? 0.3 : 0.8,
-                  duration: const Duration(milliseconds: 300),
+                  duration: MokuMotion.normal,
                   child: LinearProgressIndicator(
                     value: state.chapters.isEmpty
                         ? 0
@@ -1395,7 +1395,7 @@ window.addEventListener('load', function() {
                           ),
                           decoration: BoxDecoration(
                             color: Colors.black87,
-                            borderRadius: BorderRadius.circular(24),
+                            borderRadius: BorderRadius.circular(MokuRadius.pill),
                             border: Border.all(
                               color: Colors.white.withValues(alpha: 0.2),
                             ),
@@ -1938,7 +1938,7 @@ class _TocTab extends StatelessWidget {
         return InkWell(
           onTap: () => context.read<ReaderCubit>().goToChapter(index),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 140),
+            duration: MokuMotion.instant,
             padding: const EdgeInsets.symmetric(
               horizontal: MokuSpacing.panelPadding,
               vertical: MokuSpacing.s2,

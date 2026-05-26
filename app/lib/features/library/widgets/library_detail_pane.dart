@@ -115,7 +115,7 @@ class _BookDetailView extends StatelessWidget {
                     Hero(
                       tag: 'book-cover-${book.id}',
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(MokuRadius.lg),
                         child: SizedBox(
                           width: 140,
                           height: 200,
@@ -145,7 +145,7 @@ class _BookDetailView extends StatelessWidget {
                           // Progress
                           if (hasProgress) ...[
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(MokuRadius.xs),
                               child: LinearProgressIndicator(
                                 value: progress,
                                 minHeight: 6,
