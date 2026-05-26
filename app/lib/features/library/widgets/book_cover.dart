@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+import '../../../core/ui/ui.dart';
 import '../../../core/models/models.dart';
 import '../../../core/models/book_localizations.dart';
 
@@ -153,12 +154,7 @@ class _PlaceholderCover extends StatelessWidget {
                 Flexible(
                   child: Text(
                     title,
-                    style: GoogleFonts.instrumentSerif(
-                      color: Colors.white.withValues(alpha: 0.92),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                      height: 1.3,
-                    ),
+                    style: MokuText.serifNum(MokuTypeSize.body, color: Colors.white.withValues(alpha: 0.92)),
                     maxLines: 4,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -166,12 +162,7 @@ class _PlaceholderCover extends StatelessWidget {
                 const SizedBox(height: 5),
                 Text(
                   author,
-                  style: GoogleFonts.dmSans(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontSize: 9,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.3,
-                  ),
+                  style: MokuText.micro(color: Colors.white.withValues(alpha: 0.55), weight: FontWeight.w500),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
