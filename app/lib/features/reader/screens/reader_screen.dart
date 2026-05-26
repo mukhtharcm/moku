@@ -1720,10 +1720,10 @@ class _DesktopReaderToolbar extends StatelessWidget {
                       children: [
                         Text(
                           bookTitleLabel(context, state.book.title),
-                          style: GoogleFonts.literata(
+                          style: GoogleFonts.instrumentSerif(
                             color: fg,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontSize: MokuTypeSize.small,
+                            fontWeight: FontWeight.w400,
                             height: 1.2,
                           ),
                           maxLines: 1,
@@ -1734,7 +1734,7 @@ class _DesktopReaderToolbar extends StatelessWidget {
                               context, state, state.currentChapter),
                           style: TextStyle(
                             color: dim,
-                            fontSize: 11,
+                            fontSize: MokuTypeSize.tiny,
                             height: 1.2,
                           ),
                           maxLines: 1,
@@ -2169,10 +2169,10 @@ class _TopControls extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: GoogleFonts.literata(
+                        style: GoogleFonts.instrumentSerif(
                           color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontSize: MokuTypeSize.bodyM,
+                          fontWeight: FontWeight.w400,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
