@@ -223,19 +223,19 @@ class _SummaryRow extends StatelessWidget {
     final tiles = [
       _StatTile(
         icon: Icons.schedule_rounded,
-        iconColor: const Color(0xFF3B82F6),
+        iconColor: MokuColors.statBlue,
         value: timeLabel,
         label: l10n.statsTotalTime,
       ),
       _StatTile(
         icon: Icons.menu_book_rounded,
-        iconColor: const Color(0xFF22C55E),
+        iconColor: MokuColors.statGreen,
         value: '${state.booksReadThisYear}',
         label: l10n.statsBooksStartedThisYear,
       ),
       _StatTile(
         icon: Icons.library_books_rounded,
-        iconColor: const Color(0xFFA855F7),
+        iconColor: MokuColors.statPurple,
         value: '${state.totalSessions}',
         label: l10n.statsSessions,
       ),

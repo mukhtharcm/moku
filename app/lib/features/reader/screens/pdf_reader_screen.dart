@@ -1,3 +1,4 @@
+import '../../../core/ui/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pdfrx/pdfrx.dart';
@@ -154,7 +155,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
-    final bgColor = _darkMode ? const Color(0xFF1A1A1A) : Colors.white;
+    final bgColor = _darkMode ? MokuColors.nightBase : Colors.white;
     final fgColor = _darkMode ? Colors.white : Colors.black87;
 
     return Scaffold(

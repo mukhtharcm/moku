@@ -1,3 +1,5 @@
+import '../../../core/ui/ui.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -236,7 +238,7 @@ class _CollectionCard extends StatelessWidget {
         child: ListTile(
           onTap: onTap,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(MokuRadius.pill),
           ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -249,7 +251,7 @@ class _CollectionCard extends StatelessWidget {
             height: 48,
             decoration: BoxDecoration(
               color: bgColor,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(MokuRadius.xl),
             ),
             child: Icon(
               Icons.collections_bookmark_rounded,

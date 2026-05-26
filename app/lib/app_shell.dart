@@ -151,7 +151,7 @@ class _AppShellState extends State<AppShell> with WindowListener {
     // mid-transition and often returns 0 while the animation is still running.
     if (mounted) setState(() => _titleBarHeight = _windowedTitleBarHeight);
     // Then confirm with the real value once the transition has settled.
-    Future.delayed(const Duration(milliseconds: 300), _syncTitleBarHeight);
+    Future.delayed(MokuMotion.normal, _syncTitleBarHeight);
   }
 
   void _openBookInline(Book book) => setState(() => _readingBook = book);
@@ -380,7 +380,7 @@ class _AppShellState extends State<AppShell> with WindowListener {
 
     return Scaffold(
       body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 200),
+        duration: MokuMotion.fast,
         child: IndexedStack(
           key: ValueKey(_currentIndex),
           index: _currentIndex,
@@ -583,7 +583,7 @@ class _IconRailItem extends StatelessWidget {
             onTap: onTap,
             borderRadius: MokuRadius.smAll,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
+              duration: MokuMotion.instant,
               width: 44,
               height: 44,
               decoration: BoxDecoration(

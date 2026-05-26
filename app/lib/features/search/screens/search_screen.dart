@@ -1,3 +1,4 @@
+import '../../../core/ui/ui.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -610,7 +611,7 @@ class _SearchResultCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(MokuRadius.md),
                   child: book.coverUrl != null
                       ? CachedNetworkImage(
                           imageUrl: book.coverUrl!,
@@ -758,7 +759,7 @@ class _MetaChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(MokuRadius.pill),
       ),
       child: Text(
         label,

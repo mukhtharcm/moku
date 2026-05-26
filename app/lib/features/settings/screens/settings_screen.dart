@@ -158,7 +158,7 @@ class SettingsScreen extends StatelessWidget {
                         ? Icons.battery_saver_rounded
                         : Icons.battery_std_rounded,
                     color: state.powerSaver
-                        ? Colors.green
+                        ? MokuColors.successGreen
                         : colorScheme.onSurfaceVariant,
                   ),
                   title: Text(l10n.settingsPowerSaverTitle),
@@ -186,18 +186,18 @@ class SettingsScreen extends StatelessWidget {
                     height: 42,
                     decoration: BoxDecoration(
                       color: isConnected
-                          ? Colors.green.withValues(alpha: 0.1)
+                          ? MokuColors.successGreen.withValues(alpha: 0.1)
                           : colorScheme.surfaceContainerHighest.withValues(
                               alpha: 0.5,
                             ),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(MokuRadius.lg),
                     ),
                     child: Icon(
                       isConnected
                           ? Icons.cloud_done_rounded
                           : Icons.cloud_outlined,
                       color: isConnected
-                          ? Colors.green
+                          ? MokuColors.successGreen
                           : colorScheme.onSurfaceVariant,
                       size: 22,
                     ),
@@ -211,7 +211,7 @@ class SettingsScreen extends StatelessWidget {
                         : l10n.settingsSyncNotConfigured,
                     style: TextStyle(
                       color: isConnected
-                          ? Colors.green
+                          ? MokuColors.successGreen
                           : colorScheme.onSurfaceVariant,
                     ),
                   ),

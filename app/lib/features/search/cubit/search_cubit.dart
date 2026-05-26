@@ -1,3 +1,4 @@
+import '../../../core/ui/ui.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -24,7 +25,7 @@ class SearchCubit extends Cubit<SearchState> {
     required BookService bookService,
     required db.AppDatabase database,
     AutoSyncService? autoSync,
-    Duration searchDebounce = const Duration(milliseconds: 500),
+    Duration searchDebounce = MokuMotion.slow,
   }) : _catalogService = catalogService,
        _bookService = bookService,
        _database = database,

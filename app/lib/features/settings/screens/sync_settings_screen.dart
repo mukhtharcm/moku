@@ -1,3 +1,5 @@
+import '../../../core/ui/ui.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -195,22 +197,22 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
       ),
       SyncStatus.connecting => (
         Icons.cloud_queue,
-        Colors.orange,
+        MokuColors.warningAmber,
         context.l10n.syncStatusConnecting,
       ),
       SyncStatus.connected => (
         Icons.cloud_done,
-        Colors.green,
+        MokuColors.successGreen,
         context.l10n.syncStatusConnected,
       ),
       SyncStatus.syncing => (
         Icons.sync,
-        Colors.blue,
+        MokuColors.infoBlue,
         context.l10n.syncStatusSyncing,
       ),
       SyncStatus.error => (
         Icons.cloud_off,
-        Colors.red,
+        MokuColors.errorRed,
         context.l10n.syncStatusError,
       ),
     };

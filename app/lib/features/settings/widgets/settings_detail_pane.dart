@@ -79,7 +79,7 @@ class _SettingsGroup extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(MokuRadius.lg),
         border: Border.all(
           color: colorScheme.outlineVariant.withValues(alpha: 0.4),
         ),
@@ -246,7 +246,7 @@ class _BatterySection extends StatelessWidget {
                             : Icons.battery_std_rounded,
                         size: 18,
                         color: state.powerSaver
-                            ? Colors.green
+                            ? MokuColors.successGreen
                             : colorScheme.onSurfaceVariant,
                       ),
                       title: Text(l10n.settingsPowerSaverTitle),
@@ -297,7 +297,7 @@ class _SyncSection extends StatelessWidget {
                             : Icons.cloud_outlined,
                         size: 18,
                         color: connected
-                            ? Colors.green
+                            ? MokuColors.successGreen
                             : colorScheme.onSurfaceVariant,
                       ),
                       title: Text(l10n.settingsSyncServerTitle),
@@ -309,7 +309,7 @@ class _SyncSection extends StatelessWidget {
                                 : l10n.settingsSyncNotConfigured,
                         style: TextStyle(
                           color: connected
-                              ? Colors.green
+                              ? MokuColors.successGreen
                               : colorScheme.onSurfaceVariant,
                         ),
                       ),

@@ -1,3 +1,5 @@
+import '../../../core/ui/ui.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -219,10 +221,10 @@ class _AnnotationsScreenState extends State<AnnotationsScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
+              leading: const Icon(Icons.delete, color: MokuColors.errorRed),
               title: Text(
                 l10n.commonDelete,
-                style: const TextStyle(color: Colors.red),
+                style: const TextStyle(color: MokuColors.errorRed),
               ),
               onTap: () {
                 Navigator.pop(ctx);
@@ -444,10 +446,10 @@ class _HighlightTile extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
+              leading: const Icon(Icons.delete, color: MokuColors.errorRed),
               title: Text(
                 l10n.commonDelete,
-                style: const TextStyle(color: Colors.red),
+                style: const TextStyle(color: MokuColors.errorRed),
               ),
               onTap: () {
                 Navigator.pop(ctx);

@@ -1,3 +1,5 @@
+import '../../../core/ui/ui.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -191,7 +193,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             color: colorScheme.primaryContainer.withValues(
                               alpha: 0.5,
                             ),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(MokuRadius.lg),
                           ),
                           child: Text(
                             '${books.length}',
@@ -212,7 +214,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             decoration: BoxDecoration(
                               color: colorScheme.surfaceContainerHighest
                                   .withValues(alpha: 0.4),
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(MokuRadius.pill),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -705,7 +707,7 @@ class _EmptyLibrary extends StatelessWidget {
                           color: colorScheme.primaryContainer.withValues(
                             alpha: 0.5,
                           ),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(MokuRadius.md),
                         ),
                       ),
                     ),
@@ -722,7 +724,7 @@ class _EmptyLibrary extends StatelessWidget {
                           color: colorScheme.tertiaryContainer.withValues(
                             alpha: 0.6,
                           ),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(MokuRadius.md),
                         ),
                       ),
                     ),
@@ -733,7 +735,7 @@ class _EmptyLibrary extends StatelessWidget {
                     height: 90,
                     decoration: BoxDecoration(
                       color: colorScheme.primary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(MokuRadius.md),
                       border: Border.all(
                         color: colorScheme.primary.withValues(alpha: 0.3),
                       ),
@@ -868,7 +870,7 @@ class _ContinueReadingSection extends StatelessWidget {
                                 const SizedBox(height: 14),
                                 // Progress bar
                                 ClipRRect(
-                                  borderRadius: BorderRadius.circular(6),
+                                  borderRadius: BorderRadius.circular(MokuRadius.sm),
                                   child: LinearProgressIndicator(
                                     value: progress,
                                     minHeight: 5,
