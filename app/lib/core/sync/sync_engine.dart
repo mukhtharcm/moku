@@ -66,12 +66,15 @@ class SyncEngine {
   /// Called when a sync stage fails with (collection, error).
   void Function(String collection, String error)? onError;
   void Function(SyncProgress)? onProgress;
+  /// Overridable factory for HTTP clients — inject a [MockClient] in tests.
+  http.Client Function()? httpClientFactory;
 
   SyncEngine({
     required this.pb,
     required this.db,
     this.onError,
     this.onProgress,
+    this.httpClientFactory,
   });
 
   DateTime? get lastSyncAt => _lastSyncAt;
@@ -377,7 +380,7 @@ class SyncEngine {
     int filesDone = 0,
     int filesTotal = -1,
   }) async {
-    final client = http.Client();
+    final client = httpClientFactory?.call() ?? http.Client();
     IOSink? sink;
     try {
       final request = http.Request('GET', url);
