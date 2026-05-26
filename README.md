@@ -113,6 +113,27 @@ The server exposes:
 - **API** — `http://localhost:8090/api/`
 - **Admin UI** — `http://localhost:8090/_/`
 
+## 🚢 Release Automation
+
+- **Server image** — `main` pushes touching `server/**` build and publish `ghcr.io/<repo>/server`
+- **Website** — `main` pushes touching `website/**` deploy to Cloudflare Pages
+- **iOS** — `v*` tags and manual dispatch build and upload an IPA to TestFlight
+- **macOS** — `v*` tags and manual dispatch package macOS release artifacts for GitHub Releases
+- **Android canary** — `main` pushes touching `app/**` and manual dispatch build signed split APKs, upload them as workflow artifacts, and publish the three APKs to Telegram as one grouped post
+
+### Android Canary Setup
+
+Add these GitHub Actions secrets before enabling the Android canary workflow:
+
+- `ANDROID_KEYSTORE_BASE64` — base64-encoded Android upload keystore (`.jks` or `.keystore`)
+- `ANDROID_STORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID` — numeric chat ID or channel username such as `@moku_builds`
+
+For local release builds, copy `app/android/key.properties.example` to `app/android/key.properties` and fill in the same values. `ANDROID_KEYSTORE_PATH` may be absolute or relative to `app/android/`.
+
 ## 🎨 Design
 
 Moku uses a warm, bookish design language:

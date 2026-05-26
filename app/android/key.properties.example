@@ -1,0 +1,6 @@
+# Copy this file to key.properties and fill in your release keystore values.
+# ANDROID_KEYSTORE_PATH may be absolute or relative to app/android/.
+ANDROID_KEYSTORE_PATH=keystore/moku-upload.jks
+ANDROID_STORE_PASSWORD=replace-me
+ANDROID_KEY_ALIAS=replace-me
+ANDROID_KEY_PASSWORD=replace-me
