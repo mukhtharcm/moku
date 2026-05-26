@@ -1,6 +1,6 @@
+import '../../../core/ui/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/ui/tokens.dart';
@@ -211,12 +211,7 @@ class _WelcomePage extends StatelessWidget {
             // Title
             Text(
               l10n.onboardingWelcomeTitle,
-              style: GoogleFonts.literata(
-                fontSize: 32,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-                color: colorScheme.onSurface,
-              ),
+              style: MokuText.displayHeading(color: colorScheme.onSurface),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
@@ -224,22 +219,13 @@ class _WelcomePage extends StatelessWidget {
             // Subtitle
             Text(
               l10n.onboardingWelcomeSubtitle,
-              style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.w400,
-                color: colorScheme.onSurfaceVariant,
-                height: 1.4,
-              ),
+              style: MokuText.lead(color: colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               l10n.onboardingWelcomeBody,
-              style: GoogleFonts.inter(
-                fontSize: 15,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                height: 1.5,
-              ),
+              style: MokuText.body(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
               textAlign: TextAlign.center,
             ),
 
@@ -258,10 +244,7 @@ class _WelcomePage extends StatelessWidget {
                 ),
                 child: Text(
                   l10n.onboardingGetStarted,
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  
                 ),
               ),
             ),
@@ -299,23 +282,14 @@ class _ImportPage extends StatelessWidget {
 
             Text(
               l10n.onboardingImportTitle,
-              style: GoogleFonts.literata(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.3,
-                color: colorScheme.onSurface,
-              ),
+              style: MokuText.pageHeading(color: colorScheme.onSurface),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
 
             Text(
               l10n.onboardingImportBody,
-              style: GoogleFonts.inter(
-                fontSize: 15,
-                color: colorScheme.onSurfaceVariant,
-                height: 1.5,
-              ),
+              style: MokuText.body(color: colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
 
@@ -330,10 +304,7 @@ class _ImportPage extends StatelessWidget {
                 icon: const Icon(Icons.add_rounded, size: 22),
                 label: Text(
                   l10n.commonImportFiles,
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  
                 ),
                 style: FilledButton.styleFrom(
                   shape: RoundedRectangleBorder(
@@ -349,10 +320,7 @@ class _ImportPage extends StatelessWidget {
               onPressed: onNext,
               child: Text(
                 l10n.onboardingImportLater,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                ),
+                style: MokuText.bodySmall(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
               ),
             ),
 
@@ -388,34 +356,20 @@ class _SyncPage extends StatelessWidget {
 
             Text(
               l10n.onboardingSyncTitle,
-              style: GoogleFonts.literata(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.3,
-                color: colorScheme.onSurface,
-              ),
+              style: MokuText.pageHeading(color: colorScheme.onSurface),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
 
             Text(
               l10n.onboardingSyncOfflineBody,
-              style: GoogleFonts.inter(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: colorScheme.onSurface,
-                height: 1.5,
-              ),
+              style: MokuText.body(color: colorScheme.onSurface, weight: FontWeight.w500),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               l10n.onboardingSyncServerBody,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                height: 1.5,
-              ),
+              style: MokuText.bodySmall(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
               textAlign: TextAlign.center,
             ),
 
@@ -430,10 +384,7 @@ class _SyncPage extends StatelessWidget {
                 icon: const Icon(Icons.auto_stories_rounded, size: 22),
                 label: Text(
                   l10n.onboardingStartReading,
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  
                 ),
                 style: FilledButton.styleFrom(
                   shape: RoundedRectangleBorder(

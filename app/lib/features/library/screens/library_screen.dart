@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/localization/bidi_text.dart';
 import '../../../core/models/book_localizations.dart';
@@ -54,10 +53,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               )
             : Text(
                 l10n.appTitle,
-                style: GoogleFonts.literata(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
-                ),
+                
               ),
         actions: [
           IconButton(
