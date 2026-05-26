@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/ui/ui.dart';
 import '../../../l10n/l10n.dart';
@@ -98,12 +97,7 @@ class _BigStreakStat extends StatelessWidget {
             children: [
               Text(
                 value,
-                style: GoogleFonts.instrumentSerif(
-                  fontSize: numSize,
-                  fontWeight: FontWeight.w400,
-                  height: 1.0,
-                  color: cs.onSurface,
-                ),
+                style: MokuText.serifNum(numSize, color: cs.onSurface),
               ),
               const SizedBox(height: 2),
               Text(

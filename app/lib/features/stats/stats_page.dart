@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/database/database.dart';
 import '../../core/ui/ui.dart';
@@ -314,12 +313,7 @@ class _StatTile extends StatelessWidget {
                   children: [
                     Text(
                       value,
-                      style: GoogleFonts.instrumentSerif(
-                        fontSize: MokuTypeSize.h3,
-                        fontWeight: FontWeight.w400,
-                        height: 1.1,
-                        color: cs.onSurface,
-                      ),
+                      style: MokuText.serifNum(MokuTypeSize.h3, color: cs.onSurface),
                     ),
                     Text(
                       label,

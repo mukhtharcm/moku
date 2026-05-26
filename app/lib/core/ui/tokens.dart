@@ -116,15 +116,17 @@ class MokuRadius {
 class MokuTypeSize {
   MokuTypeSize._();
 
-  static const double micro  = 10;
-  static const double tiny   = 11;
-  static const double small  = 12;
-  static const double body   = 13;
-  static const double bodyM  = 14;
-  static const double title  = 16;
-  static const double h3     = 18;
-  static const double h2     = 22;
-  static const double h1     = 28;
+  static const double micro   = 10;
+  static const double tiny    = 11;
+  static const double small   = 12;
+  static const double body    = 13;
+  static const double bodyM   = 14;
+  static const double lead    = 17;  // onboarding subtitles
+  static const double title   = 16;
+  static const double h3      = 18;
+  static const double h2      = 22;
+  static const double h1      = 28;
+  static const double display = 34;  // hero moments
 }
 
 // ── Elevation / shadow ────────────────────────────────────────────────────────
