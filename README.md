@@ -119,7 +119,7 @@ The server exposes:
 - **Website** — `main` pushes touching `website/**` deploy to Cloudflare Pages
 - **iOS** — `v*` tags and manual dispatch build and upload an IPA to TestFlight
 - **macOS** — `v*` tags and manual dispatch package macOS release artifacts for GitHub Releases
-- **Android canary** — `main` pushes touching `app/**` and manual dispatch build signed split APKs, upload them as workflow artifacts, and publish the three APKs to Telegram as one grouped post
+- **Android canary** — `main` pushes touching `app/**` and manual dispatch build signed split APKs, upload them as workflow artifacts, and publish the three APKs to Telegram as one grouped post followed by a summary message
 
 ### Android Canary Setup
 

@@ -93,13 +93,6 @@ def send_group(staged: list[dict]) -> dict:
         {
             "type": "document",
             "media": staged[0]["file_id"],
-            "caption": (
-                "Moku Android canary\n"
-                "Artifact set: split APKs\n"
-                f"Version: {VERSION} ({BUILD_NUMBER})\n"
-                f"Commit: {SHORT_SHA}\n"
-                f"Run: {RUN_URL}"
-            ),
         },
         {"type": "document", "media": staged[1]["file_id"]},
         {"type": "document", "media": staged[2]["file_id"]},
@@ -117,12 +110,36 @@ def send_group(staged: list[dict]) -> dict:
     )
 
 
+def send_summary() -> dict:
+    text = (
+        "Moku Android canary\n"
+        "Artifact set: split APKs\n"
+        f"Version: {VERSION} ({BUILD_NUMBER})\n"
+        f"Commit: {SHORT_SHA}\n"
+        f"Run: {RUN_URL}"
+    )
+    return curl_json(
+        [
+            "-X",
+            "POST",
+            f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+            "-F",
+            f"chat_id={CHAT_ID}",
+            "-F",
+            f"text={text}",
+            "-F",
+            "disable_web_page_preview=true",
+        ]
+    )
+
+
 def main() -> None:
     staged = stage_documents()
     try:
         for item in staged:
             delete_message(item["message_id"])
         result = send_group(staged)
+        summary = send_summary()
     except Exception:
         raise
 
@@ -132,6 +149,7 @@ def main() -> None:
                 "media_group_id": result["result"][0]["media_group_id"],
                 "message_ids": [message["message_id"] for message in result["result"]],
                 "files": [item["file_name"] for item in staged],
+                "summary_message_id": summary["result"]["message_id"],
             }
         )
     )
