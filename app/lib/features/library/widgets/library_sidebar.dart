@@ -153,18 +153,14 @@ class _LibrarySidebarState extends State<LibrarySidebar> {
             // Import button
             const MokuPanelDivider(),
             Padding(
-              padding: const EdgeInsets.all(MokuSpacing.s3),
+              padding: const EdgeInsets.all(MokuSpacing.s2),
               child: SizedBox(
                 width: double.infinity,
-                child: FilledButton.tonalIcon(
+                child: OutlinedButton.icon(
                   onPressed: () =>
                       context.read<LibraryCubit>().importBook(),
-                  icon: const Icon(Icons.add_rounded, size: 18),
+                  icon: const Icon(Icons.add_rounded, size: 16),
                   label: Text(l10n.libraryFabImport),
-                  style: FilledButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: MokuSpacing.s2),
-                  ),
                 ),
               ),
             ),

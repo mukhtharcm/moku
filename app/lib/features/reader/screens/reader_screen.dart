@@ -134,7 +134,9 @@ class _ReaderViewState extends State<_ReaderView>
             (defaultTargetPlatform == TargetPlatform.macOS ||
                 defaultTargetPlatform == TargetPlatform.linux ||
                 defaultTargetPlatform == TargetPlatform.windows);
-        if (nativeDesktop) setState(() => _sidebarVisible = true);
+        // Start with sidebar closed — reader defaults to full-content focus.
+        // Users can open it via the toolbar toggle or keyboard shortcut.
+        if (nativeDesktop) setState(() => _sidebarVisible = false);
         _sidebarInitialized = true;
       }
     });
@@ -1116,15 +1118,65 @@ window.addEventListener('load', function() {
           );
         }
 
-        if (state.status == ReaderStatus.error) {
+        if (state.status == ReaderStatus.error ||
+            state.status == ReaderStatus.fileMissing) {
+          final isMissing = state.status == ReaderStatus.fileMissing;
           return Scaffold(
             appBar: AppBar(title: Text(l10n.readerErrorTitle)),
             body: Center(
               child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  l10n.readerUnknownError,
-                  textAlign: TextAlign.center,
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isMissing
+                          ? Icons.cloud_download_outlined
+                          : Icons.error_outline_rounded,
+                      size: 52,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant
+                          .withValues(alpha: 0.4),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      isMissing
+                          ? 'Book file not found'
+                          : l10n.readerUnknownError,
+                      style: Theme.of(context).textTheme.titleMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isMissing
+                          ? 'The epub was not downloaded yet or was removed '
+                            'from this device. Sync now to re-download it.'
+                          : l10n.readerUnknownError,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                    if (isMissing) ...[  
+                      const SizedBox(height: 24),
+                      FilledButton.icon(
+                        icon: const Icon(Icons.sync_rounded),
+                        label: const Text('Sync Now'),
+                        onPressed: () {
+                          context
+                              .read<AutoSyncService>()
+                              .syncNow();
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
@@ -1359,7 +1411,9 @@ window.addEventListener('load', function() {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                l10n.readerExitZenMode,
+                                isDesktop
+                                    ? 'Exit Zen  Esc / Z'
+                                    : l10n.readerExitZenMode,
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.9),
                                   fontSize: 13,
@@ -1416,6 +1470,7 @@ window.addEventListener('load', function() {
                           setState(() => _sidebarVisible = !_sidebarVisible),
                       onBookmark: () => _addBookmarkFromKeyboard(),
                       onSettings: () => _showSettingsSheet(context),
+                      onZenMode: () => context.read<ReaderCubit>().toggleZenMode(),
                     ),
                     Expanded(child: readerContent),
                   ],
@@ -1508,11 +1563,22 @@ window.addEventListener('load', function() {
     final hasModifier = isMeta || isCtrl;
 
     if (key == LogicalKeyboardKey.escape) {
+      // If in zen mode, escape exits zen first; second press closes reader.
+      if (cubit.state.zenMode) {
+        cubit.toggleZenMode();
+        return;
+      }
       if (widget.onClose != null) {
         widget.onClose!();
       } else if (mounted && Navigator.canPop(context)) {
         Navigator.pop(context);
       }
+      return;
+    }
+
+    // Z — toggle zen mode
+    if (key == LogicalKeyboardKey.keyZ && !hasModifier) {
+      cubit.toggleZenMode();
       return;
     }
 
@@ -1595,6 +1661,7 @@ class _DesktopReaderToolbar extends StatelessWidget {
   final VoidCallback onToggleSidebar;
   final VoidCallback onBookmark;
   final VoidCallback onSettings;
+  final VoidCallback onZenMode;
 
   const _DesktopReaderToolbar({
     required this.titleBarHeight,
@@ -1605,6 +1672,7 @@ class _DesktopReaderToolbar extends StatelessWidget {
     required this.onToggleSidebar,
     required this.onBookmark,
     required this.onSettings,
+    required this.onZenMode,
   });
 
   @override
@@ -1706,6 +1774,18 @@ class _DesktopReaderToolbar extends StatelessWidget {
                         color: fg, size: 18),
                     onPressed: onSettings,
                     tooltip: 'Reading Settings',
+                    visualDensity: VisualDensity.compact,
+                  ),
+
+                  // Zen mode
+                  IconButton(
+                    icon: Icon(
+                      Icons.crop_free_rounded,
+                      color: fg,
+                      size: 18,
+                    ),
+                    onPressed: onZenMode,
+                    tooltip: 'Zen Mode  Z',
                     visualDensity: VisualDensity.compact,
                   ),
 

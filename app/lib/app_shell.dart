@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'core/sync/sync_config.dart';
 import 'core/ui/ui.dart';
 import 'l10n/l10n.dart';
 
@@ -36,13 +37,19 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with WindowListener {
   int _currentIndex = 0;
   Book? _readingBook; // non-null = desktop inline reader is active
   late final FocusNode _shellFocus;
 
   // ── Title-bar height (macOS) ─────────────────────────────────────────────
+  // Seeded to the platform default; updated once the window is ready.
+  // _windowedTitleBarHeight caches the last known non-zero value so we can
+  // restore it instantly when leaving fullscreen (getTitleBarHeight() is
+  // unreliable mid-transition and often returns 0).
   double _titleBarHeight =
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS ? 28.0 : 0.0;
+  double _windowedTitleBarHeight =
       !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS ? 28.0 : 0.0;
 
   // ── Settings section selection (desktop only) ────────────────────────────
@@ -62,6 +69,13 @@ class _AppShellState extends State<AppShell> {
     super.initState();
     _shellFocus = FocusNode();
     _syncTitleBarHeight();
+    // Listen for fullscreen transitions so we can zero/restore titleBarHeight.
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.macOS ||
+         defaultTargetPlatform == TargetPlatform.linux ||
+         defaultTargetPlatform == TargetPlatform.windows)) {
+      windowManager.addListener(this);
+    }
   }
 
   Future<void> _syncTitleBarHeight() async {
@@ -73,11 +87,13 @@ class _AppShellState extends State<AppShell> {
     }
     try {
       final h = await windowManager.getTitleBarHeight();
-      // getTitleBarHeight() returns 0 when fullSizeContentView is active
-      // (the content rect equals the full frame, so the delta is 0).
-      // In that case keep the seeded platform default — don't overwrite it.
-      if (mounted && h > 0 && h.toDouble() != _titleBarHeight) {
-        setState(() => _titleBarHeight = h.toDouble());
+      if (!mounted) return;
+      if (h > 0) {
+        // Cache the real windowed height so we can restore it after fullscreen.
+        _windowedTitleBarHeight = h.toDouble();
+        if (h.toDouble() != _titleBarHeight) {
+          setState(() => _titleBarHeight = h.toDouble());
+        }
       }
     } catch (_) {}
   }
@@ -113,8 +129,29 @@ class _AppShellState extends State<AppShell> {
 
   @override
   void dispose() {
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.macOS ||
+         defaultTargetPlatform == TargetPlatform.linux ||
+         defaultTargetPlatform == TargetPlatform.windows)) {
+      windowManager.removeListener(this);
+    }
     _shellFocus.dispose();
     super.dispose();
+  }
+
+  @override
+  void onWindowEnterFullScreen() {
+    // In macOS fullscreen the title bar collapses — clear the reserved space.
+    if (mounted) setState(() => _titleBarHeight = 0);
+  }
+
+  @override
+  void onWindowLeaveFullScreen() {
+    // Restore immediately from cache — getTitleBarHeight() is unreliable
+    // mid-transition and often returns 0 while the animation is still running.
+    if (mounted) setState(() => _titleBarHeight = _windowedTitleBarHeight);
+    // Then confirm with the real value once the transition has settled.
+    Future.delayed(const Duration(milliseconds: 300), _syncTitleBarHeight);
   }
 
   void _openBookInline(Book book) => setState(() => _readingBook = book);
@@ -188,7 +225,7 @@ class _AppShellState extends State<AppShell> {
     final hasSidebar = _currentIndex != 3;
     final railBg = Theme.of(context).navigationRailTheme.backgroundColor ??
         colorScheme.surfaceContainerLow;
-    final dividerColor = colorScheme.outlineVariant.withValues(alpha: 0.3);
+    final dividerColor = colorScheme.outlineVariant;
 
     return Scaffold(
       body: Stack(
@@ -197,7 +234,7 @@ class _AppShellState extends State<AppShell> {
           if (_titleBarHeight > 0)
             Positioned(
               top: 0, left: 0,
-              width: 72,
+              width: 56,
               height: _titleBarHeight,
               child: ColoredBox(color: railBg),
             ),
@@ -217,7 +254,7 @@ class _AppShellState extends State<AppShell> {
                     thickness: 1, width: 1, color: dividerColor),
                 if (hasSidebar) ...[
                   SizedBox(
-                    width: 260,
+                    width: 240,
                     child: _buildContextPanel(context),
                   ),
                   VerticalDivider(
@@ -278,7 +315,7 @@ class _AppShellState extends State<AppShell> {
     final colorScheme = Theme.of(context).colorScheme;
     final railBg = Theme.of(context).navigationRailTheme.backgroundColor ??
         colorScheme.surfaceContainerLow;
-    final dividerColor = colorScheme.outlineVariant.withValues(alpha: 0.3);
+    final dividerColor = colorScheme.outlineVariant;
 
     return Scaffold(
       body: Stack(
@@ -350,17 +387,25 @@ class _AppShellState extends State<AppShell> {
           children: _screens,
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (i) => setState(() => _currentIndex = i),
-        destinations: List.generate(
-          _destinations.length,
-          (i) => NavigationDestination(
-            icon: Icon(_destinations[i].icon),
-            selectedIcon: Icon(_destinations[i].selectedIcon),
-            label: labels[i],
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Sync progress strip — 2px hairline above the nav bar, visible
+          // on every page of the mobile layout.
+          const _SyncProgressStrip(),
+          NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (i) => setState(() => _currentIndex = i),
+            destinations: List.generate(
+              _destinations.length,
+              (i) => NavigationDestination(
+                icon: Icon(_destinations[i].icon),
+                selectedIcon: Icon(_destinations[i].selectedIcon),
+                label: labels[i],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -464,13 +509,11 @@ class _IconRail extends StatelessWidget {
     final bottomDest = destinations[4];
 
     return Container(
-      width: 72,
+      width: 56,
       color: railBg,
       child: Column(
         children: [
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
           // Main nav items
           ...mainDests.asMap().entries.map((e) {
@@ -485,9 +528,10 @@ class _IconRail extends StatelessWidget {
             );
           }),
 
+          // Sync indicator in the gap above settings.
+          // Shows a small spinning icon while syncing — visible on every page.
           const Spacer(),
-          const Divider(height: 1),
-          const SizedBox(height: 4),
+          _SyncRailIndicator(),
 
           // Settings pinned to the bottom
           _IconRailItem(
@@ -497,7 +541,7 @@ class _IconRail extends StatelessWidget {
             isSelected: selectedIndex == 4,
             onTap: () => onTap(4),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
         ],
       ),
     );
@@ -523,34 +567,114 @@ class _IconRailItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    final brightness = colorScheme.brightness;
+    final selectedBg = brightness == Brightness.light
+        ? colorScheme.primary.withValues(alpha: 0.12)
+        : colorScheme.primary.withValues(alpha: 0.20);
+
     return Tooltip(
       message: label,
       preferBelow: false,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            width: 48,
-            height: 40,
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? colorScheme.primaryContainer.withValues(alpha: 0.7)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              isSelected ? selectedIcon : icon,
-              size: 22,
-              color: isSelected
-                  ? colorScheme.primary
-                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: MokuRadius.smAll,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: isSelected ? selectedBg : Colors.transparent,
+                borderRadius: MokuRadius.smAll,
+              ),
+              child: Icon(
+                isSelected ? selectedIcon : icon,
+                size: 24,
+                color: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Sync indicators ─────────────────────────────────────────────────────────
+
+/// 2 px progress bar shown above the mobile NavigationBar and at the
+/// bottom of the desktop rail. Invisible when idle; indeterminate shimmer
+/// while syncing metadata; determinate fill during a file download.
+class _SyncProgressStrip extends StatelessWidget {
+  const _SyncProgressStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<SyncConfigCubit, SyncConfigState>(
+      buildWhen: (prev, curr) =>
+          prev.status != curr.status ||
+          prev.progress != curr.progress,
+      builder: (context, state) {
+        if (state.status != SyncStatus.syncing) {
+          return const SizedBox.shrink();
+        }
+        final fileProgress = state.progress?.fileProgress;
+        return SizedBox(
+          height: 2,
+          child: LinearProgressIndicator(
+            value: fileProgress,
+            backgroundColor: Colors.transparent,
+            valueColor: AlwaysStoppedAnimation(
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.75),
+            ),
+            minHeight: 2,
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Small spinning sync icon shown in the icon rail between the last nav item
+/// and the settings icon. Only appears while a sync is in flight so it
+/// doesn't clutter the rail when idle.
+class _SyncRailIndicator extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<SyncConfigCubit, SyncConfigState>(
+      buildWhen: (prev, curr) => prev.status != curr.status,
+      builder: (context, state) {
+        if (state.status != SyncStatus.syncing) {
+          return const SizedBox(height: 8); // small gap above settings
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: SizedBox(
+            width: 44,
+            height: 32,
+            child: Center(
+              child: SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  valueColor: AlwaysStoppedAnimation(
+                    Theme.of(context)
+                        .colorScheme
+                        .onSurfaceVariant
+                        .withValues(alpha: 0.45),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

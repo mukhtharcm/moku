@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -111,6 +112,17 @@ class ReaderCubit extends Cubit<ReaderState> {
 
       await loadHighlightsForChapter();
       _beginSession();
+    } on PathNotFoundException catch (_) {
+      // The epub file was deleted or never downloaded (e.g. synced metadata
+      // without the file). Emit a distinct status so the UI can offer a
+      // re-sync rather than just a generic error.
+      emit(state.copyWith(status: ReaderStatus.fileMissing));
+    } on FileSystemException catch (e) {
+      if (e.osError?.errorCode == 2 /* ENOENT */) {
+        emit(state.copyWith(status: ReaderStatus.fileMissing));
+      } else {
+        emit(state.copyWith(status: ReaderStatus.error));
+      }
     } catch (_) {
       emit(state.copyWith(status: ReaderStatus.error));
     }

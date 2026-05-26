@@ -21,59 +21,261 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (migrator, from, to) async {
-      if (from < 2) {
-        // Add 'format' column with default 'epub' for existing rows
-        await customStatement(
-          "ALTER TABLE books ADD COLUMN format TEXT NOT NULL DEFAULT 'epub'",
-        );
-      }
-      if (from < 3) {
-        await migrator.createTable(readingSessions);
-        await migrator.createTable(readingGoals);
-      }
-      if (from < 4) {
-        await migrator.addColumn(books, books.deletedAt);
-        await migrator.addColumn(
-          readingProgresses,
-          readingProgresses.deletedAt,
-        );
-        await migrator.addColumn(bookmarks, bookmarks.updatedAt);
-        await migrator.addColumn(bookmarks, bookmarks.deletedAt);
-        await migrator.addColumn(highlights, highlights.deletedAt);
-        await migrator.addColumn(bookCollections, bookCollections.deletedAt);
-        await migrator.addColumn(collectionBooks, collectionBooks.remoteId);
-        await migrator.addColumn(collectionBooks, collectionBooks.updatedAt);
-        await migrator.addColumn(collectionBooks, collectionBooks.deletedAt);
-      }
-      if (from < 5) {
-        await migrator.addColumn(readingSessions, readingSessions.updatedAt);
-        await migrator.addColumn(readingSessions, readingSessions.deletedAt);
-        await migrator.addColumn(readingGoals, readingGoals.updatedAt);
-        await migrator.addColumn(readingGoals, readingGoals.deletedAt);
-      }
-      if (from < 6) {
-        await migrator.addColumn(books, books.syncPending);
-        await migrator.addColumn(
-          readingProgresses,
-          readingProgresses.syncPending,
-        );
-        await migrator.addColumn(bookmarks, bookmarks.syncPending);
-        await migrator.addColumn(highlights, highlights.syncPending);
-        await migrator.addColumn(bookCollections, bookCollections.syncPending);
-        await migrator.addColumn(collectionBooks, collectionBooks.syncPending);
-        await migrator.addColumn(readingSessions, readingSessions.syncPending);
-        await migrator.addColumn(readingGoals, readingGoals.syncPending);
+      if (from < 7) {
+        await _repairLegacySchema(migrator);
       }
     },
   );
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'moku_db');
+  }
+
+  Future<void> _repairLegacySchema(Migrator migrator) async {
+    await _ensureTable(migrator, readingSessions, 'reading_sessions');
+    await _ensureTable(migrator, readingGoals, 'reading_goals');
+
+    await _ensureColumn(migrator, books, books.format, 'books', 'format');
+    await _ensureColumn(
+      migrator,
+      books,
+      books.deletedAt,
+      'books',
+      'deleted_at',
+    );
+    await _ensureColumn(
+      migrator,
+      books,
+      books.syncPending,
+      'books',
+      'sync_pending',
+    );
+    await _ensureColumn(migrator, books, books.remoteId, 'books', 'remote_id');
+
+    await _ensureColumn(
+      migrator,
+      readingProgresses,
+      readingProgresses.deletedAt,
+      'reading_progresses',
+      'deleted_at',
+    );
+    await _ensureColumn(
+      migrator,
+      readingProgresses,
+      readingProgresses.syncPending,
+      'reading_progresses',
+      'sync_pending',
+    );
+    await _ensureColumn(
+      migrator,
+      readingProgresses,
+      readingProgresses.remoteId,
+      'reading_progresses',
+      'remote_id',
+    );
+
+    await _ensureColumn(
+      migrator,
+      bookmarks,
+      bookmarks.updatedAt,
+      'bookmarks',
+      'updated_at',
+    );
+    await _ensureColumn(
+      migrator,
+      bookmarks,
+      bookmarks.deletedAt,
+      'bookmarks',
+      'deleted_at',
+    );
+    await _ensureColumn(
+      migrator,
+      bookmarks,
+      bookmarks.syncPending,
+      'bookmarks',
+      'sync_pending',
+    );
+    await _ensureColumn(
+      migrator,
+      bookmarks,
+      bookmarks.remoteId,
+      'bookmarks',
+      'remote_id',
+    );
+
+    await _ensureColumn(
+      migrator,
+      highlights,
+      highlights.deletedAt,
+      'highlights',
+      'deleted_at',
+    );
+    await _ensureColumn(
+      migrator,
+      highlights,
+      highlights.syncPending,
+      'highlights',
+      'sync_pending',
+    );
+    await _ensureColumn(
+      migrator,
+      highlights,
+      highlights.remoteId,
+      'highlights',
+      'remote_id',
+    );
+
+    await _ensureColumn(
+      migrator,
+      bookCollections,
+      bookCollections.deletedAt,
+      'book_collections',
+      'deleted_at',
+    );
+    await _ensureColumn(
+      migrator,
+      bookCollections,
+      bookCollections.syncPending,
+      'book_collections',
+      'sync_pending',
+    );
+    await _ensureColumn(
+      migrator,
+      bookCollections,
+      bookCollections.remoteId,
+      'book_collections',
+      'remote_id',
+    );
+
+    await _ensureColumn(
+      migrator,
+      collectionBooks,
+      collectionBooks.remoteId,
+      'collection_books',
+      'remote_id',
+    );
+    await _ensureColumn(
+      migrator,
+      collectionBooks,
+      collectionBooks.updatedAt,
+      'collection_books',
+      'updated_at',
+    );
+    await _ensureColumn(
+      migrator,
+      collectionBooks,
+      collectionBooks.deletedAt,
+      'collection_books',
+      'deleted_at',
+    );
+    await _ensureColumn(
+      migrator,
+      collectionBooks,
+      collectionBooks.syncPending,
+      'collection_books',
+      'sync_pending',
+    );
+
+    await _ensureColumn(
+      migrator,
+      readingSessions,
+      readingSessions.updatedAt,
+      'reading_sessions',
+      'updated_at',
+    );
+    await _ensureColumn(
+      migrator,
+      readingSessions,
+      readingSessions.deletedAt,
+      'reading_sessions',
+      'deleted_at',
+    );
+    await _ensureColumn(
+      migrator,
+      readingSessions,
+      readingSessions.syncPending,
+      'reading_sessions',
+      'sync_pending',
+    );
+    await _ensureColumn(
+      migrator,
+      readingSessions,
+      readingSessions.remoteId,
+      'reading_sessions',
+      'remote_id',
+    );
+
+    await _ensureColumn(
+      migrator,
+      readingGoals,
+      readingGoals.updatedAt,
+      'reading_goals',
+      'updated_at',
+    );
+    await _ensureColumn(
+      migrator,
+      readingGoals,
+      readingGoals.deletedAt,
+      'reading_goals',
+      'deleted_at',
+    );
+    await _ensureColumn(
+      migrator,
+      readingGoals,
+      readingGoals.syncPending,
+      'reading_goals',
+      'sync_pending',
+    );
+    await _ensureColumn(
+      migrator,
+      readingGoals,
+      readingGoals.remoteId,
+      'reading_goals',
+      'remote_id',
+    );
+  }
+
+  Future<void> _ensureTable<T extends Table, D>(
+    Migrator migrator,
+    TableInfo<T, D> table,
+    String tableName,
+  ) async {
+    if (await _tableExists(tableName)) return;
+    await migrator.createTable(table);
+  }
+
+  Future<void> _ensureColumn<T extends Table, D>(
+    Migrator migrator,
+    TableInfo<T, D> table,
+    GeneratedColumn column,
+    String tableName,
+    String columnName,
+  ) async {
+    if (await _columnExists(tableName, columnName)) return;
+    await migrator.addColumn(table, column);
+  }
+
+  Future<bool> _tableExists(String tableName) async {
+    final result = await customSelect(
+      'SELECT name FROM sqlite_master WHERE type = ? AND name = ? LIMIT 1',
+      variables: [Variable.withString('table'), Variable.withString(tableName)],
+    ).getSingleOrNull();
+    return result != null;
+  }
+
+  Future<bool> _columnExists(String tableName, String columnName) async {
+    final rows = await customSelect('PRAGMA table_info($tableName)').get();
+    for (final row in rows) {
+      if (row.read<String>('name') == columnName) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // --- Book queries ---
@@ -608,7 +810,8 @@ class AppDatabase extends _$AppDatabase {
 
     final collectionCovers = await select(bookCollections).get();
     for (final collection in collectionCovers) {
-      if (collection.coverPath case final coverPath? when coverPath.isNotEmpty) {
+      if (collection.coverPath case final coverPath?
+          when coverPath.isNotEmpty) {
         localAssetPaths.add(coverPath);
       }
     }

@@ -7,6 +7,7 @@ import 'package:pocketbase/pocketbase.dart';
 
 import '../database/database.dart';
 import '../services/path_resolver.dart';
+import 'sync_config.dart';
 
 /// Result of a sync run.
 /// `syncedAt` is only set when ALL collections succeeded — partial successes
@@ -64,8 +65,14 @@ class SyncEngine {
 
   /// Called when a sync stage fails with (collection, error).
   void Function(String collection, String error)? onError;
+  void Function(SyncProgress)? onProgress;
 
-  SyncEngine({required this.pb, required this.db, this.onError});
+  SyncEngine({
+    required this.pb,
+    required this.db,
+    this.onError,
+    this.onProgress,
+  });
 
   DateTime? get lastSyncAt => _lastSyncAt;
 
@@ -151,41 +158,49 @@ class SyncEngine {
       }
 
       try {
+        onProgress?.call(const SyncProgress(stage: 'books'));
         await _syncBooks();
       } catch (e, st) {
         _reportError('books', e, st, failed);
       }
       try {
+        onProgress?.call(const SyncProgress(stage: 'reading_progress'));
         await _syncReadingProgress();
       } catch (e, st) {
         _reportError('reading_progress', e, st, failed);
       }
       try {
+        onProgress?.call(const SyncProgress(stage: 'bookmarks'));
         await _syncBookmarks();
       } catch (e, st) {
         _reportError('bookmarks', e, st, failed);
       }
       try {
+        onProgress?.call(const SyncProgress(stage: 'highlights'));
         await _syncHighlights();
       } catch (e, st) {
         _reportError('highlights', e, st, failed);
       }
       try {
+        onProgress?.call(const SyncProgress(stage: 'collections'));
         await _syncCollections();
       } catch (e, st) {
         _reportError('collections', e, st, failed);
       }
       try {
+        onProgress?.call(const SyncProgress(stage: 'collection_books'));
         await _syncCollectionBooks();
       } catch (e, st) {
         _reportError('collection_books', e, st, failed);
       }
       try {
+        onProgress?.call(const SyncProgress(stage: 'reading_sessions'));
         await _syncReadingSessions();
       } catch (e, st) {
         _reportError('reading_sessions', e, st, failed);
       }
       try {
+        onProgress?.call(const SyncProgress(stage: 'reading_goals'));
         await _syncReadingGoals();
       } catch (e, st) {
         _reportError('reading_goals', e, st, failed);
@@ -310,6 +325,13 @@ class SyncEngine {
             ),
           );
         }
+        // Even when metadata is up-to-date, the local epub file may have been
+        // deleted (re-install, sandbox move, first-time cross-device sync that
+        // only created the DB record without a file). Re-download if missing.
+        final resolvedPath = PathResolver.resolve(existingBook.filePath);
+        if (!File(resolvedPath).existsSync()) {
+          await _redownloadBookFile(record, existingBook);
+        }
       } else {
         // Check if we already have this book by file hash
         final fileHash = record.getStringValue('file_hash');
@@ -345,7 +367,60 @@ class SyncEngine {
     }
   }
 
-  Future<void> _downloadAndCreateBook(RecordModel record) async {
+  /// Downloads [url] to [destFile] with streaming progress callbacks.
+  /// Returns the number of bytes written, or -1 on failure.
+  /// [fileName] is used only for progress reporting.
+  Future<int> _streamDownload(
+    Uri url,
+    File destFile, {
+    required String fileName,
+    int filesDone = 0,
+    int filesTotal = -1,
+  }) async {
+    final client = http.Client();
+    IOSink? sink;
+    try {
+      final request = http.Request('GET', url);
+      final streamed = await client
+          .send(request)
+          .timeout(const Duration(minutes: 10));
+      if (streamed.statusCode != 200) return -1;
+
+      final contentLength = streamed.contentLength ?? -1;
+      sink = destFile.openWrite();
+      int received = 0;
+
+      await for (final chunk in streamed.stream) {
+        sink.add(chunk);
+        received += chunk.length;
+        onProgress?.call(SyncProgress(
+          stage: 'books',
+          filesDone: filesDone,
+          filesTotal: filesTotal,
+          bytesReceived: received,
+          bytesTotal: contentLength,
+          currentFileName: fileName,
+        ));
+      }
+      await sink.close();
+      sink = null;
+      return received;
+    } catch (_) {
+      // Stream interrupted or timed out — close the sink and delete the
+      // partial file so retries start clean.
+      try { await sink?.close(); } catch (_) {}
+      try { if (await destFile.exists()) await destFile.delete(); } catch (_) {}
+      rethrow; // let the caller's catch handle it
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<void> _downloadAndCreateBook(
+    RecordModel record, {
+    int filesDone = 0,
+    int filesTotal = -1,
+  }) async {
     try {
       final remoteFilename = _getRemoteBookFilename(record);
       if (remoteFilename.isEmpty) return;
@@ -353,32 +428,50 @@ class SyncEngine {
         record.getStringValue('format'),
         filename: remoteFilename,
       );
-      final resolvedFilename = remoteFilename;
 
-      final fileUrl = pb.files.getUrl(record, resolvedFilename);
-      final response = await http.get(fileUrl);
-      if (response.statusCode != 200) return;
-
-      // Save to app documents directory using moku_books structure
+      final fileUrl = pb.files.getUrl(record, remoteFilename);
       final basePath = PathResolver.basePath;
-      final absFilePath = '$basePath/moku_books/${record.id}_$resolvedFilename';
+      final absFilePath =
+          '$basePath/moku_books/${record.id}_$remoteFilename';
       final file = File(absFilePath);
       await file.parent.create(recursive: true);
-      await file.writeAsBytes(response.bodyBytes);
+
+      final written = await _streamDownload(
+        fileUrl,
+        file,
+        fileName: remoteFilename,
+        filesDone: filesDone,
+        filesTotal: filesTotal,
+      );
+      if (written < 1024) {
+        // Empty or suspiciously small: server returned an error body
+        // instead of the epub, or the transfer was truncated.
+        try { await file.delete(); } catch (_) {}
+        _reportError(
+          'books',
+          'Downloaded file for ${record.id} is too small ($written bytes, minimum 1024)',
+          null,
+        );
+        return;
+      }
 
       String? relCoverPath;
       final coverFilename = record.getStringValue('cover_image');
       if (coverFilename.isNotEmpty) {
         final coverUrl = pb.files.getUrl(record, coverFilename);
-        final coverResp = await http.get(coverUrl);
-        if (coverResp.statusCode == 200) {
-          final absCoverPath =
-              '$basePath/moku_books/covers/${record.id}_$coverFilename';
-          final coverFile = File(absCoverPath);
-          await coverFile.parent.create(recursive: true);
-          await coverFile.writeAsBytes(coverResp.bodyBytes);
-          relCoverPath = PathResolver.toRelative(absCoverPath);
-        }
+        try {
+          final coverResp = await http.Client()
+              .get(coverUrl)
+              .timeout(const Duration(seconds: 30));
+          if (coverResp.statusCode == 200 && coverResp.bodyBytes.isNotEmpty) {
+            final absCoverPath =
+                '$basePath/moku_books/covers/${record.id}_$coverFilename';
+            final coverFile = File(absCoverPath);
+            await coverFile.parent.create(recursive: true);
+            await coverFile.writeAsBytes(coverResp.bodyBytes);
+            relCoverPath = PathResolver.toRelative(absCoverPath);
+          }
+        } catch (_) {} // cover is optional — never block on it
       }
 
       final remoteUpdated =
@@ -2544,6 +2637,46 @@ class SyncEngine {
       deletedAt: const Value(null),
       syncPending: const Value(false),
     );
+  }
+
+  /// Re-downloads the epub file for an existing book whose local file is
+  /// missing (e.g. after an app re-install or sandbox migration). Updates
+  /// `filePath` in-place so reading progress and annotations are preserved.
+  Future<void> _redownloadBookFile(
+    RecordModel record,
+    Book existingBook,
+  ) async {
+    try {
+      final remoteFilename = _getRemoteBookFilename(record);
+      if (remoteFilename.isEmpty) return;
+
+      final fileUrl = pb.files.getUrl(record, remoteFilename);
+      final basePath = PathResolver.basePath;
+      final absFilePath =
+          '$basePath/moku_books/${record.id}_$remoteFilename';
+      final file = File(absFilePath);
+      await file.parent.create(recursive: true);
+
+      final written = await _streamDownload(
+        fileUrl,
+        file,
+        fileName: remoteFilename,
+      );
+      if (written < 1024) {
+        try { await file.delete(); } catch (_) {}
+        return;
+      }
+
+      // Update filePath on the existing record so all linked data is kept.
+      await (db.update(db.books)
+            ..where((b) => b.id.equals(existingBook.id)))
+          .write(BooksCompanion(
+        filePath: Value(PathResolver.toRelative(absFilePath)),
+        updatedAt: Value(DateTime.now()),
+      ));
+    } catch (e, st) {
+      _reportError('books', e, st);
+    }
   }
 
   Future<void> _deleteLocalBookFiles(Book book) async {

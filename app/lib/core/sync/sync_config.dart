@@ -36,6 +36,47 @@ class SyncConfig extends Equatable {
 
 enum SyncStatus { disconnected, connecting, connected, syncing, error }
 
+/// Granular progress for the current sync run, surfaced to the UI.
+class SyncProgress {
+  /// Human-readable name of the entity collection being synced
+  /// (e.g. "books", "reading_progress").
+  final String stage;
+
+  /// How many epub files have been fully downloaded this run.
+  final int filesDone;
+
+  /// Total epub files to download this run (known after the initial
+  /// record list is fetched). -1 = not yet known.
+  final int filesTotal;
+
+  /// Bytes received for the file currently being downloaded.
+  final int bytesReceived;
+
+  /// Total bytes for the file currently being downloaded.
+  /// -1 = Content-Length not known.
+  final int bytesTotal;
+
+  /// Filename being downloaded (for display).
+  final String? currentFileName;
+
+  const SyncProgress({
+    this.stage = '',
+    this.filesDone = 0,
+    this.filesTotal = -1,
+    this.bytesReceived = 0,
+    this.bytesTotal = -1,
+    this.currentFileName,
+  });
+
+  /// 0.0–1.0 progress for the current file download, or null if unknown.
+  double? get fileProgress => (bytesTotal > 0)
+      ? (bytesReceived / bytesTotal).clamp(0.0, 1.0)
+      : null;
+
+  /// True while an epub file is actively being streamed.
+  bool get isDownloading => currentFileName != null;
+}
+
 class SyncError {
   final String collection;
   final String message;
@@ -54,6 +95,7 @@ class SyncConfigState extends Equatable {
   final String? errorMessage;
   final bool isAuthenticated;
   final List<SyncError> recentErrors;
+  final SyncProgress? progress;
 
   const SyncConfigState({
     this.config = const SyncConfig(),
@@ -61,6 +103,7 @@ class SyncConfigState extends Equatable {
     this.errorMessage,
     this.isAuthenticated = false,
     this.recentErrors = const [],
+    this.progress,
   });
 
   SyncConfigState copyWith({
@@ -69,6 +112,8 @@ class SyncConfigState extends Equatable {
     String? errorMessage,
     bool? isAuthenticated,
     List<SyncError>? recentErrors,
+    SyncProgress? progress,
+    bool clearProgress = false,
   }) {
     return SyncConfigState(
       config: config ?? this.config,
@@ -76,11 +121,14 @@ class SyncConfigState extends Equatable {
       errorMessage: errorMessage,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       recentErrors: recentErrors ?? this.recentErrors,
+      progress: clearProgress ? null : (progress ?? this.progress),
     );
   }
 
   @override
-  List<Object?> get props => [config, status, errorMessage, isAuthenticated, recentErrors];
+  List<Object?> get props => [
+    config, status, errorMessage, isAuthenticated, recentErrors, progress,
+  ];
 }
 
 class SyncConfigCubit extends Cubit<SyncConfigState> {
@@ -144,10 +192,22 @@ class SyncConfigCubit extends Cubit<SyncConfigState> {
   }
 
   void setStatus(SyncStatus status, {String? errorMessage}) {
+    final shouldClearProgress = status != SyncStatus.syncing;
     emit(state.copyWith(
       status: status,
       errorMessage: errorMessage,
+      clearProgress: shouldClearProgress,
     ));
+  }
+
+  /// Update granular download progress during a sync run.
+  void setProgress(SyncProgress progress) {
+    emit(state.copyWith(progress: progress));
+  }
+
+  /// Clear progress (called when a sync run finishes).
+  void clearProgress() {
+    emit(state.copyWith(clearProgress: true));
   }
 
   void setAuthenticated(bool authenticated) {

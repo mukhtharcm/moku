@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/tokens.dart';
 import '../../../l10n/l10n.dart';
 import '../../library/cubit/library_cubit.dart';
 import '../../../app_shell.dart';
@@ -205,7 +205,7 @@ class _WelcomePage extends StatelessWidget {
             const Spacer(flex: 2),
 
             // App icon representation — bookmark shape
-            _BookmarkIcon(size: 120, color: MokuTheme.warmAccent),
+            _BookmarkIcon(size: 120, color: MokuColors.coral),
             const SizedBox(height: 32),
 
             // Title

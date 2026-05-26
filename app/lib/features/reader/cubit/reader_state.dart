@@ -4,7 +4,7 @@ import '../../../core/models/models.dart';
 import '../../../core/services/book_service.dart';
 import '../../../core/theme/app_theme.dart';
 
-enum ReaderStatus { initial, loading, loaded, error }
+enum ReaderStatus { initial, loading, loaded, error, fileMissing }
 
 /// Available font families for the reader
 enum ReaderFontFamily {

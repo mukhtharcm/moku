@@ -92,33 +92,37 @@ class MokuPanelItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final vPad = compact ? MokuSpacing.s1 + 2 : MokuSpacing.s2 + 2;
+    final vPad = compact ? MokuSpacing.s1 : MokuSpacing.s2;
+
+    // Neutral selection — desktop-app style row highlight, slightly
+    // tinted with the primary so the active row still reads as "active".
+    final selectedBg = colorScheme.brightness == Brightness.light
+        ? colorScheme.primary.withValues(alpha: 0.10)
+        : colorScheme.primary.withValues(alpha: 0.18);
 
     return InkWell(
       onTap: onTap,
-      borderRadius: MokuRadius.mdAll,
+      borderRadius: MokuRadius.smAll,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
+        duration: const Duration(milliseconds: 120),
         curve: Curves.easeOut,
         margin: const EdgeInsets.symmetric(
-          horizontal: MokuSpacing.s1 + 2,
+          horizontal: MokuSpacing.s1,
           vertical: 1,
         ),
         padding: EdgeInsets.symmetric(
-          horizontal: MokuSpacing.s2 + 2,
+          horizontal: MokuSpacing.s2,
           vertical: vPad,
         ),
         decoration: BoxDecoration(
-          color: selected
-              ? colorScheme.primaryContainer.withValues(alpha: 0.55)
-              : Colors.transparent,
-          borderRadius: MokuRadius.mdAll,
+          color: selected ? selectedBg : Colors.transparent,
+          borderRadius: MokuRadius.smAll,
         ),
         child: Row(
           children: [
             if (leading != null) ...[
               leading!,
-              const SizedBox(width: MokuSpacing.s2 + 2),
+              const SizedBox(width: MokuSpacing.s2),
             ],
             Expanded(
               child: Column(
@@ -143,8 +147,7 @@ class MokuPanelItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: MokuText.caption(
-                        color: colorScheme.onSurfaceVariant
-                            .withValues(alpha: 0.65),
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],

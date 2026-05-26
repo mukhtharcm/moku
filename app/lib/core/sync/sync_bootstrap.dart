@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:developer';
 
+import 'package:pocketbase/pocketbase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../database/database.dart';
@@ -32,6 +33,7 @@ class SyncBootstrap {
   static const _lastSyncAtKey = 'sync_last_sync_at';
 
   SyncEngine? _engine;
+  final List<UnsubscribeFunc> _realtimeSubs = [];
 
   SyncEngine? get engine => _engine;
   AuthService get auth => authService;
@@ -68,6 +70,7 @@ class SyncBootstrap {
           const Duration(seconds: 5),
           onTimeout: () => null,
         );
+    await _stopRealtime();
     autoSyncService.detach();
     await authService.logout();
     _engine = null;
@@ -99,6 +102,62 @@ class SyncBootstrap {
       },
     );
     autoSyncService.attach(_engine!);
+    _startRealtime(pb);
+  }
+
+  /// Subscribe to PocketBase realtime events so changes from other devices
+  /// arrive within a second rather than waiting for the next periodic sync.
+  Future<void> _startRealtime(PocketBase pb) async {
+    // Cancel any previous subscriptions first.
+    await _stopRealtime();
+    if (!pb.authStore.isValid) return;
+    final userId = authService.userId;
+    if (userId == null) return;
+
+    // Collections where we want instant push on create/update/delete.
+    const collections = [
+      'books',
+      'reading_progress',
+      'bookmarks',
+      'highlights',
+      'book_collections',
+      'collection_books',
+      'reading_sessions',
+      'reading_goals',
+    ];
+
+    for (final col in collections) {
+      try {
+        final unsub = await pb.collection(col).subscribe(
+          '*',
+          (event) => _handleRealtimeEvent(col, event),
+          filter: 'user = "$userId"',
+        );
+        _realtimeSubs.add(unsub);
+      } catch (e) {
+        log('realtime subscribe $col failed: $e', name: 'SyncBootstrap');
+      }
+    }
+    log('Realtime subscriptions active', name: 'SyncBootstrap');
+  }
+
+  Future<void> _stopRealtime() async {
+    for (final unsub in _realtimeSubs) {
+      try { await unsub(); } catch (_) {}
+    }
+    _realtimeSubs.clear();
+  }
+
+  void _handleRealtimeEvent(String collection, RecordSubscriptionEvent event) {
+    final engine = _engine;
+    if (engine == null) return;
+    // Debounce: let the auto-sync service decide if a run is already in flight.
+    // A simple dirty-bump is enough: the next sync will pick up the exact diff.
+    autoSyncService.markDirty();
+    log(
+      'realtime $collection ${event.action}',
+      name: 'SyncBootstrap',
+    );
   }
 
   Future<void> _prepareAuthenticatedIdentity(String serverUrl) async {
