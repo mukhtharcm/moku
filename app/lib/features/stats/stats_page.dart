@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/database/database.dart';
 import '../../core/ui/ui.dart';
@@ -32,7 +33,6 @@ class _StatsView extends StatelessWidget {
     final isDesktop = MediaQuery.sizeOf(context).width >= 1000;
 
     return Scaffold(
-      // On desktop the nav rail already communicates location — skip the AppBar.
       appBar: isDesktop
           ? null
           : AppBar(title: Text(l10n.statsTitle), centerTitle: false),
@@ -45,41 +45,28 @@ class _StatsView extends StatelessWidget {
           if (state.status == StatsStatus.error) {
             return Center(child: Text(l10n.statsErrorFallback));
           }
+
+          if (isDesktop) return _DesktopDashboard(state: state);
+
+          // Mobile / tablet: single-column list
           return RefreshIndicator(
             onRefresh: () => context.read<StatsCubit>().load(),
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 900),
                 child: ListView(
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    isDesktop ? 20 : 16,
-                    20,
-                    20,
-                  ),
+                  padding: const EdgeInsets.all(MokuSpacing.s4),
                   children: [
-                    if (isDesktop) ...[
-                      Text(
-                        l10n.statsTitle,
-                        style: MokuText.sectionHeading(),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
                     StreakCard(
                       currentStreak: state.currentStreak,
                       longestStreak: state.longestStreak,
                     ),
-                    const SizedBox(height: 16),
-                    _SummaryCards(state: state),
-                    const SizedBox(height: 16),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: ActivityHeatmap(dailyMinutes: state.dailyMinutes),
-                      ),
-                    ),
+                    const SizedBox(height: MokuSpacing.s4),
+                    _SummaryRow(state: state),
+                    const SizedBox(height: MokuSpacing.s4),
+                    _HeatmapCard(state: state),
                     if (state.recentSessions.isNotEmpty) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: MokuSpacing.s4),
                       _RecentSessions(sessions: state.recentSessions),
                     ],
                   ],
@@ -93,9 +80,137 @@ class _StatsView extends StatelessWidget {
   }
 }
 
-class _SummaryCards extends StatelessWidget {
+// ── Desktop two-column dashboard ─────────────────────────────────────────────
+
+class _DesktopDashboard extends StatelessWidget {
   final StatsState state;
-  const _SummaryCards({required this.state});
+  const _DesktopDashboard({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    return RefreshIndicator(
+      onRefresh: () => context.read<StatsCubit>().load(),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(
+          MokuSpacing.s8, MokuSpacing.s5,
+          MokuSpacing.s8, MokuSpacing.s8,
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 960),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.statsTitle,
+                  style: MokuText.pageHeading(),
+                ),
+                const SizedBox(height: MokuSpacing.s6),
+
+                // Row 1: Streak (left) + 3 stat tiles stacked (right)
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: _Surface(
+                          child: StreakCard(
+                            currentStreak: state.currentStreak,
+                            longestStreak: state.longestStreak,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: MokuSpacing.s3),
+                      Expanded(
+                        flex: 3,
+                        child: _SummaryRow(
+                          state: state,
+                          vertical: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: MokuSpacing.s4),
+
+                // Row 2: Activity heatmap
+                _HeatmapCard(state: state),
+
+                // Row 3: Recent sessions
+                if (state.recentSessions.isNotEmpty) ...[
+                  const SizedBox(height: MokuSpacing.s4),
+                  _RecentSessions(sessions: state.recentSessions),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Shared surface container ──────────────────────────────────────────────────
+
+class _Surface extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+
+  const _Surface({required this.child, this.padding});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: MokuRadius.lgAll,
+        border: Border.all(
+          color: cs.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+// ── Heatmap card ──────────────────────────────────────────────────────────────
+
+class _HeatmapCard extends StatelessWidget {
+  final StatsState state;
+  const _HeatmapCard({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return _Surface(
+      padding: const EdgeInsets.all(MokuSpacing.s5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ActivityHeatmap owns its own statsReadingActivity semantic header;
+          // don't duplicate it here.
+          const SizedBox(height: MokuSpacing.s3),
+          ActivityHeatmap(dailyMinutes: state.dailyMinutes),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Summary row (mobile) / column (desktop) ───────────────────────────────────
+
+class _SummaryRow extends StatelessWidget {
+  final StatsState state;
+  final bool vertical;
+
+  const _SummaryRow({required this.state, this.vertical = false});
 
   @override
   Widget build(BuildContext context) {
@@ -105,78 +220,115 @@ class _SummaryCards extends StatelessWidget {
     final timeLabel = h > 0
         ? l10n.statsDurationHoursMinutes(hours: h, minutes: m)
         : l10n.statsDurationMinutes(minutes: m);
-    final sessionCountLabel = l10n.statsSessionCount(
-      count: state.totalSessions,
-    );
+
+    final tiles = [
+      _StatTile(
+        icon: Icons.schedule_rounded,
+        iconColor: const Color(0xFF3B82F6),
+        value: timeLabel,
+        label: l10n.statsTotalTime,
+      ),
+      _StatTile(
+        icon: Icons.menu_book_rounded,
+        iconColor: const Color(0xFF22C55E),
+        value: '${state.booksReadThisYear}',
+        label: l10n.statsBooksStartedThisYear,
+      ),
+      _StatTile(
+        icon: Icons.library_books_rounded,
+        iconColor: const Color(0xFFA855F7),
+        value: '${state.totalSessions}',
+        label: l10n.statsSessions,
+      ),
+    ];
+
+    if (vertical) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: tiles[0]),
+          const SizedBox(height: MokuSpacing.s2),
+          Expanded(child: tiles[1]),
+          const SizedBox(height: MokuSpacing.s2),
+          Expanded(child: tiles[2]),
+        ],
+      );
+    }
 
     return Row(
       children: [
-        Expanded(
-          child: _StatCard(
-            icon: Icons.schedule_rounded,
-            iconColor: Colors.blue,
-            value: timeLabel,
-            label: l10n.statsTotalTime,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _StatCard(
-            icon: Icons.menu_book_rounded,
-            iconColor: Colors.green,
-            value: '${state.booksReadThisYear}',
-            label: l10n.statsBooksStartedThisYear,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _StatCard(
-            icon: Icons.library_books_rounded,
-            iconColor: Colors.purple,
-            value: '${state.totalSessions}',
-            label: sessionCountLabel,
-            visualLabel: l10n.statsSessions,
-          ),
-        ),
+        Expanded(child: tiles[0]),
+        const SizedBox(width: MokuSpacing.s3),
+        Expanded(child: tiles[1]),
+        const SizedBox(width: MokuSpacing.s3),
+        Expanded(child: tiles[2]),
       ],
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
+// ── Stat tile ─────────────────────────────────────────────────────────────────
+
+class _StatTile extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final String value;
   final String label;
-  final String? visualLabel;
 
-  const _StatCard({
+  const _StatTile({
     required this.icon,
     required this.iconColor,
     required this.value,
     required this.label,
-    this.visualLabel,
   });
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
 
     return StatsSemanticNode(
       label: label,
       value: value,
-      child: Card(
+      child: _Surface(
         child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.symmetric(
+            horizontal: MokuSpacing.s4,
+            vertical: MokuSpacing.s3,
+          ),
+          child: Row(
             children: [
-              Icon(icon, color: iconColor, size: 18),
-              const SizedBox(height: 6),
-              Text(
-                value,
-                style: MokuText.sectionHeading(),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.12),
+                  borderRadius: MokuRadius.smAll,
+                ),
+                child: Icon(icon, size: 18, color: iconColor),
               ),
-              Text(visualLabel ?? label, style: MokuText.caption()),
+              const SizedBox(width: MokuSpacing.s3),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      value,
+                      style: GoogleFonts.instrumentSerif(
+                        fontSize: MokuTypeSize.h3,
+                        fontWeight: FontWeight.w400,
+                        height: 1.1,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                    Text(
+                      label,
+                      style: MokuText.caption(
+                          color: cs.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -184,6 +336,8 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
+
+// ── Recent sessions ───────────────────────────────────────────────────────────
 
 class _RecentSessions extends StatelessWidget {
   final List<ReadingSession> sessions;
@@ -191,73 +345,104 @@ class _RecentSessions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
 
     return StatsSemanticSection(
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: StatsSemanticNode(
-                  label: context.l10n.statsRecentSessions,
-                  header: true,
-                  child: Text(
-                    context.l10n.statsRecentSessions,
-                    style: MokuText.bodySmall(weight: FontWeight.w700),
-                  ),
+      child: _Surface(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                MokuSpacing.s4, MokuSpacing.s4,
+                MokuSpacing.s4, MokuSpacing.s2,
+              ),
+              child: StatsSemanticNode(
+                label: context.l10n.statsRecentSessions,
+                header: true,
+                child: Text(
+                  context.l10n.statsRecentSessions,
+                  style: MokuText.sectionLabel(
+                      color: cs.onSurfaceVariant),
                 ),
               ),
-              const SizedBox(height: 4),
-              ...sessions.map((s) => _SessionTile(session: s)),
-            ],
-          ),
+            ),
+            Divider(
+                height: 1,
+                color: cs.outlineVariant.withValues(alpha: 0.4)),
+            ...sessions.map((s) => _SessionRow(session: s)),
+          ],
         ),
       ),
     );
   }
 }
 
-class _SessionTile extends StatelessWidget {
+class _SessionRow extends StatelessWidget {
   final ReadingSession session;
-  const _SessionTile({required this.session});
+  const _SessionRow({required this.session});
 
   @override
   Widget build(BuildContext context) {
-
+    final cs = Theme.of(context).colorScheme;
     final localizations = MaterialLocalizations.of(context);
     final h = session.durationSeconds ~/ 3600;
     final m = (session.durationSeconds % 3600) ~/ 60;
     final duration = h > 0
         ? context.l10n.statsDurationHoursMinutes(hours: h, minutes: m)
         : context.l10n.statsDurationMinutes(minutes: m);
-    final date = session.startedAt;
-    final dateLabel = localizations.formatShortDate(date);
+    final dateLabel = localizations.formatShortDate(session.startedAt);
 
-    return Column(
-      children: [
-        StatsSemanticNode(
-          label: session.bookTitle,
-          value: '$dateLabel, $duration',
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              session.bookTitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+    return StatsSemanticNode(
+      label: session.bookTitle,
+      value: '$dateLabel · $duration',
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: MokuSpacing.s4,
+              vertical: MokuSpacing.s2 + 2,
             ),
-            subtitle: Text(dateLabel),
-            trailing: Chip(
-              label: Text(duration, style: MokuText.caption()),
-              padding: EdgeInsets.zero,
-              visualDensity: VisualDensity.compact,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    session.bookTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: MokuText.bodySmall(),
+                  ),
+                ),
+                const SizedBox(width: MokuSpacing.s4),
+                Text(
+                  dateLabel,
+                  style: MokuText.caption(
+                      color: cs.onSurfaceVariant),
+                ),
+                const SizedBox(width: MokuSpacing.s3),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: MokuSpacing.s2,
+                      vertical: MokuSpacing.s1),
+                  decoration: BoxDecoration(
+                    color: cs.primaryContainer
+                        .withValues(alpha: 0.5),
+                    borderRadius: MokuRadius.xsAll,
+                  ),
+                  child: Text(
+                    duration,
+                    style: MokuText.micro(
+                        color: cs.onPrimaryContainer),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        const Divider(height: 1),
-      ],
+          Divider(
+              height: 1,
+              color: cs.outlineVariant.withValues(alpha: 0.3)),
+        ],
+      ),
     );
   }
 }
