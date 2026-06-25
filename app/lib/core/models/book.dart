@@ -35,6 +35,7 @@ enum BookFormat {
     'cbz',
     'html',
     'htm',
+    'xhtml',
   ];
 }
 
