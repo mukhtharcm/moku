@@ -44,10 +44,10 @@ class ReaderScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // PDF and CBZ get their own dedicated reader screens
     if (book.format == BookFormat.pdf) {
-      return PdfReaderScreen(book: book);
+      return PdfReaderScreen(book: book, onClose: onClose);
     }
     if (book.format == BookFormat.cbz) {
-      return CbzReaderScreen(book: book);
+      return CbzReaderScreen(book: book, onClose: onClose);
     }
 
     // EPUB, TXT, HTML all use the WebView-based reader
@@ -1841,7 +1841,12 @@ class _ReaderSidePanelState extends State<_ReaderSidePanel>
   Future<void> _loadBookmarks() async {
     final db = context.read<ReaderCubit>().database;
     final bm = await db.getBookmarksForBook(widget.book.id);
-    if (mounted) setState(() { _bookmarks = bm; _loaded = true; });
+    if (mounted) {
+      setState(() {
+        _bookmarks = bm;
+        _loaded = true;
+      });
+    }
   }
 
   @override

@@ -15,8 +15,9 @@ import '../../../l10n/l10n.dart';
 /// Displays images in a full-screen page viewer with swipe navigation.
 class CbzReaderScreen extends StatefulWidget {
   final Book book;
+  final VoidCallback? onClose;
 
-  const CbzReaderScreen({super.key, required this.book});
+  const CbzReaderScreen({super.key, required this.book, this.onClose});
 
   @override
   State<CbzReaderScreen> createState() => _CbzReaderScreenState();
@@ -164,6 +165,15 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
     } catch (_) {}
   }
 
+  void _closeReader() {
+    final onClose = widget.onClose;
+    if (onClose != null) {
+      onClose();
+      return;
+    }
+    Navigator.of(context).pop();
+  }
+
   Widget _buildPage(int index) {
     if (_imageCache.containsKey(index)) {
       return InteractiveViewer(
@@ -259,7 +269,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                         tooltip: MaterialLocalizations.of(
                           context,
                         ).backButtonTooltip,
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: _closeReader,
                       ),
                       Expanded(
                         child: Text(
