@@ -22,24 +22,30 @@ import 'package:moku/l10n/l10n.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const pathProviderChannel = MethodChannel('plugins.flutter.io/path_provider');
+  const fontAssets = [
+    'google_fonts/InstrumentSerif-Regular.ttf',
+    'google_fonts/DMSans-Regular.ttf',
+    'google_fonts/DMSans-Medium.ttf',
+    'google_fonts/DMSans-SemiBold.ttf',
+    'google_fonts/DMSans-Bold.ttf',
+    'google_fonts/Literata-Bold.ttf',
+  ];
 
   late Directory tempDir;
-  late Uint8List literataFontBytes;
+  late Uint8List fontBytes;
   late String coverPath;
 
   setUpAll(() async {
     GoogleFonts.config.allowRuntimeFetching = false;
     tempDir = await Directory.systemTemp.createTemp('moku_test');
-    literataFontBytes = await File(
-      '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-    ).readAsBytes();
+    fontBytes = await _loadTestFontBytes();
     coverPath = '${tempDir.path}/cover.png';
     await File(coverPath).writeAsBytes(
       base64Decode(
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9l9tAAAAAASUVORK5CYII=',
       ),
     );
-    assetManifest = _TestAssetManifest(['google_fonts/Literata-Bold.ttf']);
+    assetManifest = _TestAssetManifest(fontAssets);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(pathProviderChannel, (methodCall) async {
           switch (methodCall.method) {
@@ -61,8 +67,8 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMessageHandler('flutter/assets', (message) async {
           final assetKey = utf8.decode(message!.buffer.asUint8List());
-          if (assetKey == 'google_fonts/Literata-Bold.ttf') {
-            return ByteData.sublistView(Uint8List.fromList(literataFontBytes));
+          if (fontAssets.contains(assetKey)) {
+            return ByteData.sublistView(Uint8List.fromList(fontBytes));
           }
           return null;
         });
@@ -188,9 +194,33 @@ void main() {
 
 Future<void> _settleGoogleFonts(WidgetTester tester) async {
   await GoogleFonts.pendingFonts([
+    GoogleFonts.instrumentSerif(),
+    GoogleFonts.dmSans(),
+    GoogleFonts.dmSans(fontWeight: FontWeight.w500),
+    GoogleFonts.dmSans(fontWeight: FontWeight.w600),
+    GoogleFonts.dmSans(fontWeight: FontWeight.w700),
     GoogleFonts.literata(fontWeight: FontWeight.w700),
   ]);
   await tester.pumpAndSettle();
+}
+
+Future<Uint8List> _loadTestFontBytes() async {
+  const candidatePaths = [
+    '/System/Library/Fonts/SFNS.ttf',
+    '/System/Library/Fonts/SFNSMono.ttf',
+    '/Library/Fonts/Arial Unicode.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    '/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf',
+  ];
+
+  for (final path in candidatePaths) {
+    final file = File(path);
+    if (file.existsSync()) {
+      return file.readAsBytes();
+    }
+  }
+
+  throw StateError('No usable test font found on this machine.');
 }
 
 Future<void> _pumpCollectionsScreen(
