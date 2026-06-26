@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,7 +10,8 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../../core/database/database.dart'
     hide Book, Bookmark, Highlight, BookCollection;
-import '../../../core/database/database.dart' as db_rec
+import '../../../core/database/database.dart'
+    as db_rec
     show Bookmark, Highlight;
 import '../../../core/localization/bidi_text.dart';
 import '../../../core/models/book.dart';
@@ -34,6 +36,7 @@ import 'cbz_reader_screen.dart';
 
 class ReaderScreen extends StatelessWidget {
   final Book book;
+
   /// When provided the close/back action calls this instead of Navigator.pop.
   /// Used for inline desktop embedding — the shell controls navigation.
   final VoidCallback? onClose;
@@ -119,6 +122,8 @@ class _ReaderViewState extends State<_ReaderView>
   late Animation<double> _zenHintOpacity;
   Timer? _zenHintTimer;
   Timer? _bookmarkToastTimer;
+  Timer? _resizeSyncTimer;
+  Size? _lastReaderViewportSize;
 
   @override
   void initState() {
@@ -129,7 +134,8 @@ class _ReaderViewState extends State<_ReaderView>
     // Open the sidebar by default on desktop after the first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && !_sidebarInitialized) {
-        final nativeDesktop = !kIsWeb &&
+        final nativeDesktop =
+            !kIsWeb &&
             (defaultTargetPlatform == TargetPlatform.macOS ||
                 defaultTargetPlatform == TargetPlatform.linux ||
                 defaultTargetPlatform == TargetPlatform.windows);
@@ -205,6 +211,7 @@ class _ReaderViewState extends State<_ReaderView>
     WidgetsBinding.instance.removeObserver(this);
     _zenHintTimer?.cancel();
     _bookmarkToastTimer?.cancel();
+    _resizeSyncTimer?.cancel();
     _zenHintController.dispose();
     _keyboardFocus.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -242,6 +249,23 @@ class _ReaderViewState extends State<_ReaderView>
           _bookmarkToastVisible = false;
         });
       }
+    });
+  }
+
+  void _scheduleWebViewResizeSync(Size size) {
+    if (!_webViewReady || size.width <= 0 || size.height <= 0) return;
+    if (_lastReaderViewportSize == size) return;
+    _lastReaderViewportSize = size;
+
+    _resizeSyncTimer?.cancel();
+    _resizeSyncTimer = Timer(const Duration(milliseconds: 80), () {
+      if (!mounted || !_webViewReady) return;
+      _webController.runJavaScript(
+        'if(window.mokuPagination&&'
+        'typeof window.mokuPagination.handleResize==="function"){'
+        'window.mokuPagination.handleResize();'
+        '}',
+      );
     });
   }
 
@@ -720,12 +744,30 @@ window._mokuPageDirection = '$pageProgressionDirection';
 var mokuPagination = {
   currentPage: 0,
   totalPages: 1,
+  resizeTimer: null,
+
+  pageWidth: function() {
+    var viewport = document.getElementById('moku-viewport');
+    var width = viewport ? viewport.clientWidth : 0;
+    return Math.max(
+      1,
+      width || window.innerWidth || document.documentElement.clientWidth || 1
+    );
+  },
+
+  recalculateTotalPages: function() {
+    var content = document.getElementById('moku-content');
+    if (!content) return;
+    this.totalPages = Math.max(
+      1,
+      Math.ceil(content.scrollWidth / this.pageWidth())
+    );
+  },
 
   init: function() {
     var content = document.getElementById('moku-content');
     if (!content) return;
-    var pageWidth = window.innerWidth;
-    this.totalPages = Math.max(1, Math.ceil(content.scrollWidth / pageWidth));
+    this.recalculateTotalPages();
 
     var start = window._mokuStartPosition || { type: 'first' };
     if (start.type === 'last') {
@@ -744,11 +786,13 @@ var mokuPagination = {
     page = Math.max(0, Math.min(page, this.totalPages - 1));
     this.currentPage = page;
     var content = document.getElementById('moku-content');
+    if (!content) return;
     if (skipAnimation) {
       content.style.transition = 'none';
       content.offsetHeight;
     }
-    content.style.transform = 'translateX(' + (-page * window.innerWidth) + 'px)';
+    content.style.transform =
+      'translate3d(' + (-page * this.pageWidth()) + 'px,0,0)';
     if (skipAnimation) {
       content.offsetHeight;
       content.style.transition = 'transform 0.25s ease-out';
@@ -780,8 +824,22 @@ var mokuPagination = {
     var el = document.getElementById(fragmentId);
     if (!el) { this.goToPage(0, true); return; }
     var rect = el.getBoundingClientRect();
-    var page = Math.floor((rect.left + this.currentPage * window.innerWidth) / window.innerWidth);
+    var pageWidth = this.pageWidth();
+    var page = Math.floor((rect.left + this.currentPage * pageWidth) / pageWidth);
     this.goToPage(Math.max(0, page), true);
+  },
+
+  handleResize: function() {
+    var self = this;
+    clearTimeout(this.resizeTimer);
+    this.resizeTimer = setTimeout(function() {
+      var progress = self.totalPages > 1
+        ? self.currentPage / Math.max(self.totalPages - 1, 1)
+        : 0;
+      self.recalculateTotalPages();
+      var page = Math.round(progress * Math.max(self.totalPages - 1, 0));
+      self.goToPage(page, true);
+    }, 40);
   }
 };
 
@@ -826,7 +884,7 @@ document.addEventListener('click', function(e) {
   if (sel && sel.toString().trim().length > 0) return;
 
   var x = e.clientX;
-  var w = window.innerWidth;
+  var w = mokuPagination.pageWidth();
   var now = Date.now();
 
   if (now - _mokuLastTap < 300) {
@@ -974,9 +1032,9 @@ function scrollToHighlightText(text) {
     if (spans[i].textContent.indexOf(text) !== -1 ||
         text.indexOf(spans[i].textContent) !== -1) {
       var rect = spans[i].getBoundingClientRect();
+      var pageWidth = mokuPagination.pageWidth();
       var page = Math.floor(
-        (rect.left + mokuPagination.currentPage * window.innerWidth) /
-          window.innerWidth
+        (rect.left + mokuPagination.currentPage * pageWidth) / pageWidth
       );
       mokuPagination.goToPage(Math.max(0, page));
       return;
@@ -1003,9 +1061,9 @@ function scrollToHighlightText(text) {
       range.setStart(n.node, idx - n.start);
       range.setEnd(n.node, Math.min(n.node.textContent.length, idx - n.start + text.length));
       var rect = range.getBoundingClientRect();
+      var pageWidth = mokuPagination.pageWidth();
       var page = Math.floor(
-        (rect.left + mokuPagination.currentPage * window.innerWidth) /
-          window.innerWidth
+        (rect.left + mokuPagination.currentPage * pageWidth) / pageWidth
       );
       mokuPagination.goToPage(Math.max(0, page));
       return;
@@ -1019,6 +1077,15 @@ window.addEventListener('load', function() {
     mokuPagination.init();
   }, 100);
 });
+
+window.addEventListener('resize', function() {
+  mokuPagination.handleResize();
+});
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', function() {
+    mokuPagination.handleResize();
+  });
+}
 </script>
 </body>
 </html>
@@ -1133,10 +1200,9 @@ window.addEventListener('load', function() {
                           ? Icons.cloud_download_outlined
                           : Icons.error_outline_rounded,
                       size: 52,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurfaceVariant
-                          .withValues(alpha: 0.4),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                     ),
                     const SizedBox(height: 20),
                     Text(
@@ -1150,27 +1216,20 @@ window.addEventListener('load', function() {
                     Text(
                       isMissing
                           ? 'The epub was not downloaded yet or was removed '
-                            'from this device. Sync now to re-download it.'
+                                'from this device. Sync now to re-download it.'
                           : l10n.readerUnknownError,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant,
-                          ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                       textAlign: TextAlign.center,
                     ),
-                    if (isMissing) ...[  
+                    if (isMissing) ...[
                       const SizedBox(height: 24),
                       FilledButton.icon(
                         icon: const Icon(Icons.sync_rounded),
                         label: const Text('Sync Now'),
                         onPressed: () {
-                          context
-                              .read<AutoSyncService>()
-                              .syncNow();
+                          context.read<AutoSyncService>().syncNow();
                           Navigator.pop(context);
                         },
                       ),
@@ -1188,251 +1247,265 @@ window.addEventListener('load', function() {
           SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
         }
 
-        final isDesktop = !kIsWeb && (defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.linux || defaultTargetPlatform == TargetPlatform.windows);
+        final isDesktop =
+            !kIsWeb &&
+            (defaultTargetPlatform == TargetPlatform.macOS ||
+                defaultTargetPlatform == TargetPlatform.linux ||
+                defaultTargetPlatform == TargetPlatform.windows);
         final readerStack = Stack(
           children: [
-              // WebView reader — always respect top safe area to avoid notch
-              SafeArea(
-                top: true,
-                bottom: !state.zenMode,
-                child: WebViewWidget(controller: _webController),
+            // WebView reader — always respect top safe area to avoid notch
+            SafeArea(
+              top: true,
+              bottom: !state.zenMode,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final size = constraints.biggest;
+                  if (size.width.isFinite && size.height.isFinite) {
+                    _scheduleWebViewResizeSync(size);
+                  }
+                  return WebViewWidget(controller: _webController);
+                },
+              ),
+            ),
+
+            if (!state.showControls)
+              _buildReaderAccessibilitySurface(context, state),
+
+            // Top/bottom overlay controls — mobile only.
+            // On desktop the persistent _DesktopReaderToolbar replaces these.
+            if (state.showControls && !state.zenMode && !isDesktop)
+              _TopControls(
+                title: bookTitleLabel(context, state.book.title),
+                chapterTitle: readerChapterTitle(
+                  context,
+                  state,
+                  state.currentChapter,
+                ),
+                onZenMode: () => context.read<ReaderCubit>().toggleZenMode(),
+                onToggleSidebar: isDesktop
+                    ? () => setState(() => _sidebarVisible = !_sidebarVisible)
+                    : null,
+                sidebarVisible: _sidebarVisible,
               ),
 
-              if (!state.showControls)
-                _buildReaderAccessibilitySurface(context, state),
-
-              // Top/bottom overlay controls — mobile only.
-              // On desktop the persistent _DesktopReaderToolbar replaces these.
-              if (state.showControls && !state.zenMode && !isDesktop)
-                _TopControls(
-                  title: bookTitleLabel(context, state.book.title),
-                  chapterTitle: readerChapterTitle(
-                    context,
-                    state,
-                    state.currentChapter,
-                  ),
-                  onZenMode: () => context.read<ReaderCubit>().toggleZenMode(),
-                  onToggleSidebar: isDesktop
-                      ? () => setState(() => _sidebarVisible = !_sidebarVisible)
-                      : null,
-                  sidebarVisible: _sidebarVisible,
-                ),
-
-              // Bottom controls
-              if (state.showControls && !state.zenMode && !isDesktop)
-                _BottomControls(
-                  state: state,
-                  bookmarkConfirmed: _bookmarkToastVisible,
-                  onToc: () => context.read<ReaderCubit>().toggleToc(),
-                  onSettings: () => _showSettingsSheet(context),
-                  onBookmark: () async {
-                    await context.read<ReaderCubit>().addBookmark(
-                      readerChapterTitle(context, state, state.currentChapter),
-                    );
-                    if (!context.mounted) return;
-                    _showBookmarkToast();
-                  },
-                  onAnnotations: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BlocProvider.value(
-                        value: context.read<ReaderCubit>(),
-                        child: AnnotationsScreen(book: state.book),
-                      ),
+            // Bottom controls
+            if (state.showControls && !state.zenMode && !isDesktop)
+              _BottomControls(
+                state: state,
+                bookmarkConfirmed: _bookmarkToastVisible,
+                onToc: () => context.read<ReaderCubit>().toggleToc(),
+                onSettings: () => _showSettingsSheet(context),
+                onBookmark: () async {
+                  await context.read<ReaderCubit>().addBookmark(
+                    readerChapterTitle(context, state, state.currentChapter),
+                  );
+                  if (!context.mounted) return;
+                  _showBookmarkToast();
+                },
+                onAnnotations: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider.value(
+                      value: context.read<ReaderCubit>(),
+                      child: AnnotationsScreen(book: state.book),
                     ),
                   ),
-                  onPageScrub: (page) {
+                ),
+                onPageScrub: (page) {
+                  _webController.runJavaScript(
+                    'mokuPagination.goToPage($page);',
+                  );
+                },
+                onBookScrub: (progress) {
+                  final cubit = context.read<ReaderCubit>();
+                  final totalCh = cubit.state.chapters.length;
+                  if (totalCh == 0) return;
+                  // Convert 0.0–1.0 progress to chapter + fraction
+                  final scaled = progress * totalCh;
+                  final chapter = scaled.floor().clamp(0, totalCh - 1);
+                  final fraction = scaled - chapter;
+                  if (chapter != cubit.state.currentChapter) {
+                    _pendingStartPosition = 'fraction:$fraction';
+                    cubit.goToChapter(chapter);
+                  } else {
+                    // Same chapter — just scrub within it
+                    final page = (fraction * (cubit.state.totalPages - 1))
+                        .round()
+                        .clamp(0, cubit.state.totalPages - 1);
                     _webController.runJavaScript(
                       'mokuPagination.goToPage($page);',
                     );
-                  },
-                  onBookScrub: (progress) {
-                    final cubit = context.read<ReaderCubit>();
-                    final totalCh = cubit.state.chapters.length;
-                    if (totalCh == 0) return;
-                    // Convert 0.0–1.0 progress to chapter + fraction
-                    final scaled = progress * totalCh;
-                    final chapter = scaled.floor().clamp(0, totalCh - 1);
-                    final fraction = scaled - chapter;
-                    if (chapter != cubit.state.currentChapter) {
-                      _pendingStartPosition = 'fraction:$fraction';
-                      cubit.goToChapter(chapter);
-                    } else {
-                      // Same chapter — just scrub within it
-                      final page = (fraction * (cubit.state.totalPages - 1))
-                          .round()
-                          .clamp(0, cubit.state.totalPages - 1);
-                      _webController.runJavaScript(
-                        'mokuPagination.goToPage($page);',
-                      );
-                    }
-                  },
-                ),
+                  }
+                },
+              ),
 
-              if (_bookmarkToastVisible && !state.zenMode)
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 132,
-                  child: SafeArea(
-                    top: false,
-                    child: Semantics(
-                      liveRegion: true,
-                      label: context.l10n.readerBookmarkAdded,
-                      child: IgnorePointer(
-                        child: Center(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.78),
-                              borderRadius: BorderRadius.circular(MokuRadius.pill),
+            if (_bookmarkToastVisible && !state.zenMode)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 132,
+                child: SafeArea(
+                  top: false,
+                  child: Semantics(
+                    liveRegion: true,
+                    label: context.l10n.readerBookmarkAdded,
+                    child: IgnorePointer(
+                      child: Center(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.78),
+                            borderRadius: BorderRadius.circular(
+                              MokuRadius.pill,
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.bookmark_added_rounded,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.bookmark_added_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  context.l10n.readerBookmarkAdded,
+                                  style: const TextStyle(
                                     color: Colors.white,
-                                    size: 18,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    context.l10n.readerBookmarkAdded,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
-
-              // Selection highlight FAB
-              if (_selectedText != null &&
-                  _selectedText!.isNotEmpty &&
-                  !state.zenMode)
-                Positioned(
-                  bottom: 80,
-                  right: 16,
-                  child: FloatingActionButton.extended(
-                    heroTag: 'reader_highlight',
-                    onPressed: () => _showHighlightActions(context),
-                    icon: const Icon(Icons.highlight_rounded),
-                    label: Text(l10n.readerHighlight),
-                  ),
-                ),
-
-              // TOC drawer
-              if (state.showToc && !state.zenMode)
-                _TocDrawer(
-                  chapters: state.chapters,
-                  currentChapter: state.currentChapter,
-                  onChapterTap: (index) {
-                    final fragment = state.chapters[index].fragment;
-                    _pendingStartPosition = fragment != null
-                        ? 'fragment:$fragment'
-                        : 'first';
-                    context.read<ReaderCubit>().goToChapter(index);
-                  },
-                  onClose: () => context.read<ReaderCubit>().toggleToc(),
-                ),
-
-              // Progress bar — always visible, even in zen
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: AnimatedOpacity(
-                  opacity: state.zenMode ? 0.3 : 0.8,
-                  duration: MokuMotion.normal,
-                  child: LinearProgressIndicator(
-                    value: state.chapters.isEmpty
-                        ? 0
-                        : (state.currentChapter + state.scrollProgress) /
-                              state.chapters.length,
-                    minHeight: state.zenMode ? 1.5 : 2.5,
-                    backgroundColor: Colors.transparent,
-                    valueColor: AlwaysStoppedAnimation(
-                      Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
               ),
 
-              // Zen mode exit overlay — shows on center-tap, fades after 3s
-              if (state.zenMode && _zenExitOverlayVisible)
-                Positioned(
-                  bottom: 40,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: FadeTransition(
-                      opacity: _zenHintOpacity,
-                      child: GestureDetector(
-                        onTap: () {
-                          _zenHintTimer?.cancel();
-                          setState(() {
-                            _zenExitOverlayVisible = false;
-                          });
-                          context.read<ReaderCubit>().toggleZenMode();
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 10,
+            // Selection highlight FAB
+            if (_selectedText != null &&
+                _selectedText!.isNotEmpty &&
+                !state.zenMode)
+              Positioned(
+                bottom: 80,
+                right: 16,
+                child: FloatingActionButton.extended(
+                  heroTag: 'reader_highlight',
+                  onPressed: () => _showHighlightActions(context),
+                  icon: const Icon(Icons.highlight_rounded),
+                  label: Text(l10n.readerHighlight),
+                ),
+              ),
+
+            // TOC drawer
+            if (state.showToc && !state.zenMode)
+              _TocDrawer(
+                chapters: state.chapters,
+                currentChapter: state.currentChapter,
+                onChapterTap: (index) {
+                  final fragment = state.chapters[index].fragment;
+                  _pendingStartPosition = fragment != null
+                      ? 'fragment:$fragment'
+                      : 'first';
+                  context.read<ReaderCubit>().goToChapter(index);
+                },
+                onClose: () => context.read<ReaderCubit>().toggleToc(),
+              ),
+
+            // Progress bar — always visible, even in zen
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: AnimatedOpacity(
+                opacity: state.zenMode ? 0.3 : 0.8,
+                duration: MokuMotion.normal,
+                child: LinearProgressIndicator(
+                  value: state.chapters.isEmpty
+                      ? 0
+                      : (state.currentChapter + state.scrollProgress) /
+                            state.chapters.length,
+                  minHeight: state.zenMode ? 1.5 : 2.5,
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation(
+                    Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.6),
+                  ),
+                ),
+              ),
+            ),
+
+            // Zen mode exit overlay — shows on center-tap, fades after 3s
+            if (state.zenMode && _zenExitOverlayVisible)
+              Positioned(
+                bottom: 40,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: FadeTransition(
+                    opacity: _zenHintOpacity,
+                    child: GestureDetector(
+                      onTap: () {
+                        _zenHintTimer?.cancel();
+                        setState(() {
+                          _zenExitOverlayVisible = false;
+                        });
+                        context.read<ReaderCubit>().toggleZenMode();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black87,
+                          borderRadius: BorderRadius.circular(MokuRadius.pill),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
                           ),
-                          decoration: BoxDecoration(
-                            color: Colors.black87,
-                            borderRadius: BorderRadius.circular(MokuRadius.pill),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.close_rounded,
+                              color: Colors.white.withValues(alpha: 0.9),
+                              size: 16,
                             ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.close_rounded,
+                            const SizedBox(width: 8),
+                            Text(
+                              isDesktop
+                                  ? 'Exit Zen  Esc / Z'
+                                  : l10n.readerExitZenMode,
+                              style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.9),
-                                size: 16,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                isDesktop
-                                    ? 'Exit Zen  Esc / Z'
-                                    : l10n.readerExitZenMode,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
                 ),
-            ],
-          );
+              ),
+          ],
+        );
 
         final readerContent = isDesktop && !state.zenMode
             ? Row(
                 children: [
-                  if (_sidebarVisible) ...[  
+                  if (_sidebarVisible) ...[
                     SizedBox(
                       width: 260,
                       child: _ReaderSidePanel(
@@ -1443,10 +1516,9 @@ window.addEventListener('load', function() {
                     VerticalDivider(
                       thickness: 1,
                       width: 1,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .outlineVariant
-                          .withValues(alpha: 0.3),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withValues(alpha: 0.3),
                     ),
                   ],
                   Expanded(child: readerStack),
@@ -1469,7 +1541,8 @@ window.addEventListener('load', function() {
                           setState(() => _sidebarVisible = !_sidebarVisible),
                       onBookmark: () => _addBookmarkFromKeyboard(),
                       onSettings: () => _showSettingsSheet(context),
-                      onZenMode: () => context.read<ReaderCubit>().toggleZenMode(),
+                      onZenMode: () =>
+                          context.read<ReaderCubit>().toggleZenMode(),
                     ),
                     Expanded(child: readerContent),
                   ],
@@ -1492,7 +1565,11 @@ window.addEventListener('load', function() {
   }
 
   void _showSettingsSheet(BuildContext context) {
-    final isDesktop = !kIsWeb && (defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.linux || defaultTargetPlatform == TargetPlatform.windows);
+    final isDesktop =
+        !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.macOS ||
+            defaultTargetPlatform == TargetPlatform.linux ||
+            defaultTargetPlatform == TargetPlatform.windows);
     final cubit = context.read<ReaderCubit>();
 
     if (isDesktop) {
@@ -1522,10 +1599,8 @@ window.addEventListener('load', function() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => BlocProvider.value(
-        value: cubit,
-        child: const _ReaderSettingsSheet(),
-      ),
+      builder: (_) =>
+          BlocProvider.value(value: cubit, child: const _ReaderSettingsSheet()),
     );
   }
 
@@ -1610,8 +1685,10 @@ window.addEventListener('load', function() {
     // ← : prev page
     if (key == LogicalKeyboardKey.arrowLeft ||
         key == LogicalKeyboardKey.pageUp) {
-      final prev = (cubit.state.currentPage - 1)
-          .clamp(0, cubit.state.totalPages - 1);
+      final prev = (cubit.state.currentPage - 1).clamp(
+        0,
+        cubit.state.totalPages - 1,
+      );
       if (prev != cubit.state.currentPage) {
         _webController.runJavaScript('mokuPagination.goToPage($prev);');
       } else if (cubit.state.hasPreviousChapter) {
@@ -1625,16 +1702,17 @@ window.addEventListener('load', function() {
     if (key == LogicalKeyboardKey.arrowRight ||
         key == LogicalKeyboardKey.space ||
         key == LogicalKeyboardKey.pageDown) {
-      final next = (cubit.state.currentPage + 1)
-          .clamp(0, cubit.state.totalPages - 1);
+      final next = (cubit.state.currentPage + 1).clamp(
+        0,
+        cubit.state.totalPages - 1,
+      );
       if (next != cubit.state.currentPage) {
         _webController.runJavaScript('mokuPagination.goToPage($next);');
       } else if (cubit.state.hasNextChapter) {
         cubit.nextChapter();
       }
-    }  // end next-page if
-  }    // end _handleKeyEvent
-
+    } // end next-page if
+  } // end _handleKeyEvent
 } // end _ReaderViewState
 
 // Parses a CSS hex colour string (#RRGGBB / #AARRGGBB) to a Flutter Color.
@@ -1719,13 +1797,19 @@ class _DesktopReaderToolbar extends StatelessWidget {
                       children: [
                         Text(
                           bookTitleLabel(context, state.book.title),
-                          style: MokuText.serifNum(MokuTypeSize.small, color: fg),
+                          style: MokuText.serifNum(
+                            MokuTypeSize.small,
+                            color: fg,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           readerChapterTitle(
-                              context, state, state.currentChapter),
+                            context,
+                            state,
+                            state.currentChapter,
+                          ),
                           style: TextStyle(
                             color: dim,
                             fontSize: MokuTypeSize.tiny,
@@ -1764,8 +1848,7 @@ class _DesktopReaderToolbar extends StatelessWidget {
 
                   // Reading settings
                   IconButton(
-                    icon: Icon(Icons.text_fields_rounded,
-                        color: fg, size: 18),
+                    icon: Icon(Icons.text_fields_rounded, color: fg, size: 18),
                     onPressed: onSettings,
                     tooltip: 'Reading Settings',
                     visualDensity: VisualDensity.compact,
@@ -1773,11 +1856,7 @@ class _DesktopReaderToolbar extends StatelessWidget {
 
                   // Zen mode
                   IconButton(
-                    icon: Icon(
-                      Icons.crop_free_rounded,
-                      color: fg,
-                      size: 18,
-                    ),
+                    icon: Icon(Icons.crop_free_rounded, color: fg, size: 18),
                     onPressed: onZenMode,
                     tooltip: 'Zen Mode  Z',
                     visualDensity: VisualDensity.compact,
@@ -1787,8 +1866,7 @@ class _DesktopReaderToolbar extends StatelessWidget {
                   IconButton(
                     icon: Icon(
                       Icons.format_list_bulleted_rounded,
-                      color:
-                          sidebarVisible ? colorScheme.primary : fg,
+                      color: sidebarVisible ? colorScheme.primary : fg,
                       size: 18,
                     ),
                     onPressed: onToggleSidebar,
@@ -1816,10 +1894,7 @@ class _ReaderSidePanel extends StatefulWidget {
   final Book book;
   final ReaderTheme readerTheme;
 
-  const _ReaderSidePanel({
-    required this.book,
-    required this.readerTheme,
-  });
+  const _ReaderSidePanel({required this.book, required this.readerTheme});
 
   @override
   State<_ReaderSidePanel> createState() => _ReaderSidePanelState();
@@ -1874,22 +1949,25 @@ class _ReaderSidePanelState extends State<_ReaderSidePanel>
             child: TabBar(
               controller: _tabs,
               labelStyle: MokuText.micro(
-                  weight: FontWeight.w700, color: colorScheme.primary),
-              unselectedLabelStyle:
-                  MokuText.micro(color: fg.withValues(alpha: 0.5)),
+                weight: FontWeight.w700,
+                color: colorScheme.primary,
+              ),
+              unselectedLabelStyle: MokuText.micro(
+                color: fg.withValues(alpha: 0.5),
+              ),
               indicatorColor: colorScheme.primary,
               indicatorSize: TabBarIndicatorSize.tab,
               dividerColor: divCol,
               tabs: const [
+                Tab(icon: Icon(Icons.list_rounded, size: 15), text: 'CONTENTS'),
                 Tab(
-                    icon: Icon(Icons.list_rounded, size: 15),
-                    text: 'CONTENTS'),
+                  icon: Icon(Icons.bookmark_outline_rounded, size: 15),
+                  text: 'MARKS',
+                ),
                 Tab(
-                    icon: Icon(Icons.bookmark_outline_rounded, size: 15),
-                    text: 'MARKS'),
-                Tab(
-                    icon: Icon(Icons.highlight_rounded, size: 15),
-                    text: 'NOTES'),
+                  icon: Icon(Icons.highlight_rounded, size: 15),
+                  text: 'NOTES',
+                ),
               ],
             ),
           ),
@@ -1951,9 +2029,11 @@ class _TocTab extends StatelessWidget {
             decoration: BoxDecoration(
               border: isCurrent
                   ? Border(
-                      left: BorderSide(
-                          color: colorScheme.primary, width: 3))
-                  : const Border(left: BorderSide(width: 3, color: Colors.transparent)),
+                      left: BorderSide(color: colorScheme.primary, width: 3),
+                    )
+                  : const Border(
+                      left: BorderSide(width: 3, color: Colors.transparent),
+                    ),
             ),
             child: Text(
               ch.title,
@@ -1961,8 +2041,7 @@ class _TocTab extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: isCurrent
                   ? MokuText.bookTitleSmall(color: colorScheme.primary)
-                  : MokuText.bodySmall(
-                      color: readerFg.withValues(alpha: 0.8)),
+                  : MokuText.bodySmall(color: readerFg.withValues(alpha: 0.8)),
             ),
           ),
         );
@@ -1994,13 +2073,16 @@ class _BookmarksSideTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.bookmark_border_rounded,
-                size: 32,
-                color: readerFg.withValues(alpha: 0.25)),
+            Icon(
+              Icons.bookmark_border_rounded,
+              size: 32,
+              color: readerFg.withValues(alpha: 0.25),
+            ),
             const SizedBox(height: MokuSpacing.s3),
-            Text('No bookmarks yet',
-                style: MokuText.caption(
-                    color: readerFg.withValues(alpha: 0.45))),
+            Text(
+              'No bookmarks yet',
+              style: MokuText.caption(color: readerFg.withValues(alpha: 0.45)),
+            ),
           ],
         ),
       );
@@ -2010,16 +2092,17 @@ class _BookmarksSideTab extends StatelessWidget {
       itemCount: bookmarks.length,
       itemBuilder: (_, i) {
         final bm = bookmarks[i];
-        final chTitle =
-            readerChapterTitle(context, state, bm.chapterIndex);
+        final chTitle = readerChapterTitle(context, state, bm.chapterIndex);
         return MokuPanelItem(
           compact: true,
-          leading: Icon(Icons.bookmark_rounded,
-              size: 14, color: colorScheme.primary),
+          leading: Icon(
+            Icons.bookmark_rounded,
+            size: 14,
+            color: colorScheme.primary,
+          ),
           title: bm.title,
           subtitle: chTitle,
-          onTap: () =>
-              context.read<ReaderCubit>().goToChapter(bm.chapterIndex),
+          onTap: () => context.read<ReaderCubit>().goToChapter(bm.chapterIndex),
         );
       },
     );
@@ -2046,13 +2129,16 @@ class _HighlightsSideTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.highlight_off_rounded,
-                size: 32,
-                color: readerFg.withValues(alpha: 0.25)),
+            Icon(
+              Icons.highlight_off_rounded,
+              size: 32,
+              color: readerFg.withValues(alpha: 0.25),
+            ),
             const SizedBox(height: MokuSpacing.s3),
-            Text('No highlights yet',
-                style: MokuText.caption(
-                    color: readerFg.withValues(alpha: 0.45))),
+            Text(
+              'No highlights yet',
+              style: MokuText.caption(color: readerFg.withValues(alpha: 0.45)),
+            ),
           ],
         ),
       );
@@ -2062,24 +2148,28 @@ class _HighlightsSideTab extends StatelessWidget {
       itemCount: highlights.length,
       itemBuilder: (_, i) {
         final h = highlights[i];
-        final chTitle =
-            readerChapterTitle(context, state, h.chapterIndex);
+        final chTitle = readerChapterTitle(context, state, h.chapterIndex);
         final highlightColor = _parseHighlightColor(h.color);
         return InkWell(
-          onTap: () => context
-              .read<ReaderCubit>()
-              .goToHighlight(h.chapterIndex, h.selectedText),
+          onTap: () => context.read<ReaderCubit>().goToHighlight(
+            h.chapterIndex,
+            h.selectedText,
+          ),
           child: Padding(
             padding: const EdgeInsets.symmetric(
-                horizontal: MokuSpacing.s3,
-                vertical: MokuSpacing.s2),
+              horizontal: MokuSpacing.s3,
+              vertical: MokuSpacing.s2,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.fromLTRB(
-                      MokuSpacing.s2, MokuSpacing.s1,
-                      MokuSpacing.s2, MokuSpacing.s1 + 2),
+                    MokuSpacing.s2,
+                    MokuSpacing.s1,
+                    MokuSpacing.s2,
+                    MokuSpacing.s1 + 2,
+                  ),
                   decoration: BoxDecoration(
                     color: highlightColor.withValues(alpha: 0.2),
                     borderRadius: const BorderRadius.only(
@@ -2087,21 +2177,25 @@ class _HighlightsSideTab extends StatelessWidget {
                       bottomRight: Radius.circular(MokuRadius.xs),
                     ),
                     border: Border(
-                        left: BorderSide(
-                            color: highlightColor, width: 2.5)),
+                      left: BorderSide(color: highlightColor, width: 2.5),
+                    ),
                   ),
                   child: Text(
                     h.selectedText,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: MokuText.bodySmall(
-                        color: readerFg.withValues(alpha: 0.8)),
+                      color: readerFg.withValues(alpha: 0.8),
+                    ),
                   ),
                 ),
                 const SizedBox(height: MokuSpacing.s1),
-                Text(chTitle,
-                    style: MokuText.caption(
-                        color: readerFg.withValues(alpha: 0.4))),
+                Text(
+                  chTitle,
+                  style: MokuText.caption(
+                    color: readerFg.withValues(alpha: 0.4),
+                  ),
+                ),
               ],
             ),
           ),
@@ -2168,7 +2262,10 @@ class _TopControls extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: MokuText.serifNum(MokuTypeSize.bodyM, color: Colors.white),
+                        style: MokuText.serifNum(
+                          MokuTypeSize.bodyM,
+                          color: Colors.white,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
