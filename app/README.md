@@ -1,17 +1,43 @@
-# moku
+# Moku Flutter App
 
-A new Flutter project.
+This is the shared Flutter client for Moku. It currently targets iOS, Android, and macOS from the same Dart codebase.
 
-## Getting Started
+## Run Locally
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+Use an explicit device when switching platforms:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+flutter run -d macos
+flutter run -d ios
+flutter run -d android
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Test
+
+```bash
+flutter test
+```
+
+## Build
+
+```bash
+# iOS archive/IPA; CI passes signing/export options.
+flutter build ipa --release
+
+# macOS release app bundle.
+flutter build macos --release
+
+# Android APKs.
+flutter build apk --release --split-per-abi
+```
+
+## Release Notes
+
+- iOS distribution is handled by the root `Deploy to TestFlight` GitHub Actions workflow.
+- macOS distribution is handled by the root `Release macOS App` workflow and `.github/scripts/package_macos_flutter.sh`.
+- Android canary builds are handled by the root `Build Android Canary` workflow.

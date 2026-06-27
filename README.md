@@ -4,7 +4,13 @@
   <strong>Read anywhere. Sync everywhere.</strong>
 </p>
 
-Moku is an open-source, offline-first ebook reader for iOS, Android, and macOS with optional self-hostable sync. Read your books locally without any server, or connect to your own PocketBase instance to sync your library, reading progress, bookmarks, highlights, and collections across devices.
+<p align="center">
+  <a href="https://testflight.apple.com/join/s3K7DF7H">Join the iOS TestFlight</a>
+  ·
+  <a href="https://github.com/mukhtharcm/moku/releases/latest">Download the macOS app</a>
+</p>
+
+Moku is an open-source, offline-first ebook reader for iOS, Android, and macOS with optional self-hostable sync. Read locally without any server, or connect to your own PocketBase instance to sync your library, reading progress, bookmarks, highlights, and collections across devices.
 
 ## ✨ Features
 
@@ -20,32 +26,35 @@ Moku is an open-source, offline-first ebook reader for iOS, Android, and macOS w
 - **🎯 Whole-Book Progress** — Scrub across the entire book, not just within a chapter
 - **🖋️ Font Customization** — Font family, size, line height, and margins for a personalized reading experience
 
+## 🚦 Availability
+
+- **iOS** — Public TestFlight is available at [testflight.apple.com/join/s3K7DF7H](https://testflight.apple.com/join/s3K7DF7H)
+- **macOS** — Signed and notarized DMG/ZIP releases are published on [GitHub Releases](https://github.com/mukhtharcm/moku/releases/latest)
+- **Android** — Signed canary APKs are produced by CI and delivered as workflow/Telegram artifacts
+- **App Store production** — Not publicly released yet; current iOS distribution is TestFlight
+
 ## 🏗️ Architecture
 
 ```
 moku/
-├── app/       # Flutter mobile app (iOS + Android)
-├── macos-app/ # Native macOS app (Swift + SwiftUI)
-└── server/    # PocketBase server (Go, self-hostable)
+├── app/       # Flutter app for iOS, Android, and macOS
+├── server/    # PocketBase server (Go, self-hostable)
+├── website/   # Cloudflare Pages site
+└── .github/   # CI/CD workflows and packaging scripts
 ```
 
-### App (`app/`)
-- **Flutter** — Cross-platform UI framework
+### Flutter App (`app/`)
+
+- **Flutter** — Shared app code for iOS, Android, and macOS
 - **Bloc/Cubit** — Predictable state management
 - **Drift** — Type-safe SQLite ORM for local storage
 - **WebView** — EPUB rendering with custom CSS/JS for highlights
 - **Material 3** — Modern, adaptive design system
+- **Platform runners** — Native iOS, Android, and Flutter macOS shells
 - **5 format parsers** — EPUB, PDF, CBZ, TXT, HTML
 
-### macOS App (`macos-app/`)
-- **SwiftUI + SwiftData** — Native macOS framework with type-safe persistence
-- **WKWebView** — EPUB rendering with custom JS pagination engine
-- **PDFKit** — Native PDF reading
-- **Multi-window** — Open multiple books simultaneously
-- **Keyboard shortcuts** — ⌘O import, ⌘D bookmark, ⌘± font, ⌘] chapter, ⌘⇧F zen mode
-- **Drag & drop** — Import books by dropping files onto the library
-
 ### Server (`server/`)
+
 - **PocketBase** — Extended Go server with custom collections
 - **Docker** — Easy self-hosting with multi-stage build
 - **Auth** — Email/password authentication
@@ -53,7 +62,7 @@ moku/
 
 ## 🚀 Getting Started
 
-### Flutter App (iOS & Android)
+### App Development
 
 ```bash
 cd app
@@ -61,16 +70,25 @@ flutter pub get
 flutter run
 ```
 
-### macOS App
+Pick a specific target when needed:
 
 ```bash
-cd macos-app
-# Open in Xcode after generating the project:
-xcodegen generate
-open Moku.xcodeproj
+flutter run -d macos
+flutter run -d ios
+flutter run -d android
 ```
 
-Or download the latest release from [GitHub Releases](https://github.com/mukhtharcm/moku/releases).
+Run tests from the Flutter app directory:
+
+```bash
+cd app
+flutter test
+```
+
+### Prebuilt Builds
+
+- **iOS** — Install the public beta from [TestFlight](https://testflight.apple.com/join/s3K7DF7H)
+- **macOS** — Download the latest signed and notarized release from [GitHub Releases](https://github.com/mukhtharcm/moku/releases/latest)
 
 ### Server (Self-Host)
 
@@ -110,33 +128,72 @@ docker run -d \
 ```
 
 The server exposes:
+
 - **API** — `http://localhost:8090/api/`
 - **Admin UI** — `http://localhost:8090/_/`
 
 ## 🚢 Release Automation
 
-- **Server image** — `main` pushes touching `server/**` build and publish `ghcr.io/<repo>/server`
-- **Website** — `main` pushes touching `website/**` deploy to Cloudflare Pages
-- **iOS** — `v*` tags and manual dispatch build and upload an IPA to TestFlight
-- **macOS** — `v*` tags and manual dispatch package macOS release artifacts for GitHub Releases
-- **Android canary** — `main` pushes touching `app/**` and manual dispatch build signed split APKs, upload them as workflow artifacts, and publish the three APKs to Telegram as one grouped post followed by a summary message
+- **iOS TestFlight** — `Deploy to TestFlight` runs on `v*` tags or manual dispatch, builds a signed IPA, uploads it to TestFlight, waits for processing with `asc`, applies beta metadata, validates the build, and submits it to the public group `Friends :)`
+- **macOS GitHub Releases** — `Release macOS App` runs on `v*` tags or manual dispatch, builds Flutter macOS from `app/`, signs with Developer ID, notarizes with `asc`, staples the app and DMG, uploads workflow artifacts, and publishes ZIP/DMG assets to GitHub Releases when triggered by a tag or manual `publish_release=true`
+- **Android canary** — `Build Android Canary` runs on `main` changes under `app/**` or manual dispatch, builds signed split APKs, uploads workflow artifacts, and posts the APKs to Telegram
+- **Server image** — `Build and Push Server Image` publishes the PocketBase server image to GHCR when `server/**` changes
+- **Website** — `Deploy Website` publishes the website to Cloudflare Pages when `website/**` changes
 
-### Android Canary Setup
+### Release Secrets
 
-Add these GitHub Actions secrets before enabling the Android canary workflow:
+App Store Connect API key secrets are shared by iOS TestFlight and macOS notarization:
 
-- `ANDROID_KEYSTORE_BASE64` — base64-encoded Android upload keystore (`.jks` or `.keystore`)
+- `ASC_KEY_ID`
+- `ASC_ISSUER_ID`
+- `ASC_KEY_BASE64`
+
+iOS TestFlight also requires:
+
+- `IOS_DISTRIBUTION_CERT_BASE64`
+- `IOS_DISTRIBUTION_CERT_PASSWORD`
+- `IOS_PROVISION_PROFILE_BASE64`
+- `KEYCHAIN_PASSWORD`
+
+macOS GitHub releases also require:
+
+- `BUILD_CERTIFICATE_BASE64`
+- `P12_PASSWORD`
+- `KEYCHAIN_PASSWORD`
+- `SIGNING_IDENTITY`
+
+Android canary releases require:
+
+- `ANDROID_KEYSTORE_BASE64`
 - `ANDROID_STORE_PASSWORD`
 - `ANDROID_KEY_ALIAS`
 - `ANDROID_KEY_PASSWORD`
 - `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID` — numeric chat ID or channel username such as `@moku_builds`
+- `TELEGRAM_CHAT_ID`
 
-For local release builds, copy `app/android/key.properties.example` to `app/android/key.properties` and fill in the same values. `ANDROID_KEYSTORE_PATH` may be absolute or relative to `app/android/`.
+For local Android release builds, copy `app/android/key.properties.example` to `app/android/key.properties` and fill in the same values. `ANDROID_KEYSTORE_PATH` may be absolute or relative to `app/android/`.
+
+### Local macOS Packaging
+
+The same packaging path used by CI can be run locally after exporting the signing and notarization environment variables:
+
+```bash
+VERSION=1.1.2 \
+BUILD_NUMBER=7 \
+SIGNING_IDENTITY="Developer ID Application: ..." \
+ASC_KEY_ID="..." \
+ASC_ISSUER_ID="..." \
+NOTARYTOOL_KEY_PATH="$HOME/.private_keys/AuthKey_XXXX.p8" \
+NOTARIZE=true \
+.github/scripts/package_macos_flutter.sh
+```
+
+The script writes release artifacts to `dist/macos/<version>/`.
 
 ## 🎨 Design
 
 Moku uses a warm, bookish design language:
+
 - **Primary**: Purple (#6B4EFF)
 - **Accent**: Warm Orange / Coral (#FF8A65)
 - **Typography**: Serif fonts (Literata, Georgia) for reading, DM Sans for UI
