@@ -4,9 +4,18 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version to release (e.g. 1.0.0). Defaults to tag name without leading v.
+        description: Version to release (e.g. 1.1.2). Defaults to pubspec.yaml.
         required: false
         type: string
+      build_number:
+        description: Build number override. Defaults to the GitHub run number.
+        required: false
+        type: string
+      notarize:
+        description: Submit and staple notarization tickets.
+        required: false
+        default: true
+        type: boolean
   push:
     tags:
       - "v*"
@@ -16,21 +25,45 @@ permissions:
 
 jobs:
   package-release:
-    runs-on: macos-latest
+    runs-on: macos-26
+    timeout-minutes: 90
     env:
       APP_NAME: Moku
-      BUNDLE_IDENTIFIER: com.mukhtharcm.moku
+      BUNDLE_IDENTIFIER: com.moku.moku
+      FLUTTER_VERSION: "3.41.7"
       HAS_SIGNING_SECRETS: ${{ secrets.BUILD_CERTIFICATE_BASE64 != '' && secrets.P12_PASSWORD != '' && secrets.KEYCHAIN_PASSWORD != '' && secrets.SIGNING_IDENTITY != '' }}
-      HAS_NOTARY_SECRETS: ${{ secrets.APPLE_ID != '' && secrets.APP_SPECIFIC_PASSWORD != '' && secrets.TEAM_ID != '' }}
+      HAS_ASC_SECRETS: ${{ secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' && secrets.ASC_KEY_BASE64 != '' }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.3"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Set up Ruby for CocoaPods
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+
+      - name: Install CocoaPods
+        run: gem install cocoapods
 
       - name: Resolve release metadata
         id: meta
         env:
-          INPUT_VERSION: ${{ github.event.inputs.version }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_BUILD_NUMBER: ${{ inputs.build_number }}
+          INPUT_NOTARIZE: ${{ inputs.notarize }}
         run: |
           version="$INPUT_VERSION"
 
@@ -39,36 +72,55 @@ jobs:
           fi
 
           if [[ -z "$version" ]]; then
-            version="1.0.0"
+            version=$(awk '/^version:/ {print $2; exit}' app/pubspec.yaml)
+            version="${version%%+*}"
+          fi
+
+          build_number="$INPUT_BUILD_NUMBER"
+          if [[ -z "$build_number" ]]; then
+            build_number="${GITHUB_RUN_NUMBER}"
+          fi
+
+          notarize="true"
+          if [[ "$INPUT_NOTARIZE" == "false" ]]; then
+            notarize="false"
           fi
 
           release_tag="v$version"
-
           if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
             release_tag="$GITHUB_REF_NAME"
           fi
 
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          {
+            echo "version=$version"
+            echo "build_number=$build_number"
+            echo "notarize=$notarize"
+            echo "release_tag=$release_tag"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Install XcodeGen
-        run: brew install xcodegen
+      - name: Validate release secrets
+        env:
+          NOTARIZE: ${{ steps.meta.outputs.notarize }}
+        run: |
+          if [[ "$HAS_SIGNING_SECRETS" != "true" ]]; then
+            echo "::error::Missing Developer ID signing secrets: BUILD_CERTIFICATE_BASE64, P12_PASSWORD, KEYCHAIN_PASSWORD, SIGNING_IDENTITY"
+            exit 1
+          fi
 
-      - name: Cache dmgbuild environment
-        uses: actions/cache@v5
-        with:
-          path: macos-app/.build/dmgbuild-venv
-          key: ${{ runner.os }}-dmgbuild-${{ hashFiles('macos-app/Tools/package-release.sh', 'macos-app/Packaging/dmgbuild-settings.py') }}
+          if [[ "$NOTARIZE" == "true" && "$HAS_ASC_SECRETS" != "true" ]]; then
+            echo "::error::Missing App Store Connect API key secrets for notarization: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_BASE64"
+            exit 1
+          fi
 
       - name: Import Developer ID certificate
-        if: env.HAS_SIGNING_SECRETS == 'true'
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          SIGNING_IDENTITY: ${{ secrets.SIGNING_IDENTITY }}
         run: |
-          certificate_path="$RUNNER_TEMP/moku-signing-certificate.p12"
-          keychain_path="$RUNNER_TEMP/moku-signing.keychain-db"
+          certificate_path="$RUNNER_TEMP/moku-developer-id.p12"
+          keychain_path="$RUNNER_TEMP/moku-macos-signing.keychain-db"
 
           echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o "$certificate_path"
 
@@ -80,48 +132,71 @@ jobs:
           security list-keychains -d user -s "$keychain_path" login.keychain-db
           security default-keychain -d user -s "$keychain_path"
 
-      - name: Package release artifacts
-        env:
-          VERSION: ${{ steps.meta.outputs.version }}
-          BUILD_NUMBER: ${{ github.run_number }}
-          SIGNING_IDENTITY: ${{ secrets.SIGNING_IDENTITY }}
-        run: |
-          export DEVELOPER_DIR="$(xcode-select -p)"
-          cd macos-app && ./Tools/package-release.sh
+          security find-identity -v -p codesigning | grep -F "$SIGNING_IDENTITY"
 
-      - name: Notarize release artifacts
-        if: env.HAS_SIGNING_SECRETS == 'true' && env.HAS_NOTARY_SECRETS == 'true'
+      - name: Install asc
+        if: steps.meta.outputs.notarize == 'true'
+        run: brew install asc
+
+      - name: Authenticate asc
+        if: steps.meta.outputs.notarize == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_BASE64: ${{ secrets.ASC_KEY_BASE64 }}
+        run: |
+          mkdir -p ~/.private_keys
+          asc_key_path="$HOME/.private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          echo -n "$ASC_KEY_BASE64" | base64 --decode -o "$asc_key_path"
+          chmod 600 "$asc_key_path"
+
+          asc auth login \
+            --name ci \
+            --key-id "$ASC_KEY_ID" \
+            --issuer-id "$ASC_ISSUER_ID" \
+            --private-key "$asc_key_path" \
+            --network
+
+          echo "NOTARYTOOL_KEY_PATH=$asc_key_path" >> "$GITHUB_ENV"
+
+      - name: Build, sign, package, and notarize
         env:
           VERSION: ${{ steps.meta.outputs.version }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
-          TEAM_ID: ${{ secrets.TEAM_ID }}
-        run: cd macos-app && ./Tools/notarize-release.sh
+          BUILD_NUMBER: ${{ steps.meta.outputs.build_number }}
+          SIGNING_IDENTITY: ${{ secrets.SIGNING_IDENTITY }}
+          APP_NAME: ${{ env.APP_NAME }}
+          BUNDLE_IDENTIFIER: ${{ env.BUNDLE_IDENTIFIER }}
+          NOTARIZE: ${{ steps.meta.outputs.notarize }}
+          NOTARIZE_DMG: "true"
+          NOTARY_ATTEMPTS: "3"
+          ASC_NOTARY_ATTEMPTS: "1"
+          ASC_UPLOAD_TIMEOUT: 5m
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          NOTARYTOOL_KEY_PATH: ${{ env.NOTARYTOOL_KEY_PATH }}
+        run: .github/scripts/package_macos_flutter.sh
 
       - name: Upload workflow artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
-          name: moku-release-${{ steps.meta.outputs.version }}
+          name: Moku-macos-${{ steps.meta.outputs.version }}+${{ steps.meta.outputs.build_number }}
           path: |
-            macos-app/dist/${{ steps.meta.outputs.version }}/*.zip
-            macos-app/dist/${{ steps.meta.outputs.version }}/*.dmg
-            macos-app/dist/${{ steps.meta.outputs.version }}/notary-log.json
-          if-no-files-found: ignore
+            dist/macos/${{ steps.meta.outputs.version }}/*.zip
+            dist/macos/${{ steps.meta.outputs.version }}/*.dmg
+            dist/macos/${{ steps.meta.outputs.version }}/*.log
+            dist/macos/${{ steps.meta.outputs.version }}/*.txt
+          if-no-files-found: error
           retention-days: 14
 
-      - name: Extract release notes from changelog
+      - name: Write release notes
         env:
           VERSION: ${{ steps.meta.outputs.version }}
         run: |
-          cd macos-app
-          ./Tools/extract-changelog.sh CHANGELOG.md "$VERSION" > "$RUNNER_TEMP/release-notes.md"
-
-          if [[ ! -s "$RUNNER_TEMP/release-notes.md" ]]; then
-            echo "No changelog entry for $VERSION — using default notes." >&2
-            echo "## Moku $VERSION" > "$RUNNER_TEMP/release-notes.md"
-            echo "" >> "$RUNNER_TEMP/release-notes.md"
-            echo "macOS release of Moku ebook reader." >> "$RUNNER_TEMP/release-notes.md"
-          fi
+          {
+            echo "## Moku $VERSION"
+            echo
+            echo "Flutter macOS release of Moku."
+          } > "$RUNNER_TEMP/release-notes.md"
 
       - name: Publish GitHub release
         if: startsWith(github.ref, 'refs/tags/')
@@ -150,26 +225,34 @@ jobs:
           fi
 
           gh release upload "$RELEASE_TAG" \
-            "macos-app/dist/$VERSION/$zip_name" \
-            "macos-app/dist/$VERSION/$dmg_name" \
+            "dist/macos/$VERSION/$zip_name" \
+            "dist/macos/$VERSION/$dmg_name" \
             --clobber
 
       - name: Write release summary
+        if: always()
         env:
           VERSION: ${{ steps.meta.outputs.version }}
+          BUILD_NUMBER: ${{ steps.meta.outputs.build_number }}
+          NOTARIZE: ${{ steps.meta.outputs.notarize }}
         run: |
-          if [[ "$HAS_SIGNING_SECRETS" == "true" && "$HAS_NOTARY_SECRETS" == "true" ]]; then
-            status="signed and notarized"
-          elif [[ "$HAS_SIGNING_SECRETS" == "true" ]]; then
-            status="signed but not notarized"
-          else
-            status="unsigned"
-          fi
-
           {
             echo "## Moku macOS release"
             echo
-            echo "- Version: $VERSION"
-            echo "- Bundle identifier: com.mukhtharcm.moku"
-            echo "- Artifact status: $status"
+            echo "- Version: \`$VERSION\`"
+            echo "- Build: \`$BUILD_NUMBER\`"
+            echo "- Bundle identifier: \`$BUNDLE_IDENTIFIER\`"
+            echo "- Notarization requested: \`$NOTARIZE\`"
+            echo
+            echo "### Artifacts"
+            echo
+            find "dist/macos/$VERSION" -maxdepth 1 -type f -print 2>/dev/null | sort | sed 's/^/- /' || true
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Clean up
+        if: always()
+        run: |
+          asc auth logout --name ci || true
+          security delete-keychain "$RUNNER_TEMP/moku-macos-signing.keychain-db" || true
+          rm -f "$RUNNER_TEMP/moku-developer-id.p12"
+          rm -rf ~/.private_keys

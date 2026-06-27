@@ -1,6 +1,7 @@
 server/server
 server/pb_data/
 app/build/
+dist/
 
 # macOS build artifacts
 macos-app/.build/
